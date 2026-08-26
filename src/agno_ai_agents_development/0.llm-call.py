@@ -7,8 +7,11 @@ load_dotenv()
 anthropic_api_key = os.getenv("CLAUDE_API_KEY")
 
 agent = Agent(
-    model=Claude(id="claude-sonnet-4-5-20250929", api_key=anthropic_api_key),
-    markdown=True,
+    model=Claude(id="claude-sonnet-5", 
+        api_key=anthropic_api_key,
+        effort="medium",
+        max_tokens=1000000
+    )
 )
 
 if __name__ == "__main__":
