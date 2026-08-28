@@ -382,8 +382,28 @@ A Fase 2 manda decidir e registrar se o `migration_smoke` compartilha o `Conditi
 
 Um PR que altera `models.py` sem gerar migration bate no primeiro e não no segundo — e essa assimetria é justamente um achado que a gente quer. O smoke roda `alembic upgrade head` seguido de `pytest`, com `HALCYON_DATABASE_URL` (prefixo `HALCYON_`, confirmado em `apps/api/src/halcyon_api/config.py`) apontando para a branch efêmera **via variável de ambiente do processo, nunca no contexto de nenhum agente** (§10.5, §10.6).
 
-**Q8 — Confirma a leitura sem checkout do N2?**
-Materializar os arquivos tocados pelo PR num diretório temporário via `git --git-dir=<REPO_ALVO>/.git cat-file`, e apontar `read_file_range`, `grep_repo` e `impeccable_detect` para lá. A alternativa que eu **não** recomendo é `git worktree add`, que escreve em `<REPO_ALVO>/.git/worktrees` e portanto viola a §10.1 na letra.
+**~~Q8 — Confirma a leitura sem checkout do N2?~~ APROVADA.**
+Leitura via `cat-file`, sem `checkout` e sem `worktree`. Os comandos foram validados contra o `REPO_ALVO` real, em modo bare (`--git-dir`, sem `--work-tree`), e a árvore de trabalho dele ficou limpa depois:
+
+```bash
+A=<REPO_ALVO>/.git
+
+# 1. arquivos tocados pelo PR
+git --git-dir="$A" diff --name-only <base>...<head>
+
+# 2. diff unificado para o Step de contexto
+git --git-dir="$A" diff -U5 <base>...<head>
+
+# 3. conteúdo de um arquivo no estado do PR, para materializar no temp dir
+git --git-dir="$A" cat-file -p <head>:<path>
+```
+
+Duas armadilhas descobertas na validação, que vão para o código:
+
+- **`diff-tree` não serve.** Contra um merge commit ele devolve vazio (sem `-m`/`--cc`), e head de PR frequentemente é merge. A forma certa é o range `base...head`, que é o que o `get_diff` do blueprint já usa.
+- **`cat-file -p <rev>:<path>` lê o blob daquele commit**, não do disco. É isso que faz a §10.2 continuar verdadeira quando o `REPO_ALVO` local está em outra branch: a `evidence` é copiada do estado do PR, não do working tree.
+
+Caso de teste já identificado: o PR #5 do `halcyon-goods-product-control` (`55e47de...04d31f1`) toca `apps/api/migrations/versions/`, `schemas.py` **e** `models.py` — dispara os dois gates da Q7 ao mesmo tempo. Serve de fixture para `test_gates.py`.
 
 ---
 
@@ -430,4 +450,4 @@ Feito: removidas as chaves `hooks` e `description` de `.claude/settings.local.js
 
 ---
 
-**Parado aqui, conforme a §12.** Com a Q1 fechada, a Fase 1 está desbloqueada e depende só do seu "vai". As demais perguntas (Q2 embedder, Q3 Neon, Q4 escopo das skills do Neon, Q6 corpus de PRs, Q7 gates, Q8 leitura sem checkout) travam as fases 2, 3 e 13 — nenhuma trava a Fase 1.
+**Parado aqui, conforme a §12.** Com a Q1 fechada e a Q8 aprovada, a Fase 1 tem tudo o que precisa — contratos e blueprint em mãos, e o mecanismo de leitura do PR decidido e validado — e depende só do seu "vai". As demais perguntas (Q2 embedder, Q3 Neon, Q4 escopo das skills do Neon, Q6 corpus de PRs, Q7 gates) travam as fases 2, 3 e 13.
