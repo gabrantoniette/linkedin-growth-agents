@@ -16,3 +16,6 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude Code — configuracao local de maquina
+.claude/settings.local.json
