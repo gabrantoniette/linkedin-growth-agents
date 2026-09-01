@@ -17,8 +17,8 @@ Trabalhe em fases. Cada fase tem critério de aceite explícito. **Não avance d
 REPO_ALVO        = "C:\Users\gabra\Documents\professional\repositories\git-gabrantoniette\halcyon-goods-product-control"
 REPO_AGENTE      = "C:\Users\gabra\Documents\professional\repositories\git-gabrantoniette\agno-ai-agents-development"
 NEON_PROJECT_ID  = id do projeto Neon quando criado que fica a sua escolha
-MODELO_REVISOR   = claude-opus-5-high
-MODELO_VERIFIER  = claude-opus-4.8-high
+MODELO_REVISOR   = claude-opus-5-max  
+MODELO_VERIFIER  = claude-opus-4.8-max
 FRONTEND_ALVO    = "C:\Users\gabra\Documents\professional\repositories\git-gabrantoniette\halcyon-goods-product-control\apps\web"
 ```
 
