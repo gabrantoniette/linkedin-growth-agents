@@ -141,7 +141,7 @@ def reviewer(name: str, role: str, focus: str) -> Agent:
     return Agent(
         name=name,
         role=role,
-        model=Claude(id="claude-sonnet-4-6"),
+        model=Claude(id="claude-opus-5-max"),
         tools=[read_file_range, grep_repo],
         instructions=[CHECKLIST, focus],
         output_schema=ReviewOutput,
@@ -187,7 +187,7 @@ coverage_reviewer = reviewer(
 verifier = Agent(
     name="verifier",
     role="Auditor de achados",
-    model=Claude(id="claude-sonnet-4-6"),
+    model=Claude(id="claude-opus-5-8-max"),
     tools=[read_file_range, grep_repo],
     instructions=[
         "Você recebe achados de outros revisores. Para cada um, leia o código real "
