@@ -9,6 +9,14 @@ __pycache__/
 .env
 .env.local
 
+# Dados pessoais — o export do LinkedIn e o perfil derivado dele
+perfil/linkedin_export/
+perfil/perfil.yaml
+perfil/voz.md
+
+# Banco de sessões dos agentes
+tmp/
+
 # IDE
 .vscode/
 .idea/

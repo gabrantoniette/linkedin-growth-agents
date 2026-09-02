@@ -12,6 +12,8 @@ export const APIRoutes = {
   GetTeams: (agentOSUrl: string) => `${agentOSUrl}/teams`,
   TeamRun: (agentOSUrl: string, teamId: string) =>
     `${agentOSUrl}/teams/${teamId}/runs`,
-  DeleteTeamSession: (agentOSUrl: string, teamId: string, sessionId: string) =>
-    `${agentOSUrl}/v1//teams/${teamId}/sessions/${sessionId}`
+  // A UI foi escrita para o Agno 2.x, que servia em /v1. No AgentOS 3.0 a rota
+  // de sessão é a mesma para agente e time, sem prefixo de versão.
+  DeleteTeamSession: (agentOSUrl: string, _teamId: string, sessionId: string) =>
+    `${agentOSUrl}/sessions/${sessionId}`
 }
