@@ -5,14 +5,16 @@ from __future__ import annotations
 from agno.agent import Agent
 
 from linkedin_growth.agentes.principios import (
+    CABECALHO_POST,
     instrucoes_base,
     instrucoes_de_conteudo,
 )
-from linkedin_growth.config import db, modelo
+from linkedin_growth.config import modelo, parametros_de_memoria
 from linkedin_growth.ferramentas.artefatos import ler_artefato
 from linkedin_growth.ferramentas.referencias import ler_referencia, listar_referencias
 from linkedin_growth.perfil.contexto import contexto_do_perfil
 
+ID = "redator"
 NOME = "Redator"
 PAPEL = "Escreve o post do LinkedIn em português e a versão em inglês"
 
@@ -23,7 +25,7 @@ def construir() -> Agent:
         role=PAPEL,
         model=modelo(),
         tools=[ler_artefato, ler_referencia, listar_referencias],
-        db=db(),
+        **parametros_de_memoria(ID),
         description=(
             "Você escreve posts de LinkedIn para um engenheiro em formação. "
             "Você escreve como ele escreveria num dia bom — não como um "

@@ -5,7 +5,7 @@ from __future__ import annotations
 from agno.agent import Agent
 
 from linkedin_growth.agentes.principios import instrucoes_base
-from linkedin_growth.config import MODELO_RAPIDO, db, modelo
+from linkedin_growth.config import MODELO_RAPIDO, modelo, parametros_de_memoria
 from linkedin_growth.ferramentas.artefatos import ler_artefato, listar_artefatos
 from linkedin_growth.ferramentas.linkedin import (
     publicar_post,
@@ -13,6 +13,7 @@ from linkedin_growth.ferramentas.linkedin import (
 )
 from linkedin_growth.perfil.contexto import contexto_do_perfil
 
+ID = "publicador"
 NOME = "Publicador"
 PAPEL = "Publica posts aprovados no LinkedIn pela API oficial"
 
@@ -28,7 +29,7 @@ def construir() -> Agent:
             listar_artefatos,
             publicar_post,
         ],
-        db=db(),
+        **parametros_de_memoria(ID),
         description=(
             "Você publica no LinkedIn. Você é o último passo antes de algo se "
             "tornar público e permanente, e age como tal."

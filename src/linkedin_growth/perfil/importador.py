@@ -19,6 +19,7 @@ fonte de verdade dos agentes.
 from __future__ import annotations
 
 import csv
+import io
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -76,6 +77,13 @@ def _linhas_do_csv(caminho: Path, colunas_esperadas: Iterable[str]) -> list[dict
     Alguns arquivos (Connections.csv é o caso clássico) começam com linhas de
     aviso antes do cabeçalho. Procuramos a primeira linha que contenha alguma
     das colunas esperadas e tratamos ela como cabeçalho.
+
+    O texto vai para o `csv.reader` inteiro, dentro de um `StringIO`, e não
+    quebrado com `splitlines()`. A diferença importa: o 'Sobre' do perfil, a
+    descrição de cada experiência e o texto dos posts são campos multilinha
+    entre aspas, e `splitlines()` corta no meio deles — o leitor então
+    interpreta cada parágrafo como uma nova linha do CSV e o texto chega
+    embaralhado, cheio de aspas soltas e sem os parágrafos originais.
     """
     esperadas = {_normalizar(c) for c in colunas_esperadas}
 
@@ -84,7 +92,7 @@ def _linhas_do_csv(caminho: Path, colunas_esperadas: Iterable[str]) -> list[dict
     except OSError:
         return []
 
-    todas = list(csv.reader(bruto.splitlines()))
+    todas = list(csv.reader(io.StringIO(bruto)))
     if not todas:
         return []
 
@@ -129,12 +137,27 @@ ARQUIVOS_CONHECIDOS: dict[str, str] = {
 }
 
 
+def _chave_do_arquivo(nome: str) -> str:
+    """'Shares_1109184680' -> 'shares'.
+
+    O LinkedIn sufixa parte dos arquivos do export com o id numérico do membro
+    (Shares, Comments, Reactions, Votes...). Sem remover o sufixo,
+    `Shares_1109184680.csv` não casa com 'shares' e os posts antigos são
+    ignorados **em silêncio**: o `voz.md` não é gerado e o sistema inteiro passa
+    a escrever com tom genérico de LLM, sem nada indicando o que faltou.
+
+    O corte é feito antes de normalizar porque `_normalizar` come o underscore
+    e deixaria 'shares1109184680' — indistinguível de um nome de arquivo real.
+    """
+    return _normalizar(re.sub(r"_\d{4,}$", "", nome.strip()))
+
+
 def _mapear_arquivos(pasta: Path) -> tuple[dict[str, Path], list[Path]]:
     """Casa cada CSV da pasta com um rótulo conhecido."""
     reconhecidos: dict[str, Path] = {}
     ignorados: list[Path] = []
     for caminho in sorted(pasta.rglob("*.csv")):
-        chave = _normalizar(caminho.stem)
+        chave = _chave_do_arquivo(caminho.stem)
         rotulo = ARQUIVOS_CONHECIDOS.get(chave)
         if rotulo and rotulo not in reconhecidos:
             reconhecidos[rotulo] = caminho
@@ -243,6 +266,26 @@ def _extrair_skills(linhas: list[dict[str, str]]) -> list[str]:
     return vistas
 
 
+def _limpar_comentario(texto: str) -> str:
+    """Desfaz a codificação de quebra de linha do export do LinkedIn.
+
+    No `Shares.csv` cada quebra de parágrafo do post vira aspas + newline +
+    aspas. Depois que o leitor de CSV faz o trabalho dele, o texto chega assim:
+
+        ...à mesma pergunta:"\\n""Quantos ainda temos disso?""\\n""\\n"Provavelmente...
+
+    Sem desfazer isso, o `voz.md` fica ilegível e os agentes leem a amostra de
+    voz do usuário como uma parede de aspas — que é justamente o arquivo que
+    deveria ensiná-los a escrever como ele.
+
+    O padrão exige a quebra de linha entre as aspas, então aspas de verdade
+    (uma citação dentro do post) continuam de pé.
+    """
+    limpo = re.sub(r'"[ \t]*\n[ \t]*"', "\n\n", texto)
+    limpo = re.sub(r"\n{3,}", "\n\n", limpo)
+    return limpo.strip().strip('"').strip()
+
+
 def _extrair_posts(linhas: list[dict[str, str]]) -> list[PostAntigo]:
     posts: list[PostAntigo] = []
     for linha in linhas:
@@ -252,7 +295,7 @@ def _extrair_posts(linhas: list[dict[str, str]]) -> list[PostAntigo]:
         posts.append(
             PostAntigo(
                 data=_valor(linha, "Date", "Data"),
-                texto=texto,
+                texto=_limpar_comentario(texto),
                 link=_valor(linha, "ShareLink", "Link"),
             )
         )

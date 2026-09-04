@@ -26,9 +26,11 @@ from rich.table import Table
 from linkedin_growth.config import (
     CONTEUDO_DIR,
     EXPORT_DIR,
+    MAX_TOKENS,
     METRICAS_CSV,
     PERFIL_YAML,
     POSTS_DIR,
+    SESSAO_PADRAO,
     ConfiguracaoAusente,
     garantir_diretorios,
 )
@@ -49,6 +51,44 @@ console = Console()
 def _erro(mensagem: str) -> None:
     console.print(Panel(mensagem, title="Erro", border_style="red"))
     raise typer.Exit(code=1)
+
+
+def _avisar_se_truncou(saida) -> None:
+    """Avisa quando a resposta bateu no teto de `max_tokens`.
+
+    Isto já custou caro uma vez: o agente escreveu o relatório inteiro, a
+    resposta foi cortada exatamente no limite, a chamada de `salvar_artefato`
+    nunca aconteceu — e o texto na tela terminava com "salvei o relatório".
+    Nada indicava a falha. O teto foi aumentado em `config.MAX_TOKENS`, mas o
+    modo de falhar continua existindo, e ele é invisível por natureza: o
+    usuário só descobre quando vai procurar o arquivo.
+
+    O Agno não expõe o `stop_reason` do provedor, então o sinal usado é o
+    consumo da última mensagem batendo no teto.
+    """
+    ultima = next(
+        (
+            mensagem
+            for mensagem in reversed(saida.messages or [])
+            if mensagem.role == "assistant"
+        ),
+        None,
+    )
+    gastos = getattr(ultima, "metrics", None)
+    if not gastos or (gastos.output_tokens or 0) < MAX_TOKENS:
+        return
+
+    console.print(
+        Panel(
+            "A resposta foi cortada no limite de tokens, então o final se "
+            "perdeu — inclusive uma possível gravação de arquivo.\n\n"
+            "Confira se o artefato foi criado. Para dar mais espaço, aumente "
+            "no .env:\n"
+            f"    MAX_TOKENS={MAX_TOKENS * 2}",
+            title="Resposta truncada",
+            border_style="yellow",
+        )
+    )
 
 
 def _executar_agente(construtor, pergunta: str, titulo: str) -> None:
@@ -76,23 +116,33 @@ def _executar_agente(construtor, pergunta: str, titulo: str) -> None:
 
     if saida.content:
         console.print(Markdown(str(saida.content)))
+    _avisar_se_truncou(saida)
 
 
 def _extrair_secao(texto: str, idioma: str) -> Optional[str]:
-    """Pega o corpo do post sob '## Post (pt-BR)' ou '## Post (en)'.
+    """Pega o corpo do post sob o cabeçalho da versão pedida.
 
-    Feito com regex de propósito: o arquivo é gerado por um modelo e o formato
-    pode variar um pouco. Aceitamos as duas grafias e paramos no próximo '##'.
+    O cabeçalho vem de `principios.CABECALHO_POST`, que é a mesma constante que
+    o Editor recebe na instrução — as duas pontas do contrato saem da mesma
+    fonte, senão elas divergem em silêncio e o `publicar` quebra só na hora H.
+
+    O regex é tolerante de propósito no que não importa: o arquivo é gerado por
+    um modelo, então aceitamos um a três '#', variação de espaço e o sufixo de
+    país opcional. A parada é no próximo cabeçalho de qualquer nível.
     """
-    marcadores = {
-        "pt": r"##\s*Post\s*\(pt(?:-BR)?\)",
-        "en": r"##\s*Post\s*\(en(?:-US)?\)",
-    }
-    padrao = marcadores.get(idioma)
-    if not padrao:
+    from linkedin_growth.agentes.principios import CABECALHO_POST
+
+    cabecalho = CABECALHO_POST.get(idioma)
+    if not cabecalho:
         return None
+
+    rotulo = re.escape(cabecalho.lstrip("# ").strip())
+    # 'Post (pt-BR)' -> 'Post \( pt (-BR)? \)', para aceitar '(pt)' e '(pt-BR)'.
+    rotulo = rotulo.replace(r"\-BR", r"(?:\-BR)?").replace(r"\(en\)", r"\(en(?:\-US)?\)")
     achado = re.search(
-        rf"{padrao}\s*\n(.*?)(?=\n##\s|\Z)", texto, re.DOTALL | re.IGNORECASE
+        rf"^#{{1,3}}\s*{rotulo}\s*$\n(.*?)(?=^#{{1,3}}\s|\Z)",
+        texto,
+        re.DOTALL | re.IGNORECASE | re.MULTILINE,
     )
     return achado.group(1).strip() if achado else None
 
@@ -258,11 +308,31 @@ def publicar(
         _erro(f"Arquivo não encontrado: {arquivo}")
 
     texto_bruto = caminho.read_text(encoding="utf-8")
+
+    # O Editor reprova um post que afirme experiência que o usuário não teve, e
+    # quando faz isso ele omite de propósito os títulos publicáveis, para o
+    # recorte não achar texto. Sem esta checagem o usuário receberia "não
+    # encontrei a seção do idioma 'pt'" e iria caçar um bug de formato que não
+    # existe — a resposta certa é que o post foi reprovado, e por quê.
+    if re.search(r"^status:\s*reprovado\s*$", texto_bruto, re.MULTILINE):
+        _erro(
+            f"{caminho.name} foi reprovado pelo Editor e não pode ser publicado.\n\n"
+            "O motivo está no próprio arquivo, na seção 'Avaliação' — em geral "
+            "o post afirma algo que os seus dados reais não sustentam.\n\n"
+            "Resolva as pendências listadas lá e gere de novo com\n"
+            '    uv run linkedin post --tema "..."'
+        )
+
     corpo = _extrair_secao(texto_bruto, idioma)
     if not corpo:
+        from linkedin_growth.agentes.principios import CABECALHO_POST
+
         _erro(
             f"Não encontrei a seção do idioma '{idioma}' em {caminho.name}.\n"
-            "O arquivo precisa ter um cabeçalho '## Post (pt-BR)' ou '## Post (en)'."
+            f"O arquivo precisa ter um cabeçalho '{CABECALHO_POST['pt']}' ou "
+            f"'{CABECALHO_POST['en']}'.\n"
+            "Se o post foi gerado por uma versão antiga, rode "
+            "`uv run linkedin post --tema \"...\"` de novo."
         )
 
     if "[PREENCHER" in corpo:
@@ -382,18 +452,25 @@ def metricas() -> None:
 
 
 @app.command()
-def chat() -> None:
-    """Conversa com o time no terminal."""
+def chat(
+    sessao: Annotated[
+        str,
+        typer.Option(help="Qual conversa continuar. Sessões diferentes não se misturam."),
+    ] = SESSAO_PADRAO,
+) -> None:
+    """Conversa com o time no terminal, continuando de onde parou."""
     from linkedin_growth import times
 
     garantir_diretorios()
     try:
-        time = times.construir()
+        time = times.construir(sessao)
     except ConfiguracaoAusente as erro:
         _erro(str(erro))
 
     console.rule("[bold]Time de Presença no LinkedIn")
-    console.print("[dim]Digite 'sair' para encerrar.[/dim]\n")
+    console.print(
+        f"[dim]Conversa '[cyan]{sessao}[/cyan]'. Digite 'sair' para encerrar.[/dim]\n"
+    )
 
     while True:
         try:
@@ -428,6 +505,93 @@ def chat() -> None:
 
         console.print(Markdown(str(saida.content or "")))
         console.print()
+
+
+@app.command()
+def memoria(
+    esquecer: Annotated[
+        Optional[str],
+        typer.Option(help="Apaga uma memória pelo id mostrado na listagem."),
+    ] = None,
+    limpar: Annotated[
+        bool, typer.Option("--limpar", help="Apaga tudo o que o sistema lembra.")
+    ] = False,
+) -> None:
+    """Mostra o que o sistema aprendeu sobre você nas conversas.
+
+    Memória que não dá para inspecionar não dá para confiar: se um agente
+    passar a repetir uma bobagem, é aqui que se descobre de onde veio, e é aqui
+    que se apaga.
+    """
+    from linkedin_growth.config import USUARIO_ID, memoria as gerente_de_memoria
+
+    garantir_diretorios()
+    try:
+        gerente = gerente_de_memoria()
+    except ConfiguracaoAusente as erro:
+        _erro(str(erro))
+
+    if limpar:
+        if not Confirm.ask(
+            "\n[bold red]Apagar TUDO o que o sistema lembra de você?[/bold red]",
+            default=False,
+        ):
+            console.print("Cancelado.")
+            return
+        gerente.clear_user_memories(user_id=USUARIO_ID)
+        console.print("[green]Memória apagada.[/green]")
+        return
+
+    lembrancas = gerente.get_user_memories(user_id=USUARIO_ID) or []
+
+    if esquecer:
+        # A tabela mostra o id abreviado, então o comando aceita o prefixo.
+        achados = [
+            lembranca
+            for lembranca in lembrancas
+            if (lembranca.memory_id or "").startswith(esquecer)
+        ]
+        if not achados:
+            _erro(f"Não existe memória começando por '{esquecer}'.")
+        if len(achados) > 1:
+            _erro(
+                f"'{esquecer}' casa com {len(achados)} memórias. "
+                "Use mais caracteres do id."
+            )
+        gerente.delete_user_memory(
+            memory_id=achados[0].memory_id, user_id=USUARIO_ID
+        )
+        console.print(f"[green]Esquecido:[/green] {achados[0].memory}")
+        return
+
+    if not lembrancas:
+        console.print(
+            Panel(
+                "O sistema ainda não lembra de nada.\n\n"
+                "A memória é escrita durante a conversa com o time:\n"
+                "  [cyan]uv run linkedin chat[/cyan]\n\n"
+                "Conte o que você prefere, o que construiu e o que funcionou. "
+                "O que valer a pena guardar aparece aqui.",
+                title="Memória vazia",
+                border_style="yellow",
+            )
+        )
+        return
+
+    tabela = Table("id", "o que o sistema lembra", "temas", "quando")
+    for lembranca in lembrancas:
+        quando = lembranca.updated_at or lembranca.created_at
+        tabela.add_row(
+            (lembranca.memory_id or "")[:8],
+            lembranca.memory,
+            ", ".join(lembranca.topics or []),
+            date.fromtimestamp(quando).isoformat() if quando else "",
+        )
+    console.print(tabela)
+    console.print(
+        "\n[dim]Para apagar uma: "
+        "uv run linkedin memoria --esquecer <id>[/dim]"
+    )
 
 
 @app.command()

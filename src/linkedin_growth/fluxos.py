@@ -6,15 +6,27 @@ toda vez.
 
 Nota: a `agent_ui` deste repositório só conhece Agents e Teams — Workflows não
 aparecem no chat. Eles rodam pela CLI (`linkedin post`, `linkedin calendario`).
+
+**Por que os passos são executores e não `Step(agent=...)`:** o Agno monta a
+mensagem de um passo de agente com `_prepare_message`, que *substitui* a
+entrada do workflow pelo conteúdo do passo anterior. Ou seja, do segundo passo
+em diante o pedido original desaparece. Na prática isso significava que
+`linkedin post --tema "X"` produzia um post sobre outro assunto (o redator via
+só a lista de notícias que o pesquisador tinha levantado) e que
+`linkedin calendario --semanas 4` era ignorado — o planejador nunca ficava
+sabendo quantas semanas planejar. Compondo a mensagem à mão, cada passo recebe
+as duas coisas: o pedido e o trabalho de quem veio antes.
 """
 
 from __future__ import annotations
 
 import re
 import time
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 
+from agno.agent import Agent
 from agno.workflow import Step, StepInput, StepOutput, Workflow
 
 from linkedin_growth.agentes import editor, pesquisador, planejador, redator
@@ -40,6 +52,31 @@ def _slug(texto: str, limite: int = 5) -> str:
     )
     palavras = re.findall(r"[a-z0-9]+", sem_acento)[:limite]
     return "-".join(palavras) or "post"
+
+
+def passo(
+    nome: str,
+    construir: Callable[[], Agent],
+    mensagem: Callable[[str, str], str],
+) -> Step:
+    """Um passo de agente que decide explicitamente o que o agente vai ler.
+
+    `mensagem` recebe o pedido original do usuário e a saída do passo anterior,
+    e devolve o texto que o agente vê. É o ponto em que o fluxo garante que o
+    tema pedido não se perde no meio da esteira.
+    """
+
+    def executar(entrada: StepInput) -> StepOutput:
+        agente = construir()
+        saida = agente.run(
+            mensagem(
+                entrada.get_input_as_string() or "",
+                entrada.previous_step_content or "",
+            )
+        )
+        return StepOutput(content=str(saida.content or ""), step_name=nome)
+
+    return Step(name=nome, executor=executar)
 
 
 def _mais_recente(pasta: Path) -> Path | None:
@@ -82,9 +119,35 @@ def fluxo_post() -> Workflow:
         description="Pesquisa o tema, escreve em português e inglês, revisa e salva.",
         db=db(),
         steps=[
-            Step(name="pesquisa", agent=pesquisador.construir()),
-            Step(name="redacao", agent=redator.construir()),
-            Step(name="edicao", agent=editor.construir()),
+            passo(
+                "pesquisa",
+                pesquisador.construir,
+                lambda tema, _: (
+                    f"TEMA JÁ DECIDIDO: {tema}\n\n"
+                    "Levante material de apoio para um post sobre ESTE tema. "
+                    "Não faça a curadoria da semana e não sugira outras pautas: "
+                    "a escolha já foi feita pelo usuário."
+                ),
+            ),
+            passo(
+                "redacao",
+                redator.construir,
+                lambda tema, pesquisa: (
+                    f"TEMA DO POST: {tema}\n\n"
+                    "Escreva o post sobre esse tema, e só sobre ele.\n\n"
+                    f"Material que a pesquisa levantou:\n{pesquisa}"
+                ),
+            ),
+            passo(
+                "edicao",
+                editor.construir,
+                lambda tema, rascunho: (
+                    f"TEMA DO POST: {tema}\n\n"
+                    "Revise o rascunho abaixo. Se ele tiver escapado do tema, "
+                    "isso é um problema de conteúdo: aponte e corrija.\n\n"
+                    f"Rascunho:\n{rascunho}"
+                ),
+            ),
             Step(name="registro", executor=registrar_post),
         ],
     )
@@ -98,8 +161,17 @@ def fluxo_semana() -> Workflow:
         description="Levanta as pautas da semana e monta o calendário editorial.",
         db=db(),
         steps=[
-            Step(name="pesquisa", agent=pesquisador.construir()),
-            Step(name="calendario", agent=planejador.construir()),
+            passo("pesquisa", pesquisador.construir, lambda pedido, _: pedido),
+            passo(
+                "calendario",
+                planejador.construir,
+                lambda pedido, pautas: (
+                    f"PEDIDO DO USUÁRIO: {pedido}\n\n"
+                    "Monte o calendário exatamente com o número de semanas "
+                    "pedido acima.\n\n"
+                    f"Pautas que a pesquisa levantou:\n{pautas}"
+                ),
+            ),
         ],
     )
 

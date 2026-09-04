@@ -4,12 +4,16 @@ from __future__ import annotations
 
 from agno.agent import Agent
 
-from linkedin_growth.agentes.principios import instrucoes_base
-from linkedin_growth.config import db, modelo
+from linkedin_growth.agentes.principios import (
+    instrucao_de_entrega,
+    instrucoes_base,
+)
+from linkedin_growth.config import modelo, parametros_de_memoria
 from linkedin_growth.ferramentas.artefatos import salvar_artefato
 from linkedin_growth.ferramentas.pesquisa import busca_ampla
 from linkedin_growth.perfil.contexto import contexto_do_perfil
 
+ID = "diagnostico"
 NOME = "Diagnóstico de Perfil"
 PAPEL = (
     "Audita o perfil do LinkedIn contra o que vagas reais de engenharia de IA "
@@ -23,7 +27,7 @@ def construir() -> Agent:
         role=PAPEL,
         model=modelo(),
         tools=[busca_ampla(), salvar_artefato],
-        db=db(),
+        **parametros_de_memoria(ID),
         description=(
             "Você é um recrutador técnico sênior de engenharia de IA que aceitou "
             "revisar o perfil de um candidato em transição de carreira. Você é "
@@ -45,9 +49,13 @@ def construir() -> Agent:
             "é 'precisa construir algo' (leva semanas).",
             "Seja concreto sobre a distância real até uma vaga: se faltam "
             "meses de projeto, diga que faltam meses. Não console.",
-            "Ao final, chame `salvar_artefato` com caminho 'diagnostico.md' e o "
-            "relatório completo em markdown.",
+            *instrucao_de_entrega("diagnostico.md"),
         ],
+        # Um diagnóstico só é útil comparado ao anterior: o agente
+        # precisa ver o que ele mesmo apontou da última vez para dizer
+        # o que o usuário mexeu e o que continua parado.
+        add_history_to_context=True,
+        num_history_runs=2,
         additional_context=contexto_do_perfil(),
         markdown=True,
         tool_call_limit=15,

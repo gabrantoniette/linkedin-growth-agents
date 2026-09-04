@@ -14,6 +14,13 @@ perfil/linkedin_export/
 perfil/perfil.yaml
 perfil/voz.md
 
+# O que os agentes produzem a partir desses dados. Fica de fora pelo mesmo
+# motivo que o perfil: diagnóstico, textos de perfil e estratégia são a análise
+# da carreira de uma pessoa específica, não código do projeto. E é saída
+# gerada, que muda a cada execução — versionar isso só produziria ruído no
+# histórico. A estrutura de pastas é recriada por `garantir_diretorios()`.
+conteudo/
+
 # Banco de sessões dos agentes
 tmp/
 

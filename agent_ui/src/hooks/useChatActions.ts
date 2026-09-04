@@ -83,6 +83,13 @@ const useChatActions = () => {
         teams = await getTeams()
         agents = await getAgents()
 
+        // As duas listas vão para a store sempre, antes de qualquer escolha de
+        // modo. O código original só guardava a lista do modo corrente, então
+        // no primeiro carregamento (modo 'agent') `teams` ficava vazia e o
+        // seletor mostrava "No teams Available" até uma segunda inicialização.
+        setAgents(agents)
+        setTeams(teams)
+
         if (!agentId && !teamId) {
           const currentMode = useStore.getState().mode
 
@@ -92,18 +99,14 @@ const useChatActions = () => {
             setSelectedModel(firstTeam.model?.provider || '')
             setDbId(firstTeam.db_id || '')
             setAgentId(null)
-            setTeams(teams)
           } else if (currentMode === 'agent' && agents.length > 0) {
             const firstAgent = agents[0]
             setMode('agent')
             setAgentId(firstAgent.id)
             setSelectedModel(firstAgent.model?.model || '')
             setDbId(firstAgent.db_id || '')
-            setAgents(agents)
           }
         } else {
-          setAgents(agents)
-          setTeams(teams)
           if (agentId) {
             const agent = agents.find((a) => a.id === agentId)
             if (agent) {

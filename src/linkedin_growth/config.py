@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 
 from agno.db.sqlite import SqliteDb
+from agno.memory import MemoryManager
 from agno.models.anthropic import Claude
 from dotenv import load_dotenv
 
@@ -100,12 +101,25 @@ def exigir_linkedin() -> str:
 MODELO_PRINCIPAL = os.getenv("MODELO_PRINCIPAL", "claude-opus-5")
 MODELO_RAPIDO = os.getenv("MODELO_RAPIDO", "claude-sonnet-5")
 
+# O padrão do Agno é 8192, e é pouco para este sistema. Os agentes daqui
+# escrevem um documento longo (diagnóstico, estratégia, calendário) e, no fim,
+# chamam `salvar_artefato` com o documento inteiro no argumento. Com 8192 o
+# texto consome a cota sozinho: a resposta é cortada no meio, a chamada da
+# ferramenta nunca acontece e o arquivo não é criado — enquanto o modelo já
+# escreveu "salvei o relatório". Falha cara e silenciosa.
+#
+# 16000 é o valor recomendado para requisição sem streaming, que é o caso aqui
+# (`agente.run()`). Opus 5 e Sonnet 5 aceitam até 128000, mas passar disso sem
+# streaming esbarra no timeout HTTP do SDK.
+MAX_TOKENS = int(os.getenv("MAX_TOKENS", "16000"))
+
 
 def modelo(id_modelo: str | None = None) -> Claude:
     """Instancia o modelo Claude usado pelos agentes."""
     return Claude(
         id=id_modelo or MODELO_PRINCIPAL,
-        api_key=exigir_anthropic()
+        api_key=exigir_anthropic(),
+        max_tokens=MAX_TOKENS,
     )
 
 
@@ -122,3 +136,81 @@ def db() -> SqliteDb:
         TMP_DIR.mkdir(parents=True, exist_ok=True)
         _db = SqliteDb(db_file=str(DB_FILE))
     return _db
+
+
+# ==============================================================================
+# Memória
+# ==============================================================================
+# O sistema é de uma pessoa só, mas o Agno indexa memória por `user_id`. Sem um
+# id fixo tudo cairia num balde anônimo e nada seria recuperável — então ele
+# existe, e é configurável para quem clonar o projeto.
+USUARIO_ID = os.getenv("USUARIO_ID", "usuario")
+
+# Conversa padrão da CLI. Um id estável é o que faz `linkedin chat` de hoje
+# continuar o `linkedin chat` de ontem: sem ele, o Agno sorteia uma sessão nova
+# a cada processo e o histórico recomeça do zero.
+SESSAO_PADRAO = os.getenv("SESSAO_PADRAO", "principal")
+
+
+def sessao_do_agente(id_agente: str) -> str:
+    """Sessão estável de um agente da CLI.
+
+    Cada comando (`diagnosticar`, `estrategia`, ...) tem a sua, para que o
+    agente veja as próprias execuções anteriores sem misturá-las com as dos
+    outros nem com a conversa do time.
+    """
+    return f"cli-{id_agente}"
+
+
+_memoria: MemoryManager | None = None
+
+
+def memoria() -> MemoryManager:
+    """O gerente de memória de longo prazo, compartilhado por todo o sistema.
+
+    Roda no modelo rápido de propósito: destilar uma frase do que acabou de ser
+    dito é trabalho mecânico, e essa chamada acontece ao fim de toda conversa.
+
+    `delete_memories` e `clear_memories` ficam desligados: apagar memória é
+    decisão do usuário, pelo comando `linkedin memoria`, não de um modelo no
+    meio de uma conversa.
+    """
+    # Import tardio: `principios` mora dentro do pacote `agentes`, cujo
+    # `__init__` importa os agentes, que importam este módulo. No topo do
+    # arquivo isso seria um ciclo.
+    from linkedin_growth.agentes.principios import instrucoes_de_memoria
+
+    global _memoria
+    if _memoria is None:
+        _memoria = MemoryManager(
+            db=db(),
+            model=modelo(MODELO_RAPIDO),
+            memory_capture_instructions=instrucoes_de_memoria(),
+            add_memories=True,
+            update_memories=True,
+            delete_memories=False,
+            clear_memories=False,
+        )
+    return _memoria
+
+
+def parametros_de_memoria(id_agente: str) -> dict[str, object]:
+    """Os parâmetros de memória que todo agente recebe, num lugar só.
+
+    Fica aqui, e não repetido em oito arquivos, pelo mesmo motivo que os
+    princípios ficam em `principios.py`: quando a política mudar, muda em um
+    lugar.
+
+    A divisão de trabalho é deliberada: **os agentes leem a memória, o time
+    escreve.** Um agente da CLI recebe sempre o mesmo comando enlatado, então
+    quase nunca aprende algo novo sobre o usuário — extrair memória ao fim de
+    cada execução seria uma chamada de modelo a mais para não guardar nada. É
+    na conversa, no `Team`, que o usuário conta as coisas.
+    """
+    return {
+        "db": db(),
+        "user_id": USUARIO_ID,
+        "session_id": sessao_do_agente(id_agente),
+        "memory_manager": memoria(),
+        "add_memories_to_context": True,
+    }
