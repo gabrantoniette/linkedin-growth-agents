@@ -83,10 +83,10 @@ const useChatActions = () => {
         teams = await getTeams()
         agents = await getAgents()
 
-        // As duas listas vão para a store sempre, antes de qualquer escolha de
-        // modo. O código original só guardava a lista do modo corrente, então
-        // no primeiro carregamento (modo 'agent') `teams` ficava vazia e o
-        // seletor mostrava "No teams Available" até uma segunda inicialização.
+        // Both lists always go into the store, before any mode choice. The
+        // original code only kept the current mode's list, so on the first load
+        // (mode 'agent') `teams` stayed empty and the selector showed
+        // "No teams Available" until a second initialization.
         setAgents(agents)
         setTeams(teams)
 

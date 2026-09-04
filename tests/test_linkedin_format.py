@@ -1,9 +1,9 @@
-"""Formatação e montagem de payload para a API do LinkedIn.
+"""Formatting and payload assembly for the LinkedIn API.
 
-Nada aqui faz requisição: são funções puras, testadas contra o comportamento
-que a API espera. É o trecho do projeto com maior chance de quebrar em
-silêncio — um escape errado não estoura exceção, só publica um post com
-`\\#` visível no meio do texto.
+Nothing here makes a request: these are pure functions, tested against the
+behaviour the API expects. It is the part of the project most likely to break
+silently. A wrong escape raises no exception, it just publishes a post with a
+visible `\\#` in the middle of the text.
 """
 
 from __future__ import annotations
@@ -11,37 +11,37 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from linkedin_growth.ferramentas.linkedin import (
-    RESERVADOS_LITTLE,
-    _url_do_post,
-    escapar_little,
-    para_little,
-    payload_rest,
-    payload_ugc,
+from linkedin_growth.tools.linkedin import (
+    LITTLE_RESERVED,
+    _post_url,
+    escape_little,
+    rest_payload,
+    to_little,
+    ugc_payload,
 )
 
-AUTOR = "urn:li:person:abc123"
+AUTHOR = "urn:li:person:abc123"
 
 
 # ==============================================================================
-# Escape
+# Escaping
 # ==============================================================================
 
 
-@pytest.mark.parametrize("reservado", sorted(RESERVADOS_LITTLE))
-def test_escapar_little_escapa_todo_caractere_reservado(reservado: str):
-    """A doc do LinkedIn é explícita: todo reservado é escapado, sempre."""
-    assert escapar_little(reservado) == "\\" + reservado
+@pytest.mark.parametrize("reserved", sorted(LITTLE_RESERVED))
+def test_escape_little_escapes_every_reserved_character(reserved: str):
+    """LinkedIn's docs are explicit: every reserved character is escaped, always."""
+    assert escape_little(reserved) == "\\" + reserved
 
 
-def test_escapar_little_nao_mexe_em_texto_comum():
-    texto = "Construí um agente em Python e ele funcionou."
+def test_escape_little_leaves_ordinary_text_alone():
+    text = "Construí um agente em Python e ele funcionou."
 
-    assert escapar_little(texto) == texto
+    assert escape_little(text) == text
 
 
-def test_escapar_little_preserva_acentuacao():
-    assert escapar_little("programação, ação e manutenção") == "programação, ação e manutenção"
+def test_escape_little_preserves_accents():
+    assert escape_little("programação, ação e manutenção") == "programação, ação e manutenção"
 
 
 # ==============================================================================
@@ -49,43 +49,43 @@ def test_escapar_little_preserva_acentuacao():
 # ==============================================================================
 
 
-def test_para_little_converte_hashtag_em_template_clicavel():
-    assert para_little("#IA") == "{hashtag|\\#|IA}"
+def test_to_little_turns_a_hashtag_into_a_clickable_template():
+    assert to_little("#IA") == "{hashtag|\\#|IA}"
 
 
-def test_para_little_converte_varias_hashtags_no_meio_do_texto():
-    resultado = para_little("texto antes #IA e #RAG fim")
+def test_to_little_converts_several_hashtags_mid_text():
+    result = to_little("texto antes #IA e #RAG fim")
 
-    assert resultado == "texto antes {hashtag|\\#|IA} e {hashtag|\\#|RAG} fim"
-
-
-def test_para_little_aceita_hashtag_acentuada():
-    """Os posts são em português: #programação precisa virar hashtag de verdade."""
-    assert para_little("#programação") == "{hashtag|\\#|programação}"
+    assert result == "texto antes {hashtag|\\#|IA} e {hashtag|\\#|RAG} fim"
 
 
-def test_para_little_nao_trata_sustenido_colado_em_palavra_como_hashtag():
-    """'C#' é nome de linguagem, não hashtag. Tem que sair escapado."""
-    assert para_little("escrevo em C# às vezes") == "escrevo em C\\# às vezes"
+def test_to_little_accepts_an_accented_hashtag():
+    """The posts are in Portuguese: #programação has to become a real hashtag."""
+    assert to_little("#programação") == "{hashtag|\\#|programação}"
 
 
-def test_para_little_nao_trata_sustenido_duplo_como_hashtag():
-    assert para_little("##IA") == "\\#\\#IA"
+def test_to_little_does_not_treat_a_hash_glued_to_a_word_as_a_hashtag():
+    """'C#' is a language name, not a hashtag. It has to come out escaped."""
+    assert to_little("escrevo em C# às vezes") == "escrevo em C\\# às vezes"
 
 
-def test_para_little_corta_hashtag_no_underscore():
-    """O LinkedIn não aceita underscore em hashtag, e ele é reservado.
+def test_to_little_does_not_treat_a_double_hash_as_a_hashtag():
+    assert to_little("##IA") == "\\#\\#IA"
 
-    O comportamento correto é a hashtag terminar antes do underscore e o resto
-    virar texto escapado.
+
+def test_to_little_ends_the_hashtag_at_the_underscore():
+    """LinkedIn does not accept an underscore in a hashtag, and it is reserved.
+
+    The correct behaviour is for the hashtag to end before the underscore and
+    the rest to come out as escaped text.
     """
-    assert para_little("#foo_bar") == "{hashtag|\\#|foo}\\_bar"
+    assert to_little("#foo_bar") == "{hashtag|\\#|foo}\\_bar"
 
 
-def test_para_little_escapa_reservados_ao_redor_da_hashtag():
-    resultado = para_little("veja (isto) #IA [aqui]")
+def test_to_little_escapes_reserved_characters_around_the_hashtag():
+    result = to_little("veja (isto) #IA [aqui]")
 
-    assert resultado == "veja \\(isto\\) {hashtag|\\#|IA} \\[aqui\\]"
+    assert result == "veja \\(isto\\) {hashtag|\\#|IA} \\[aqui\\]"
 
 
 # ==============================================================================
@@ -93,51 +93,51 @@ def test_para_little_escapa_reservados_ao_redor_da_hashtag():
 # ==============================================================================
 
 
-def test_payload_rest_usa_little_text_no_commentary():
-    payload = payload_rest("post com #IA", AUTOR)
+def test_rest_payload_uses_little_text_in_commentary():
+    payload = rest_payload("post com #IA", AUTHOR)
 
     assert payload["commentary"] == "post com {hashtag|\\#|IA}"
-    assert payload["author"] == AUTOR
+    assert payload["author"] == AUTHOR
     assert payload["lifecycleState"] == "PUBLISHED"
 
 
-def test_payload_ugc_usa_texto_puro_sem_escape():
-    """O endpoint legado não entende little text: mandar escapado publicaria as barras."""
-    payload = payload_ugc("post com #IA", AUTOR)
+def test_ugc_payload_uses_plain_text_with_no_escaping():
+    """The legacy endpoint does not understand little text: escaping would publish the backslashes."""
+    payload = ugc_payload("post com #IA", AUTHOR)
 
-    conteudo = payload["specificContent"]["com.linkedin.ugc.ShareContent"]
-    assert conteudo["shareCommentary"]["text"] == "post com #IA"
+    content = payload["specificContent"]["com.linkedin.ugc.ShareContent"]
+    assert content["shareCommentary"]["text"] == "post com #IA"
 
 
-def test_payloads_respeitam_a_visibilidade_pedida():
-    rest = payload_rest("texto", AUTOR, "CONNECTIONS")
-    ugc = payload_ugc("texto", AUTOR, "CONNECTIONS")
+def test_payloads_respect_the_requested_visibility():
+    rest = rest_payload("text", AUTHOR, "CONNECTIONS")
+    ugc = ugc_payload("text", AUTHOR, "CONNECTIONS")
 
     assert rest["visibility"] == "CONNECTIONS"
     assert ugc["visibility"]["com.linkedin.ugc.MemberNetworkVisibility"] == "CONNECTIONS"
 
 
 # ==============================================================================
-# URL do post publicado
+# URL of the published post
 # ==============================================================================
 
 
-def test_url_do_post_usa_o_header_x_restli_id():
-    resposta = httpx.Response(201, headers={"x-restli-id": "urn:li:share:7000"})
+def test_post_url_uses_the_x_restli_id_header():
+    response = httpx.Response(201, headers={"x-restli-id": "urn:li:share:7000"})
 
-    assert _url_do_post(resposta) == "https://www.linkedin.com/feed/update/urn:li:share:7000/"
-
-
-def test_url_do_post_cai_para_o_id_do_corpo_quando_nao_ha_header():
-    resposta = httpx.Response(201, json={"id": "urn:li:share:8000"})
-
-    assert _url_do_post(resposta) == "https://www.linkedin.com/feed/update/urn:li:share:8000/"
+    assert _post_url(response) == "https://www.linkedin.com/feed/update/urn:li:share:7000/"
 
 
-def test_url_do_post_sem_identificador_avisa_em_vez_de_montar_link_quebrado():
-    resposta = httpx.Response(201, content=b"resposta que nao e json")
+def test_post_url_falls_back_to_the_body_id_when_there_is_no_header():
+    response = httpx.Response(201, json={"id": "urn:li:share:8000"})
 
-    resultado = _url_do_post(resposta)
+    assert _post_url(response) == "https://www.linkedin.com/feed/update/urn:li:share:8000/"
 
-    assert "publicado" in resultado
-    assert "http" not in resultado
+
+def test_post_url_with_no_identifier_says_so_instead_of_building_a_broken_link():
+    response = httpx.Response(201, content=b"a response that is not json")
+
+    result = _post_url(response)
+
+    assert "published" in result
+    assert "http" not in result

@@ -1,8 +1,9 @@
-"""Modelo de dados do perfil.
+"""Profile data model.
 
-Este é o contrato entre o importador (que lê os CSVs do LinkedIn) e todos os
-agentes (que leem o perfil já estruturado). Tudo é opcional porque o export do
-LinkedIn varia — nem todo mundo tem certificações, projetos ou idiomas.
+This is the contract between the importer (which reads the LinkedIn CSVs) and
+every agent (which reads the structured profile). Everything is optional
+because the LinkedIn export varies: not everyone has certifications, projects
+or languages.
 """
 
 from __future__ import annotations
@@ -12,100 +13,100 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-class Experiencia(BaseModel):
-    empresa: Optional[str] = None
-    cargo: Optional[str] = None
-    descricao: Optional[str] = None
-    local: Optional[str] = None
-    inicio: Optional[str] = None
-    fim: Optional[str] = None
+class Experience(BaseModel):
+    company: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    location: Optional[str] = None
+    start: Optional[str] = None
+    end: Optional[str] = None
 
     @property
-    def atual(self) -> bool:
-        return not self.fim
+    def current(self) -> bool:
+        return not self.end
 
 
-class Formacao(BaseModel):
-    instituicao: Optional[str] = None
-    curso: Optional[str] = None
-    grau: Optional[str] = None
-    descricao: Optional[str] = None
-    inicio: Optional[str] = None
-    fim: Optional[str] = None
+class Education(BaseModel):
+    school: Optional[str] = None
+    course: Optional[str] = None
+    degree: Optional[str] = None
+    description: Optional[str] = None
+    start: Optional[str] = None
+    end: Optional[str] = None
 
 
-class Certificacao(BaseModel):
-    nome: Optional[str] = None
-    emissor: Optional[str] = None
+class Certification(BaseModel):
+    name: Optional[str] = None
+    issuer: Optional[str] = None
     url: Optional[str] = None
-    inicio: Optional[str] = None
-    fim: Optional[str] = None
+    start: Optional[str] = None
+    end: Optional[str] = None
 
 
-class Projeto(BaseModel):
-    titulo: Optional[str] = None
-    descricao: Optional[str] = None
+class Project(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
     url: Optional[str] = None
-    inicio: Optional[str] = None
-    fim: Optional[str] = None
+    start: Optional[str] = None
+    end: Optional[str] = None
 
 
-class Idioma(BaseModel):
-    nome: Optional[str] = None
-    proficiencia: Optional[str] = None
+class Language(BaseModel):
+    name: Optional[str] = None
+    proficiency: Optional[str] = None
 
 
-class PostAntigo(BaseModel):
-    """Post publicado no passado. Serve para o sistema aprender a voz do usuário."""
+class PastPost(BaseModel):
+    """A post published in the past. Teaches the system the user's voice."""
 
-    data: Optional[str] = None
-    texto: Optional[str] = None
+    date: Optional[str] = None
+    text: Optional[str] = None
     link: Optional[str] = None
 
 
-class Perfil(BaseModel):
-    """Retrato completo do usuário. Fonte de verdade de todos os agentes."""
+class Profile(BaseModel):
+    """Full picture of the user. Source of truth for every agent."""
 
-    # --- identidade -----------------------------------------------------------
-    nome: Optional[str] = None
+    # --- identity -------------------------------------------------------------
+    name: Optional[str] = None
     headline: Optional[str] = None
-    sobre: Optional[str] = None
-    setor: Optional[str] = None
-    localizacao: Optional[str] = None
-    sites: list[str] = Field(default_factory=list)
+    about: Optional[str] = None
+    industry: Optional[str] = None
+    location: Optional[str] = None
+    websites: list[str] = Field(default_factory=list)
 
-    # --- histórico ------------------------------------------------------------
-    experiencias: list[Experiencia] = Field(default_factory=list)
-    formacoes: list[Formacao] = Field(default_factory=list)
-    certificacoes: list[Certificacao] = Field(default_factory=list)
-    projetos: list[Projeto] = Field(default_factory=list)
-    idiomas: list[Idioma] = Field(default_factory=list)
+    # --- history --------------------------------------------------------------
+    experiences: list[Experience] = Field(default_factory=list)
+    education: list[Education] = Field(default_factory=list)
+    certifications: list[Certification] = Field(default_factory=list)
+    projects: list[Project] = Field(default_factory=list)
+    languages: list[Language] = Field(default_factory=list)
     skills: list[str] = Field(default_factory=list)
 
-    # --- histórico de conteúdo ------------------------------------------------
-    posts_antigos: list[PostAntigo] = Field(default_factory=list)
+    # --- content history ------------------------------------------------------
+    past_posts: list[PastPost] = Field(default_factory=list)
 
-    # --- objetivo (preenchido à mão no YAML, não vem do export) ---------------
-    objetivo: str = Field(
+    # --- goal (filled in by hand in the YAML, never from the export) ----------
+    goal: str = Field(
         default=(
-            "Migrar para engenharia de IA. Sem experiência profissional na área "
-            "ainda; estou aprendendo e construindo projetos em público."
+            "Moving into AI engineering. No professional experience in the "
+            "field yet; learning and building projects in public."
         ),
-        description="Para onde você quer ir. Editável à mão no perfil.yaml.",
+        description="Where you want to go. Edit by hand in profile.yaml.",
     )
-    temas_de_interesse: list[str] = Field(
+    topics_of_interest: list[str] = Field(
         default_factory=lambda: [
-            "agentes de IA",
+            "AI agents",
             "LLMs",
             "RAG",
             "Python",
-            "engenharia de prompt",
+            "prompt engineering",
         ]
     )
 
-    def resumo_curto(self) -> str:
-        """Uma linha para logs e cabeçalhos de artefato."""
-        partes = [self.nome or "(sem nome)"]
+    def short_summary(self) -> str:
+        """One line, for logs and artifact headers."""
+        parts = [self.name or "(no name)"]
         if self.headline:
-            partes.append(self.headline)
-        return " — ".join(partes)
+            parts.append(self.headline)
+        return " - ".join(parts)

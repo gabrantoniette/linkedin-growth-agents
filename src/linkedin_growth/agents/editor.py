@@ -1,73 +1,73 @@
-"""Agente que critica o rascunho contra a rubrica e entrega a versão final."""
+"""Agent that scores the draft against a rubric and delivers the final version."""
 
 from __future__ import annotations
 
 from agno.agent import Agent
 
-from linkedin_growth.agentes.principios import (
-    CABECALHO_POST,
-    RUBRICA,
-    instrucoes_base,
-    instrucoes_de_conteudo,
+from linkedin_growth.agents.principles import (
+    POST_HEADING,
+    RUBRIC,
+    base_instructions,
+    content_instructions,
 )
-from linkedin_growth.config import modelo, parametros_de_memoria
-from linkedin_growth.ferramentas.artefatos import data_de_hoje, salvar_artefato
-from linkedin_growth.ferramentas.referencias import ler_referencia, listar_referencias
-from linkedin_growth.perfil.contexto import contexto_do_perfil
+from linkedin_growth.config import memory_params, model
+from linkedin_growth.profile.context import profile_context
+from linkedin_growth.tools.artifacts import save_artifact, today
+from linkedin_growth.tools.references import list_references, read_reference
 
 ID = "editor"
-NOME = "Editor"
-PAPEL = "Critica o rascunho contra uma rubrica e entrega a versão final revisada"
+NAME = "Editor"
+ROLE = "Scores the draft against a rubric and delivers the revised final version"
 
 
-def construir() -> Agent:
+def build() -> Agent:
     return Agent(
-        name=NOME,
-        role=PAPEL,
-        model=modelo(),
-        tools=[data_de_hoje, salvar_artefato, ler_referencia, listar_referencias],
-        **parametros_de_memoria(ID),
+        name=NAME,
+        role=ROLE,
+        model=model(),
+        tools=[today, save_artifact, read_reference, list_references],
+        **memory_params(ID),
         description=(
             "Você é um editor exigente. Você corta. Elogio genérico não ajuda "
             "ninguém a escrever melhor, então você não dá."
         ),
         instructions=[
-            *instrucoes_base(),
-            *instrucoes_de_conteudo(),
-            "Aplique a rubrica abaixo ao rascunho que você recebeu. Avalie as "
-            "duas versões, português e inglês.",
-            RUBRICA,
-            "Detectar voz de LLM é parte do seu trabalho. Sinais: frases em "
-            "espelho ('não é só X, é Y'), adjetivos aos pares, transições "
-            "arrumadinhas demais, parágrafo final que recapitula o post. Corte "
-            "tudo isso. Chame `ler_referencia` com 'vocabulario-ia.md' para a "
-            "lista completa de palavras e tiques proibidos antes de pontuar o "
-            "critério VOZ — é mais detalhada do que cabe nesta instrução.",
-            "Antes de finalizar, chame `ler_referencia` com "
-            "'algoritmo-linkedin.md' e confira o rascunho contra o checklist "
-            "de pré-publicação no final do arquivo.",
-            "Chame `data_de_hoje` para nomear o arquivo.",
-            "ENTREGA: salve com `salvar_artefato` em "
-            "'posts/AAAA-MM-DD-<slug-do-tema>.md' ANTES de escrever as versões "
-            "finais na resposta. O slug tem no máximo cinco palavras, "
-            "minúsculas, separadas por hífen, sem acento.",
-            "ENTREGA: depois de salvar, a resposta traz só as notas da rubrica, "
-            "os três cortes de maior impacto e o caminho do arquivo. As versões "
-            "finais completas ficam no arquivo — repetir tudo na resposta gasta "
-            "o limite de tokens duas vezes.",
-            "O arquivo salvo começa com este cabeçalho:",
-            "---\ndata: AAAA-MM-DD\npilar: <pilar>\ntema: <tema>\n"
-            "status: rascunho\nnota: <média>/10\n---",
-            "FORMATO OBRIGATÓRIO do arquivo: as duas versões finais vêm sob "
-            f"estes títulos, exatamente assim, sem inventar variação — "
-            f"'{CABECALHO_POST['pt']}' e '{CABECALHO_POST['en']}'. É por eles "
-            "que o comando `publicar` acha o texto; com outro título ele não "
-            "acha nada e a publicação falha. A avaliação vem depois, sob outro "
-            "título qualquer.",
-            "Se a nota de VERDADE for 0, salve mesmo assim com "
-            "'status: reprovado' e explique o que precisa sair.",
+            *base_instructions(),
+            *content_instructions(),
+            "Apply the rubric below to the draft you received. Score both "
+            "versions, Portuguese and English.",
+            RUBRIC,
+            "Spotting LLM voice is part of your job. Tells: mirrored sentences "
+            "('não é só X, é Y'), adjectives in pairs, transitions that are too "
+            "tidy, a closing paragraph that recaps the post. Cut all of it. "
+            "Call `read_reference` with 'ai-vocabulary.md' for the full list of "
+            "banned words and tics before scoring the VOICE criterion: it is "
+            "more detailed than fits in this instruction.",
+            "Before finishing, call `read_reference` with "
+            "'linkedin-algorithm.md' and check the draft against the "
+            "pre-publication checklist at the end of that file.",
+            "Call `today` to name the file.",
+            "DELIVERY: save with `save_artifact` to "
+            "'posts/YYYY-MM-DD-<topic-slug>.md' BEFORE writing the final "
+            "versions into your response. The slug is at most five words, "
+            "lowercase, hyphen-separated, no accents.",
+            "DELIVERY: after saving, the response carries only the rubric "
+            "scores, the three highest-impact cuts and the file path. The "
+            "complete final versions stay in the file. Repeating everything in "
+            "the response spends the token limit twice.",
+            "The saved file starts with this header:",
+            "---\ndate: YYYY-MM-DD\npillar: <pillar>\ntopic: <topic>\n"
+            "status: draft\nscore: <average>/10\n---",
+            "MANDATORY FILE FORMAT: the two final versions go under these "
+            "headings, exactly like this, with no invented variation: "
+            f"'{POST_HEADING['pt']}' and '{POST_HEADING['en']}'. That is how "
+            "the `publish` command finds the text; under any other heading it "
+            "finds nothing and publishing fails. The evaluation comes "
+            "afterwards, under any other heading.",
+            "If the TRUTH score is 0, save it anyway with 'status: rejected' "
+            "and explain what has to come out.",
         ],
-        additional_context=contexto_do_perfil(),
+        additional_context=profile_context(),
         markdown=True,
         tool_call_limit=8,
     )

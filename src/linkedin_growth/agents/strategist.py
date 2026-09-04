@@ -1,33 +1,33 @@
-"""Agente que define o posicionamento e a linha editorial."""
+"""Agent that defines the positioning and the editorial line."""
 
 from __future__ import annotations
 
 from agno.agent import Agent
 
-from linkedin_growth.agentes.principios import (
-    instrucao_de_entrega,
-    instrucoes_base,
-    instrucoes_de_conteudo,
+from linkedin_growth.agents.principles import (
+    base_instructions,
+    content_instructions,
+    delivery_instruction,
 )
-from linkedin_growth.config import modelo, parametros_de_memoria
-from linkedin_growth.ferramentas.artefatos import ler_artefato, salvar_artefato
-from linkedin_growth.perfil.contexto import contexto_do_perfil
+from linkedin_growth.config import memory_params, model
+from linkedin_growth.profile.context import profile_context
+from linkedin_growth.tools.artifacts import read_artifact, save_artifact
 
-ID = "estrategista"
-NOME = "Estrategista de Conteúdo"
-PAPEL = (
-    "Define posicionamento, pilares de conteúdo, público-alvo, tom e as "
-    "métricas que valem a pena acompanhar"
+ID = "strategist"
+NAME = "Content Strategist"
+ROLE = (
+    "Defines positioning, content pillars, target audience, tone and the "
+    "metrics worth tracking"
 )
 
 
-def construir() -> Agent:
+def build() -> Agent:
     return Agent(
-        name=NOME,
-        role=PAPEL,
-        model=modelo(),
-        tools=[ler_artefato, salvar_artefato],
-        **parametros_de_memoria(ID),
+        name=NAME,
+        role=ROLE,
+        model=model(),
+        tools=[read_artifact, save_artifact],
+        **memory_params(ID),
         description=(
             "Você desenha estratégias de presença no LinkedIn para pessoas "
             "técnicas em transição de carreira. Você prefere um plano pequeno "
@@ -35,38 +35,38 @@ def construir() -> Agent:
             "em três semanas."
         ),
         instructions=[
-            *instrucoes_base(),
-            *instrucoes_de_conteudo(),
-            "Leia 'diagnostico.md' e 'metricas.csv' com `ler_artefato` se "
-            "existirem. Se 'metricas.csv' tiver dados, use-os: os pilares que "
-            "geraram comentário de gente da área devem ganhar mais espaço.",
-            "Produza um documento de estratégia com estas seções:",
-            "1. POSICIONAMENTO — a frase única que resume como ele quer ser "
-            "percebido em seis meses. Uma frase, não um parágrafo.",
-            "2. PÚBLICO — quem ele quer atrair, com nome de cargo e o que essa "
-            "pessoa está procurando quando abre o LinkedIn.",
-            "3. PILARES — os cinco pilares adaptados ao caso dele, com a "
-            "proporção de cada um na semana e um exemplo de tema real para cada.",
-            "4. CADÊNCIA — quantos posts por semana e em que dias, considerando "
-            "que ele tem emprego e estuda. Seja realista: dois posts que saem "
-            "valem mais que cinco planejados.",
-            "5. TOM — como ele escreve, com exemplo de frase que soa como ele e "
-            "exemplo de frase que NÃO soa.",
-            "6. O QUE NÃO POSTAR — lista explícita para este caso específico.",
-            "7. MÉTRICAS — o que olhar por mês e qual número seria sinal de que "
-            "está funcionando.",
-            "8. PRIMEIROS 30 DIAS — o que fazer nas quatro primeiras semanas.",
-            *instrucao_de_entrega("estrategia.md"),
+            *base_instructions(),
+            *content_instructions(),
+            "Read 'diagnosis.md' and 'metrics.csv' with `read_artifact` if they "
+            "exist. If 'metrics.csv' has data, use it: the pillars that earned "
+            "comments from people in the field should get more room.",
+            "Produce a strategy document with these sections:",
+            "1. POSITIONING: the single sentence that captures how the user "
+            "wants to be perceived in six months. One sentence, not a paragraph.",
+            "2. AUDIENCE: who they want to attract, with job titles, and what "
+            "that person is looking for when they open LinkedIn.",
+            "3. PILLARS: the five pillars adapted to this case, with each one's "
+            "share of the week and one real example topic for each.",
+            "4. CADENCE: how many posts a week and on which days, given that "
+            "they have a job and are studying. Be realistic: two posts that "
+            "actually ship beat five that are planned.",
+            "5. TONE: how they write, with an example sentence that sounds like "
+            "them and one that does NOT.",
+            "6. WHAT NOT TO POST: an explicit list for this specific case.",
+            "7. METRICS: what to look at monthly, and which number would signal "
+            "that it is working.",
+            "8. FIRST 30 DAYS: what to do in the first four weeks.",
+            *delivery_instruction("strategy.md"),
         ],
-        # A estratégia evolui; ela não se refaz do zero toda vez.
+        # The strategy evolves; it is not rebuilt from scratch every time.
         add_history_to_context=True,
         num_history_runs=2,
-        # E é o único agente que vasculha conversas antigas: o que o
-        # usuário contou no chat sobre o que funcionou vale mais que
-        # qualquer suposição do modelo sobre o algoritmo.
+        # And it is the only agent that digs through old conversations: what the
+        # user said in chat about what worked is worth more than any guess the
+        # model makes about the algorithm.
         search_past_sessions=True,
         num_past_sessions_to_search=3,
-        additional_context=contexto_do_perfil(),
+        additional_context=profile_context(),
         markdown=True,
         tool_call_limit=10,
     )

@@ -1,10 +1,10 @@
-"""Leitura do export de dados do LinkedIn.
+"""Reading the LinkedIn data export.
 
-O export é hostil: vem em inglês mesmo em conta em português, muda de nome de
-coluna entre versões, e alguns arquivos trazem um preâmbulo de aviso antes do
-cabeçalho de verdade. Estes testes fixam o comportamento que absorve essa
-bagunça — se ele quebrar, o perfil do usuário entra vazio e todos os agentes
-passam a escrever sobre ninguém.
+The export is hostile: it comes in English even for an account in another
+language, column names change between versions, and some files carry a warning
+preamble before the real header. These tests pin down the behaviour that
+absorbs that mess. If it breaks, the user's profile comes in empty and every
+agent starts writing about nobody.
 """
 
 from __future__ import annotations
@@ -13,22 +13,22 @@ from pathlib import Path
 
 import pytest
 
-from linkedin_growth.perfil.importador import (
-    _limpar_comentario,
-    _linhas_do_csv,
-    _mapear_arquivos,
-    _normalizar,
-    _valor,
+from linkedin_growth.profile.importer import (
+    _clean_commentary,
+    _csv_rows,
+    _map_files,
+    _normalize,
+    _value,
 )
 
 
 # ==============================================================================
-# Normalização de nomes
+# Name normalization
 # ==============================================================================
 
 
 @pytest.mark.parametrize(
-    ("entrada", "esperado"),
+    ("given", "expected"),
     [
         ("Company Name", "companyname"),
         ("First Name", "firstname"),
@@ -37,207 +37,207 @@ from linkedin_growth.perfil.importador import (
         ("já-normalizado", "jnormalizado"),
     ],
 )
-def test_normalizar_reduz_a_letras_e_numeros_minusculos(entrada: str, esperado: str):
-    """Acento some junto: é o que permite casar coluna em pt e em en."""
-    assert _normalizar(entrada) == esperado
+def test_normalize_reduces_to_lowercase_letters_and_digits(given: str, expected: str):
+    """Accents go too: that is what lets a column match in both languages."""
+    assert _normalize(given) == expected
 
 
 # ==============================================================================
-# Busca de valor por sinônimo de coluna
+# Finding a value by column synonym
 # ==============================================================================
 
 
-def test_valor_encontra_a_coluna_pelo_sinonimo():
-    linha = {"Company Name": "Acme", "Title": "Dev"}
+def test_value_finds_the_column_by_synonym():
+    row = {"Company Name": "Acme", "Title": "Dev"}
 
-    assert _valor(linha, "company name") == "Acme"
-
-
-def test_valor_aceita_grafias_diferentes_do_mesmo_sinonimo():
-    """'Company Name', 'companyname' e 'COMPANY  NAME' são a mesma coluna."""
-    linha = {"COMPANY  NAME": "Acme"}
-
-    assert _valor(linha, "Company Name") == "Acme"
+    assert _value(row, "company name") == "Acme"
 
 
-def test_valor_ignora_celula_vazia_e_devolve_none():
-    assert _valor({"Title": "   "}, "title") is None
+def test_value_accepts_different_spellings_of_the_same_synonym():
+    """'Company Name', 'companyname' and 'COMPANY  NAME' are the same column."""
+    row = {"COMPANY  NAME": "Acme"}
+
+    assert _value(row, "Company Name") == "Acme"
 
 
-def test_valor_com_coluna_ausente_devolve_none():
-    assert _valor({"Outra": "x"}, "title") is None
+def test_value_ignores_an_empty_cell_and_returns_none():
+    assert _value({"Title": "   "}, "title") is None
 
 
-def test_valor_usa_o_primeiro_sinonimo_com_conteudo():
-    linha = {"Title": "", "Position": "Engenheiro"}
+def test_value_with_a_missing_column_returns_none():
+    assert _value({"Other": "x"}, "title") is None
 
-    assert _valor(linha, "title", "position") == "Engenheiro"
+
+def test_value_uses_the_first_synonym_with_content():
+    row = {"Title": "", "Position": "Engineer"}
+
+    assert _value(row, "title", "position") == "Engineer"
 
 
 # ==============================================================================
-# Leitura de CSV
+# CSV reading
 # ==============================================================================
 
 
-def test_linhas_do_csv_le_cabecalho_na_primeira_linha(tmp_path: Path):
-    arquivo = tmp_path / "Positions.csv"
-    arquivo.write_text("Company Name,Title\nAcme,Dev\n", encoding="utf-8")
+def test_csv_rows_reads_a_header_on_the_first_line(tmp_path: Path):
+    path = tmp_path / "Positions.csv"
+    path.write_text("Company Name,Title\nAcme,Dev\n", encoding="utf-8")
 
-    linhas = _linhas_do_csv(arquivo, ["Company Name"])
+    rows = _csv_rows(path, ["Company Name"])
 
-    assert linhas == [{"Company Name": "Acme", "Title": "Dev"}]
+    assert rows == [{"Company Name": "Acme", "Title": "Dev"}]
 
 
-def test_linhas_do_csv_pula_o_preambulo_de_aviso_do_linkedin(tmp_path: Path):
-    """Connections.csv é o caso clássico: três linhas de aviso antes do cabeçalho."""
-    arquivo = tmp_path / "Connections.csv"
-    arquivo.write_text(
-        'Notes:\n"Aviso do LinkedIn sobre os dados"\n\n'
-        "First Name,Last Name,Company\nGabriel,Antoniette,Acme\n",
+def test_csv_rows_skips_the_linkedin_warning_preamble(tmp_path: Path):
+    """Connections.csv is the classic case: warning lines before the header."""
+    path = tmp_path / "Connections.csv"
+    path.write_text(
+        'Notes:\n"A LinkedIn notice about the data"\n\n'
+        "First Name,Last Name,Company\nAlex,Rivera,Acme\n",
         encoding="utf-8",
     )
 
-    linhas = _linhas_do_csv(arquivo, ["First Name", "Company"])
+    rows = _csv_rows(path, ["First Name", "Company"])
 
-    assert linhas == [{"First Name": "Gabriel", "Last Name": "Antoniette", "Company": "Acme"}]
-
-
-def test_linhas_do_csv_descarta_linhas_totalmente_vazias(tmp_path: Path):
-    arquivo = tmp_path / "Skills.csv"
-    arquivo.write_text("Name\nPython\n\n\nAgno\n", encoding="utf-8")
-
-    linhas = _linhas_do_csv(arquivo, ["Name"])
-
-    assert [linha["Name"] for linha in linhas] == ["Python", "Agno"]
+    assert rows == [{"First Name": "Alex", "Last Name": "Rivera", "Company": "Acme"}]
 
 
-def test_linhas_do_csv_com_arquivo_inexistente_devolve_lista_vazia(tmp_path: Path):
-    """Export incompleto é normal — nem todo mundo tem certificação ou projeto."""
-    assert _linhas_do_csv(tmp_path / "NaoExiste.csv", ["Name"]) == []
+def test_csv_rows_drops_completely_empty_lines(tmp_path: Path):
+    path = tmp_path / "Skills.csv"
+    path.write_text("Name\nPython\n\n\nAgno\n", encoding="utf-8")
+
+    rows = _csv_rows(path, ["Name"])
+
+    assert [row["Name"] for row in rows] == ["Python", "Agno"]
 
 
-def test_linhas_do_csv_le_arquivo_com_bom(tmp_path: Path):
-    """O LinkedIn entrega alguns CSVs em UTF-8 com BOM."""
-    arquivo = tmp_path / "Profile.csv"
-    arquivo.write_text("﻿First Name,Headline\nGabriel,Engenheiro\n", encoding="utf-8")
+def test_csv_rows_with_a_missing_file_returns_an_empty_list(tmp_path: Path):
+    """An incomplete export is normal: not everyone has certifications or projects."""
+    assert _csv_rows(tmp_path / "DoesNotExist.csv", ["Name"]) == []
 
-    linhas = _linhas_do_csv(arquivo, ["First Name"])
 
-    assert linhas == [{"First Name": "Gabriel", "Headline": "Engenheiro"}]
+def test_csv_rows_reads_a_file_with_a_bom(tmp_path: Path):
+    """LinkedIn ships some CSVs as UTF-8 with a BOM."""
+    path = tmp_path / "Profile.csv"
+    path.write_text("﻿First Name,Headline\nAlex,Engineer\n", encoding="utf-8")
+
+    rows = _csv_rows(path, ["First Name"])
+
+    assert rows == [{"First Name": "Alex", "Headline": "Engineer"}]
 
 
 # ==============================================================================
-# Mapeamento de arquivos do export
+# Mapping the export's files
 # ==============================================================================
 
 
-def test_mapear_arquivos_reconhece_os_csvs_conhecidos(tmp_path: Path):
-    for nome in ("Positions.csv", "Education.csv", "Skills.csv"):
-        (tmp_path / nome).write_text("a,b\n1,2\n", encoding="utf-8")
+def test_map_files_recognizes_the_known_csvs(tmp_path: Path):
+    for name in ("Positions.csv", "Education.csv", "Skills.csv"):
+        (tmp_path / name).write_text("a,b\n1,2\n", encoding="utf-8")
 
-    reconhecidos, ignorados = _mapear_arquivos(tmp_path)
+    recognized, ignored = _map_files(tmp_path)
 
-    assert set(reconhecidos) == {"experiencias", "formacoes", "skills"}
-    assert ignorados == []
+    assert set(recognized) == {"experiences", "education", "skills"}
+    assert ignored == []
 
 
-def test_mapear_arquivos_manda_desconhecido_para_ignorados(tmp_path: Path):
+def test_map_files_sends_an_unknown_file_to_ignored(tmp_path: Path):
     (tmp_path / "Connections.csv").write_text("a\n1\n", encoding="utf-8")
 
-    reconhecidos, ignorados = _mapear_arquivos(tmp_path)
+    recognized, ignored = _map_files(tmp_path)
 
-    assert reconhecidos == {}
-    assert [caminho.name for caminho in ignorados] == ["Connections.csv"]
+    assert recognized == {}
+    assert [path.name for path in ignored] == ["Connections.csv"]
 
 
-def test_mapear_arquivos_encontra_csv_em_subpasta(tmp_path: Path):
+def test_map_files_finds_a_csv_in_a_subfolder(tmp_path: Path):
     sub = tmp_path / "Basic_LinkedInDataExport"
     sub.mkdir()
     (sub / "Positions.csv").write_text("a\n1\n", encoding="utf-8")
 
-    reconhecidos, _ = _mapear_arquivos(tmp_path)
+    recognized, _ = _map_files(tmp_path)
 
-    assert "experiencias" in reconhecidos
+    assert "experiences" in recognized
 
 
 # ==============================================================================
-# Os dois defeitos que só apareceram com um export de verdade
+# The two defects that only showed up with a real export
 # ==============================================================================
-# Ambos falhavam em silêncio: o import terminava com "sucesso", a tabela de
-# arquivos reconhecidos parecia certa, e o estrago só aparecia no texto que os
-# agentes leem. É o tipo de bug que teste sintético não pega — este bloco existe
-# para que não volte.
+# Both failed silently: the import finished "successfully", the table of
+# recognized files looked right, and the damage only showed in the text the
+# agents read. That is the kind of bug a synthetic test does not catch, so this
+# block exists to keep it from coming back.
 
 
-def test_arquivo_com_id_do_membro_no_nome_e_reconhecido(tmp_path: Path):
-    """`Shares_1109184680.csv` é o nome real; `Shares.csv` não existe no export.
+def test_a_file_with_the_member_id_in_its_name_is_recognized(tmp_path: Path):
+    """`Shares_1234567890.csv` is the real name; `Shares.csv` is not in the export.
 
-    O LinkedIn sufixa parte dos arquivos com o id numérico da conta. Sem cortar
-    o sufixo, os posts antigos são ignorados, o `voz.md` não é gerado, e todo
-    agente que escreve passa a usar tom genérico de LLM — sem nenhum aviso de
-    que a amostra de voz do usuário ficou de fora.
+    LinkedIn suffixes some files with the account's numeric id. Without cutting
+    the suffix, the past posts are ignored, `voice.md` is never generated, and
+    every agent that writes falls back to generic LLM tone, with no warning that
+    the user's voice sample was left out.
     """
-    (tmp_path / "Shares_1109184680.csv").write_text(
-        "Date,ShareCommentary\n2026-01-01,texto\n", encoding="utf-8"
+    (tmp_path / "Shares_1234567890.csv").write_text(
+        "Date,ShareCommentary\n2026-01-01,text\n", encoding="utf-8"
     )
 
-    reconhecidos, ignorados = _mapear_arquivos(tmp_path)
+    recognized, ignored = _map_files(tmp_path)
 
-    assert "posts" in reconhecidos
-    assert reconhecidos["posts"].name == "Shares_1109184680.csv"
-    assert ignorados == []
+    assert "posts" in recognized
+    assert recognized["posts"].name == "Shares_1234567890.csv"
+    assert ignored == []
 
 
-def test_sufixo_numerico_nao_transforma_arquivo_desconhecido_em_conhecido(
+def test_the_numeric_suffix_does_not_turn_an_unknown_file_into_a_known_one(
     tmp_path: Path,
 ):
-    """Cortar o sufixo não pode virar um casamento frouxo.
+    """Cutting the suffix must not become a loose match.
 
-    `Comments_1109184680.csv` continua ignorado — o corte remove o id, não
-    aproxima nomes diferentes.
+    `Comments_1234567890.csv` stays ignored: the cut removes the id, it does not
+    bring different names closer together.
     """
-    (tmp_path / "Comments_1109184680.csv").write_text("a,b\n1,2\n", encoding="utf-8")
+    (tmp_path / "Comments_1234567890.csv").write_text("a,b\n1,2\n", encoding="utf-8")
 
-    reconhecidos, ignorados = _mapear_arquivos(tmp_path)
+    recognized, ignored = _map_files(tmp_path)
 
-    assert reconhecidos == {}
-    assert [caminho.name for caminho in ignorados] == ["Comments_1109184680.csv"]
+    assert recognized == {}
+    assert [path.name for path in ignored] == ["Comments_1234567890.csv"]
 
 
-def test_campo_multilinha_entre_aspas_chega_inteiro(tmp_path: Path):
-    """O 'Sobre', a descrição de cada cargo e o texto dos posts são multilinha.
+def test_a_multiline_quoted_field_arrives_whole(tmp_path: Path):
+    """The 'About', each job description and the post text are multiline.
 
-    Quebrar o arquivo com `splitlines()` antes do `csv.reader` corta dentro do
-    campo: cada parágrafo vira uma linha nova do CSV e o texto chega
-    embaralhado. O leitor precisa receber o arquivo inteiro.
+    Splitting the file with `splitlines()` before `csv.reader` cuts inside the
+    field: every paragraph becomes a new CSV row and the text arrives scrambled.
+    The reader has to receive the whole file.
     """
     (tmp_path / "Positions.csv").write_text(
-        'Company Name,Title,Description\n'
-        'Acme,Dev,"Primeira linha.\n\nSegunda linha.\n\nTerceira."\n',
+        "Company Name,Title,Description\n"
+        'Acme,Dev,"First line.\n\nSecond line.\n\nThird."\n',
         encoding="utf-8",
     )
 
-    linhas = _linhas_do_csv(tmp_path / "Positions.csv", ["Company Name", "Title"])
+    rows = _csv_rows(tmp_path / "Positions.csv", ["Company Name", "Title"])
 
-    assert len(linhas) == 1, "o campo multilinha não pode virar três registros"
-    assert linhas[0]["Description"] == "Primeira linha.\n\nSegunda linha.\n\nTerceira."
+    assert len(rows) == 1, "the multiline field must not become three records"
+    assert rows[0]["Description"] == "First line.\n\nSecond line.\n\nThird."
 
 
-def test_quebra_de_paragrafo_do_export_vira_paragrafo_de_verdade():
-    """No `Shares.csv` cada quebra de parágrafo do post vem como aspas-newline-aspas.
+def test_the_exports_paragraph_break_becomes_a_real_paragraph():
+    """In `Shares.csv` each paragraph break comes as quote-newline-quote.
 
-    Sem desfazer, o `voz.md` fica uma parede de aspas — justamente o arquivo
-    que deveria ensinar os agentes a escrever como o usuário.
+    Without undoing it, `voice.md` is a wall of quotes, which is exactly the
+    file meant to teach the agents to write like the user.
     """
-    bruto = 'Três planilhas. Uma pergunta:"\n""Quantos ainda temos?""\n""\n"E ninguém sabe.'
+    raw = 'Três planilhas. Uma pergunta:"\n""Quantos ainda temos?""\n""\n"E ninguém sabe.'
 
-    assert _limpar_comentario(bruto) == (
+    assert _clean_commentary(raw) == (
         "Três planilhas. Uma pergunta:\n\n"
         '"Quantos ainda temos?"\n\n'
         "E ninguém sabe."
     )
 
 
-def test_aspas_de_verdade_no_meio_da_frase_sobrevivem():
-    """O padrão exige a quebra de linha entre as aspas — citação inline fica de pé."""
-    assert _limpar_comentario('Ele disse "não" e saiu.') == 'Ele disse "não" e saiu.'
+def test_real_quotes_mid_sentence_survive():
+    """The pattern needs the newline between the quotes: an inline quote stands."""
+    assert _clean_commentary('Ele disse "não" e saiu.') == 'Ele disse "não" e saiu.'

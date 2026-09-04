@@ -1,6 +1,6 @@
-"""Leitura e estruturação dos dados reais do usuário."""
+"""Reading and structuring the user's real data."""
 
-from linkedin_growth.perfil.contexto import carregar_perfil, contexto_do_perfil
-from linkedin_growth.perfil.esquema import Perfil
+from linkedin_growth.profile.context import load_profile, profile_context
+from linkedin_growth.profile.schema import Profile
 
-__all__ = ["Perfil", "carregar_perfil", "contexto_do_perfil"]
+__all__ = ["Profile", "load_profile", "profile_context"]

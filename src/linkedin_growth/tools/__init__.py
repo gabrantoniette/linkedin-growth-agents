@@ -1,1 +1,1 @@
-"""Ferramentas que os agentes podem chamar."""
+"""Tools the agents can call."""

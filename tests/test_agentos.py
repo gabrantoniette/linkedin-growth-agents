@@ -1,18 +1,19 @@
-"""O que o servidor precisa entregar para a `agent_ui` funcionar.
+"""What the server has to deliver for the `agent_ui` to work.
 
-A UI monta o seletor de "Team" com o que `GET /teams` devolve. Quando essa rota
-falha, `getTeamsAPI` engole o erro e devolve lista vazia — e o sintoma que
-chega ao usuário não é "erro no servidor", é um seletor cinza escrito
-"No teams Available", como se o time não existisse.
+The UI builds its "Team" selector from what `GET /teams` returns. When that
+route fails, `getTeamsAPI` swallows the error and returns an empty list, so what
+reaches the user is not "server error", it is a greyed-out selector reading
+"No teams Available", as if the team did not exist.
 
-Foi o que aconteceu: `Team(mode="coordinate")` com a string crua. Funciona em
-execução, porque `TeamMode` herda de `str`, mas o AgentOS serializa o time com
-`team.mode.value` e uma string não tem `.value`. A rota respondia 500, a UI
-mostrava só os agentes, e nada no terminal dizia que havia um erro.
+That is what happened: `Team(mode="coordinate")` with the bare string. It works
+at runtime, because `TeamMode` inherits from `str`, but AgentOS serializes the
+team with `team.mode.value` and a string has no `.value`. The route answered
+500, the UI showed only the agents, and nothing in the terminal said there was
+an error.
 
-Os testes batem no app de verdade, via `TestClient`, sem subir processo nem
-abrir porta. É a única forma de pegar essa classe de bug: um campo que só é
-lido na hora de montar a resposta HTTP e em nenhum outro lugar do sistema.
+The tests hit the real app through `TestClient`, with no process and no open
+port. It is the only way to catch this class of bug: a field that is only read
+when the HTTP response is assembled and nowhere else in the system.
 """
 
 from __future__ import annotations
@@ -22,64 +23,64 @@ from agno.os import AgentOS
 from agno.team.mode import TeamMode
 from starlette.testclient import TestClient
 
-from linkedin_growth import agentes, fluxos, times
+from linkedin_growth import agents, flows, team
 from linkedin_growth.config import db
 
 
 @pytest.fixture
-def cliente(banco_temp, sem_api):
-    """O AgentOS montado como em `agentos.py`, sobre o banco descartável."""
+def client(temp_db, no_api):
+    """AgentOS assembled the way `agentos.py` does, over the throwaway database."""
     agent_os = AgentOS(
-        id="linkedin-growth-os-teste",
+        id="linkedin-growth-os-test",
         name="LinkedIn Growth OS",
         db=db(),
-        teams=[times.construir()],
-        agents=agentes.todos(),
-        workflows=fluxos.todos(),
+        teams=[team.build()],
+        agents=agents.all_agents(),
+        workflows=flows.all_flows(),
     )
-    with TestClient(agent_os.get_app()) as cliente:
-        yield cliente
+    with TestClient(agent_os.get_app()) as test_client:
+        yield test_client
 
 
-def test_o_modo_do_time_e_o_enum_e_nao_a_string(banco_temp, sem_api):
-    """A string crua passa em tudo, menos na serialização. Daí o teste.
+def test_the_team_mode_is_the_enum_and_not_the_string(temp_db, no_api):
+    """The bare string passes everything except serialization. Hence the test.
 
-    Como `TeamMode` herda de `str`, `mode == "coordinate"` continua verdadeiro
-    dos dois jeitos — o que torna o bug invisível em qualquer teste que compare
-    valores. O que distingue é ter `.value`.
+    Because `TeamMode` inherits from `str`, `mode == "coordinate"` stays true
+    either way, which makes the bug invisible to any test that compares values.
+    What tells them apart is having `.value`.
     """
-    time = times.construir()
+    crew = team.build()
 
-    assert isinstance(time.mode, TeamMode)
-    assert time.mode.value == "coordinate"
-
-
-def test_a_ui_encontra_o_time(cliente):
-    """`GET /teams` responde 200 com o time — o seletor "Team" tem o que mostrar."""
-    resposta = cliente.get("/teams")
-
-    assert resposta.status_code == 200, resposta.text
-    times_json = resposta.json()
-    assert len(times_json) == 1
-
-    time = times_json[0]
-    assert time["id"] == times.ID
-    assert time["name"] == times.NOME
-    assert time["mode"] == "coordinate"
-    # A UI lê `entity.id` para o valor do item e `entity.model` para o rótulo.
-    # Qualquer um dos dois ausente quebra o seletor.
-    assert time["model"]["provider"]
-    assert len(time["members"]) == 8
+    assert isinstance(crew.mode, TeamMode)
+    assert crew.mode.value == "coordinate"
 
 
-def test_a_ui_encontra_os_agentes(cliente):
-    """`GET /agents` continua respondendo — a regressão não pode ir para o outro lado."""
-    resposta = cliente.get("/agents")
+def test_the_ui_finds_the_team(client):
+    """`GET /teams` answers 200 with the team, so the Team selector has content."""
+    response = client.get("/teams")
 
-    assert resposta.status_code == 200, resposta.text
-    lista = resposta.json()
+    assert response.status_code == 200, response.text
+    teams = response.json()
+    assert len(teams) == 1
 
-    assert len(lista) == 8
-    for agente in lista:
-        assert agente["id"], agente.get("name")
-        assert agente["model"]["model"]
+    payload = teams[0]
+    assert payload["id"] == team.ID
+    assert payload["name"] == team.NAME
+    assert payload["mode"] == "coordinate"
+    # The UI reads `entity.id` for the item value and `entity.model` for the
+    # label. Either one missing breaks the selector.
+    assert payload["model"]["provider"]
+    assert len(payload["members"]) == 8
+
+
+def test_the_ui_finds_the_agents(client):
+    """`GET /agents` keeps answering: the regression must not swap sides."""
+    response = client.get("/agents")
+
+    assert response.status_code == 200, response.text
+    listing = response.json()
+
+    assert len(listing) == 8
+    for agent in listing:
+        assert agent["id"], agent.get("name")
+        assert agent["model"]["model"]

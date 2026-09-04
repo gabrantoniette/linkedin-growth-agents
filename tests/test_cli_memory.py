@@ -1,9 +1,9 @@
-"""O comando `linkedin memoria` — a janela do usuário para o que o sistema guarda.
+"""The `linkedin memory` command: the user's window into what the system keeps.
 
-Memória que não dá para inspecionar não dá para confiar. Se um agente começar a
-repetir uma bobagem, é por este comando que se descobre de onde veio e é por
-ele que se apaga; então ele precisa funcionar mesmo nos casos chatos: banco
-vazio, id abreviado, prefixo ambíguo, id que não existe.
+Memory you cannot inspect is memory you cannot trust. If an agent starts
+repeating nonsense, this command is how you find out where it came from and how
+you delete it, so it has to work in the annoying cases too: empty database,
+abbreviated id, ambiguous prefix, id that does not exist.
 """
 
 from __future__ import annotations
@@ -17,106 +17,106 @@ from linkedin_growth.cli import app
 
 
 @pytest.fixture
-def executar(banco_temp, sem_api):
-    """Roda um comando da CLI e devolve o resultado."""
+def run(temp_db, no_api):
+    """Run a CLI command and return the result."""
     runner = CliRunner()
 
-    def rodar(*argumentos: str, resposta: str = ""):
-        return runner.invoke(app, ["memoria", *argumentos], input=resposta)
+    def invoke(*arguments: str, answer: str = ""):
+        return runner.invoke(app, ["memory", *arguments], input=answer)
 
-    return rodar
+    return invoke
 
 
-def texto(resultado) -> str:
-    """A saída com o espaçamento normalizado.
+def text_of(result) -> str:
+    """The output with whitespace normalized.
 
-    A tabela do Rich quebra linha para caber em 80 colunas, então comparar com
-    a frase original falharia por causa da moldura, não do conteúdo.
+    Rich's table wraps to fit 80 columns, so comparing against the original
+    sentence would fail because of the frame, not the content.
     """
-    return " ".join(resultado.output.split())
+    return " ".join(result.output.split())
 
 
-def gravar(*lembrancas: str, ids: list[str] | None = None) -> list[str]:
-    """Planta memórias no banco de teste e devolve os ids."""
-    gerente = config.memoria()
+def store(*memories: str, ids: list[str] | None = None) -> list[str]:
+    """Plant memories in the test database and return their ids."""
+    manager = config.memory()
     return [
-        gerente.add_user_memory(
+        manager.add_user_memory(
             UserMemory(
-                memory=lembranca,
-                topics=["voz"],
-                memory_id=ids[indice] if ids else None,
+                memory=memory,
+                topics=["voice"],
+                memory_id=ids[index] if ids else None,
             ),
-            user_id=config.USUARIO_ID,
+            user_id=config.USER_ID,
         )
-        for indice, lembranca in enumerate(lembrancas)
+        for index, memory in enumerate(memories)
     ]
 
 
-def test_banco_vazio_explica_como_encher(executar):
-    """O primeiro dia de uso é este: nada guardado, e o comando ensina o caminho."""
-    resultado = executar()
+def test_an_empty_database_explains_how_to_fill_it(run):
+    """This is everyone's first day: nothing stored, and the command shows the way."""
+    result = run()
 
-    assert resultado.exit_code == 0
-    assert "ainda não lembra de nada" in resultado.output
-    assert "linkedin chat" in resultado.output
-
-
-def test_lista_o_que_o_sistema_lembra(executar):
-    # Frase curta de propósito: numa tabela de quatro colunas em 80 caracteres,
-    # uma lembrança longa quebra em duas linhas e a moldura entra no meio dela.
-    # O que se testa aqui é que a linha aparece, não como o Rich a distribui.
-    (identificador,) = gravar("odeia a palavra jornada")
-
-    resultado = executar()
-
-    assert resultado.exit_code == 0
-    assert "odeia a palavra jornada" in texto(resultado)
-    assert identificador[:8] in texto(resultado), "o id abreviado é o que se copia"
-    assert "voz" in texto(resultado)
+    assert result.exit_code == 0
+    assert "does not remember anything yet" in text_of(result)
+    assert "linkedin chat" in text_of(result)
 
 
-def test_esquecer_aceita_o_id_abreviado_que_a_tabela_mostra(executar):
-    """A tabela corta o id em oito caracteres; o comando tem que aceitar isso.
+def test_it_lists_what_the_system_remembers(run):
+    # Short sentence on purpose: in a four-column table at 80 characters, a long
+    # memory wraps onto two lines and the frame lands in the middle of it. What
+    # is under test is that the row shows up, not how Rich lays it out.
+    (identifier,) = store("hates the word 'jornada'")
 
-    Sem isto o usuário copiaria o que vê na tela e receberia "não existe" —
-    a pior forma de uma ferramenta falhar.
+    result = run()
+
+    assert result.exit_code == 0
+    assert "hates the word 'jornada'" in text_of(result)
+    assert identifier[:8] in text_of(result), "the abbreviated id is what gets copied"
+    assert "voice" in text_of(result)
+
+
+def test_forget_accepts_the_abbreviated_id_the_table_shows(run):
+    """The table cuts the id at eight characters; the command has to accept that.
+
+    Without this the user would copy what they see on screen and get "does not
+    exist", the worst way for a tool to fail.
     """
-    (identificador,) = gravar("Gabriel odeia a palavra jornada")
+    (identifier,) = store("hates the word 'jornada'")
 
-    resultado = executar("--esquecer", identificador[:8])
+    result = run("--forget", identifier[:8])
 
-    assert resultado.exit_code == 0
-    assert "Esquecido" in resultado.output
-    assert config.memoria().get_user_memories(user_id=config.USUARIO_ID) == []
-
-
-def test_prefixo_ambiguo_nao_apaga_nada(executar):
-    """Na dúvida entre duas memórias, o comando para em vez de escolher."""
-    gravar("primeira lembrança", "segunda lembrança", ids=["abc-1", "abc-2"])
-
-    resultado = executar("--esquecer", "abc")
-
-    assert resultado.exit_code == 1
-    assert "Use mais caracteres" in resultado.output
-    assert len(config.memoria().get_user_memories(user_id=config.USUARIO_ID)) == 2
+    assert result.exit_code == 0
+    assert "Forgotten" in result.output
+    assert config.memory().get_user_memories(user_id=config.USER_ID) == []
 
 
-def test_id_inexistente_avisa_em_vez_de_falhar_calado(executar):
-    gravar("uma lembrança qualquer")
+def test_an_ambiguous_prefix_deletes_nothing(run):
+    """Faced with two candidates, the command stops instead of choosing."""
+    store("first memory", "second memory", ids=["abc-1", "abc-2"])
 
-    resultado = executar("--esquecer", "nao-existe")
+    result = run("--forget", "abc")
 
-    assert resultado.exit_code == 1
-    assert "Não existe memória" in resultado.output
-    assert len(config.memoria().get_user_memories(user_id=config.USUARIO_ID)) == 1
+    assert result.exit_code == 1
+    assert "Use more" in result.output
+    assert len(config.memory().get_user_memories(user_id=config.USER_ID)) == 2
 
 
-def test_limpar_exige_confirmacao_e_recusa_apaga_nada(executar):
-    """Apagar tudo é irreversível: o padrão do prompt é 'não'."""
-    gravar("uma lembrança qualquer")
+def test_a_missing_id_says_so_instead_of_failing_quietly(run):
+    store("some memory")
 
-    resultado = executar("--limpar", resposta="n\n")
+    result = run("--forget", "does-not-exist")
 
-    assert resultado.exit_code == 0
-    assert "Cancelado" in resultado.output
-    assert len(config.memoria().get_user_memories(user_id=config.USUARIO_ID)) == 1
+    assert result.exit_code == 1
+    assert "No memory starts with" in result.output
+    assert len(config.memory().get_user_memories(user_id=config.USER_ID)) == 1
+
+
+def test_clear_requires_confirmation_and_declining_deletes_nothing(run):
+    """Deleting everything is irreversible: the prompt defaults to no."""
+    store("some memory")
+
+    result = run("--clear", answer="n\n")
+
+    assert result.exit_code == 0
+    assert "Cancelled" in result.output
+    assert len(config.memory().get_user_memories(user_id=config.USER_ID)) == 1

@@ -1,7 +1,7 @@
-"""Configuração central: segredos, caminhos, modelos e banco compartilhado.
+"""Central configuration: secrets, paths, models and the shared database.
 
-Todo módulo do sistema importa daqui. Se alguma coisa precisa de uma chave, de
-um caminho ou de um modelo, o lugar de decidir é este arquivo — não espalhado.
+Every module in the system imports from here. If something needs a key, a path
+or a model, this is where that gets decided, not scattered around.
 """
 
 from __future__ import annotations
@@ -17,120 +17,120 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ==============================================================================
-# Caminhos
+# Paths
 # ==============================================================================
-# config.py fica em src/linkedin_growth/, então a raiz do projeto é dois níveis
-# acima do pacote.
-RAIZ = Path(__file__).resolve().parents[2]
+# config.py lives in src/linkedin_growth/, so the project root is two levels
+# above the package.
+ROOT = Path(__file__).resolve().parents[2]
 
-PERFIL_DIR = RAIZ / "perfil"
-EXPORT_DIR = PERFIL_DIR / "linkedin_export"
-PERFIL_YAML = PERFIL_DIR / "perfil.yaml"
-VOZ_MD = PERFIL_DIR / "voz.md"
+PROFILE_DIR = ROOT / "profile"
+EXPORT_DIR = PROFILE_DIR / "linkedin_export"
+PROFILE_YAML = PROFILE_DIR / "profile.yaml"
+VOICE_MD = PROFILE_DIR / "voice.md"
 
-CONTEUDO_DIR = RAIZ / "conteudo"
-CALENDARIO_DIR = CONTEUDO_DIR / "calendario"
-POSTS_DIR = CONTEUDO_DIR / "posts"
-METRICAS_CSV = CONTEUDO_DIR / "metricas.csv"
+CONTENT_DIR = ROOT / "content"
+CALENDAR_DIR = CONTENT_DIR / "calendar"
+POSTS_DIR = CONTENT_DIR / "posts"
+METRICS_CSV = CONTENT_DIR / "metrics.csv"
 
-REFERENCIAS_DIR = RAIZ / "referencias"
+REFERENCES_DIR = ROOT / "references"
 
-TMP_DIR = RAIZ / "tmp"
+TMP_DIR = ROOT / "tmp"
 DB_FILE = TMP_DIR / "linkedin_growth.db"
 
 
-def garantir_diretorios() -> None:
-    """Cria a árvore de pastas que o sistema usa. Idempotente."""
-    for diretorio in (
-        PERFIL_DIR,
+def ensure_directories() -> None:
+    """Create the folder tree the system uses. Idempotent."""
+    for directory in (
+        PROFILE_DIR,
         EXPORT_DIR,
-        CONTEUDO_DIR,
-        CALENDARIO_DIR,
+        CONTENT_DIR,
+        CALENDAR_DIR,
         POSTS_DIR,
-        REFERENCIAS_DIR,
+        REFERENCES_DIR,
         TMP_DIR,
     ):
-        diretorio.mkdir(parents=True, exist_ok=True)
+        directory.mkdir(parents=True, exist_ok=True)
 
 
 # ==============================================================================
-# Segredos
+# Secrets
 # ==============================================================================
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 LINKEDIN_ACCESS_TOKEN = os.getenv("LINKEDIN_ACCESS_TOKEN")
 LINKEDIN_VERSION = os.getenv("LINKEDIN_VERSION", "202609")
 
 
-class ConfiguracaoAusente(RuntimeError):
-    """Erro de configuração com instrução de como resolver."""
+class MissingConfiguration(RuntimeError):
+    """A configuration error that comes with instructions for fixing it."""
 
 
-def exigir_anthropic() -> str:
-    """Devolve a chave da Anthropic ou explica como configurá-la."""
+def require_anthropic() -> str:
+    """Return the Anthropic key, or explain how to set it up."""
     if not ANTHROPIC_API_KEY:
-        raise ConfiguracaoAusente(
-            "ANTHROPIC_API_KEY não encontrada.\n"
-            "Crie um arquivo .env na raiz do projeto com:\n"
+        raise MissingConfiguration(
+            "ANTHROPIC_API_KEY not found.\n"
+            "Create a .env file at the project root with:\n"
             "    ANTHROPIC_API_KEY=sk-ant-...\n"
-            "Use .env.example como base."
+            "Use .env.example as a starting point."
         )
     return ANTHROPIC_API_KEY
 
 
-def exigir_linkedin() -> str:
-    """Devolve o token do LinkedIn ou explica como obtê-lo."""
+def require_linkedin() -> str:
+    """Return the LinkedIn token, or explain how to get one."""
     if not LINKEDIN_ACCESS_TOKEN:
-        raise ConfiguracaoAusente(
-            "LINKEDIN_ACCESS_TOKEN não encontrado.\n"
-            "Gere um token em:\n"
+        raise MissingConfiguration(
+            "LINKEDIN_ACCESS_TOKEN not found.\n"
+            "Generate a token at:\n"
             "    https://www.linkedin.com/developers/tools/oauth/token-generator\n"
-            "com o escopo 'w_member_social' (produto 'Share on LinkedIn') e o "
-            "escopo 'openid profile'.\n"
-            "Depois coloque no .env:\n"
+            "with the 'w_member_social' scope (the 'Share on LinkedIn' product) "
+            "and the 'openid profile' scope.\n"
+            "Then put it in .env:\n"
             "    LINKEDIN_ACCESS_TOKEN=...\n"
-            "O passo a passo completo está no README, seção 'Conectar o LinkedIn'."
+            "The full walkthrough is in the README, 'Connecting LinkedIn'."
         )
     return LINKEDIN_ACCESS_TOKEN
 
 
 # ==============================================================================
-# Modelos
+# Models
 # ==============================================================================
-# Opus 5 para o trabalho que exige julgamento (estratégia, diagnóstico, edição).
-# Sonnet 5 para trabalho volumoso e mais mecânico (pesquisa, primeiras versões).
-MODELO_PRINCIPAL = os.getenv("MODELO_PRINCIPAL", "claude-opus-5")
-MODELO_RAPIDO = os.getenv("MODELO_RAPIDO", "claude-sonnet-5")
+# Opus 5 for work that needs judgement (strategy, diagnosis, editing).
+# Sonnet 5 for high-volume, more mechanical work (research, first drafts).
+MAIN_MODEL = os.getenv("MAIN_MODEL", "claude-opus-5")
+FAST_MODEL = os.getenv("FAST_MODEL", "claude-sonnet-5")
 
-# O padrão do Agno é 8192, e é pouco para este sistema. Os agentes daqui
-# escrevem um documento longo (diagnóstico, estratégia, calendário) e, no fim,
-# chamam `salvar_artefato` com o documento inteiro no argumento. Com 8192 o
-# texto consome a cota sozinho: a resposta é cortada no meio, a chamada da
-# ferramenta nunca acontece e o arquivo não é criado — enquanto o modelo já
-# escreveu "salvei o relatório". Falha cara e silenciosa.
+# Agno defaults to 8192, and that is too little for this system. These agents
+# write a long document and then call `save_artifact` with the whole document
+# as an argument. At 8192 the text alone eats the budget: the response is cut
+# mid-sentence, the tool call never happens, and the file is never created,
+# while the model has already written "report saved". An expensive, silent
+# failure.
 #
-# 16000 é o valor recomendado para requisição sem streaming, que é o caso aqui
-# (`agente.run()`). Opus 5 e Sonnet 5 aceitam até 128000, mas passar disso sem
-# streaming esbarra no timeout HTTP do SDK.
+# 16000 is the recommended value for a non-streaming request, which is what
+# happens here (`agent.run()`). Opus 5 and Sonnet 5 accept up to 128000, but
+# going past this without streaming runs into the SDK's HTTP timeout.
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "16000"))
 
 
-def modelo(id_modelo: str | None = None) -> Claude:
-    """Instancia o modelo Claude usado pelos agentes."""
+def model(model_id: str | None = None) -> Claude:
+    """Instantiate the Claude model the agents use."""
     return Claude(
-        id=id_modelo or MODELO_PRINCIPAL,
-        api_key=exigir_anthropic(),
+        id=model_id or MAIN_MODEL,
+        api_key=require_anthropic(),
         max_tokens=MAX_TOKENS,
     )
 
 
 # ==============================================================================
-# Banco compartilhado (sessões, histórico e memória dos agentes)
+# Shared database (agent sessions, history and memory)
 # ==============================================================================
 _db: SqliteDb | None = None
 
 
 def db() -> SqliteDb:
-    """Banco único do sistema. Criado sob demanda para não tocar o disco no import."""
+    """The system's single database. Created on demand so importing touches no disk."""
     global _db
     if _db is None:
         TMP_DIR.mkdir(parents=True, exist_ok=True)
@@ -139,78 +139,80 @@ def db() -> SqliteDb:
 
 
 # ==============================================================================
-# Memória
+# Memory
 # ==============================================================================
-# O sistema é de uma pessoa só, mas o Agno indexa memória por `user_id`. Sem um
-# id fixo tudo cairia num balde anônimo e nada seria recuperável — então ele
-# existe, e é configurável para quem clonar o projeto.
-USUARIO_ID = os.getenv("USUARIO_ID", "usuario")
+# The system serves one person, but Agno indexes memory by `user_id`. Without a
+# fixed id everything would land in an anonymous bucket and nothing would be
+# retrievable, so it exists, and it is configurable for anyone who clones the
+# project.
+USER_ID = os.getenv("USER_ID", "user")
 
-# Conversa padrão da CLI. Um id estável é o que faz `linkedin chat` de hoje
-# continuar o `linkedin chat` de ontem: sem ele, o Agno sorteia uma sessão nova
-# a cada processo e o histórico recomeça do zero.
-SESSAO_PADRAO = os.getenv("SESSAO_PADRAO", "principal")
+# The CLI's default conversation. A stable id is what makes today's
+# `linkedin chat` continue yesterday's: without it Agno draws a fresh session
+# every process and the history starts from zero.
+DEFAULT_SESSION = os.getenv("DEFAULT_SESSION", "main")
 
 
-def sessao_do_agente(id_agente: str) -> str:
-    """Sessão estável de um agente da CLI.
+def agent_session(agent_id: str) -> str:
+    """The stable session of a CLI agent.
 
-    Cada comando (`diagnosticar`, `estrategia`, ...) tem a sua, para que o
-    agente veja as próprias execuções anteriores sem misturá-las com as dos
-    outros nem com a conversa do time.
+    Each command (`diagnose`, `strategy`, ...) gets its own, so an agent sees
+    its own earlier runs without mixing them with the other agents' or with the
+    team's conversation.
     """
-    return f"cli-{id_agente}"
+    return f"cli-{agent_id}"
 
 
-_memoria: MemoryManager | None = None
+_memory: MemoryManager | None = None
 
 
-def memoria() -> MemoryManager:
-    """O gerente de memória de longo prazo, compartilhado por todo o sistema.
+def memory() -> MemoryManager:
+    """The long-term memory manager, shared by the whole system.
 
-    Roda no modelo rápido de propósito: destilar uma frase do que acabou de ser
-    dito é trabalho mecânico, e essa chamada acontece ao fim de toda conversa.
+    It runs on the fast model on purpose: distilling one sentence out of what
+    was just said is mechanical work, and that call happens at the end of every
+    conversation.
 
-    `delete_memories` e `clear_memories` ficam desligados: apagar memória é
-    decisão do usuário, pelo comando `linkedin memoria`, não de um modelo no
-    meio de uma conversa.
+    `delete_memories` and `clear_memories` stay off: erasing memory is the
+    user's decision, through the `linkedin memory` command, not a model's in the
+    middle of a conversation.
     """
-    # Import tardio: `principios` mora dentro do pacote `agentes`, cujo
-    # `__init__` importa os agentes, que importam este módulo. No topo do
-    # arquivo isso seria um ciclo.
-    from linkedin_growth.agentes.principios import instrucoes_de_memoria
+    # Late import: `principles` lives inside the `agents` package, whose
+    # `__init__` imports the agents, which import this module. At the top of the
+    # file this would be a cycle.
+    from linkedin_growth.agents.principles import memory_instructions
 
-    global _memoria
-    if _memoria is None:
-        _memoria = MemoryManager(
+    global _memory
+    if _memory is None:
+        _memory = MemoryManager(
             db=db(),
-            model=modelo(MODELO_RAPIDO),
-            memory_capture_instructions=instrucoes_de_memoria(),
+            model=model(FAST_MODEL),
+            memory_capture_instructions=memory_instructions(),
             add_memories=True,
             update_memories=True,
             delete_memories=False,
             clear_memories=False,
         )
-    return _memoria
+    return _memory
 
 
-def parametros_de_memoria(id_agente: str) -> dict[str, object]:
-    """Os parâmetros de memória que todo agente recebe, num lugar só.
+def memory_params(agent_id: str) -> dict[str, object]:
+    """The memory parameters every agent receives, in one place.
 
-    Fica aqui, e não repetido em oito arquivos, pelo mesmo motivo que os
-    princípios ficam em `principios.py`: quando a política mudar, muda em um
-    lugar.
+    They live here rather than repeated across eight files for the same reason
+    the principles live in `principles.py`: when the policy changes, it changes
+    in one place.
 
-    A divisão de trabalho é deliberada: **os agentes leem a memória, o time
-    escreve.** Um agente da CLI recebe sempre o mesmo comando enlatado, então
-    quase nunca aprende algo novo sobre o usuário — extrair memória ao fim de
-    cada execução seria uma chamada de modelo a mais para não guardar nada. É
-    na conversa, no `Team`, que o usuário conta as coisas.
+    The division of labour is deliberate: **the agents read memory, the team
+    writes it.** A CLI agent always receives the same canned command, so it
+    almost never learns anything new about the user. Extracting memory at the
+    end of every run would be one more model call to store nothing. It is in
+    conversation, in the `Team`, that the user tells you things.
     """
     return {
         "db": db(),
-        "user_id": USUARIO_ID,
-        "session_id": sessao_do_agente(id_agente),
-        "memory_manager": memoria(),
+        "user_id": USER_ID,
+        "session_id": agent_session(agent_id),
+        "memory_manager": memory(),
         "add_memories_to_context": True,
     }

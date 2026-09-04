@@ -1,72 +1,75 @@
-"""Agente que escreve os textos do perfil, prontos para copiar e colar.
+"""Agent that writes the profile copy, ready to copy and paste.
 
-Lembrete que justifica o formato de saída: **não existe API para editar o
-perfil do LinkedIn.** Nada aqui é aplicado automaticamente. O produto deste
-agente é um documento em que cada bloco vem com a instrução de onde colar.
+The reminder that justifies the output format: **there is no API for editing a
+LinkedIn profile.** Nothing here is applied automatically. This agent's product
+is a document where every block comes with an instruction saying where to paste
+it.
 """
 
 from __future__ import annotations
 
 from agno.agent import Agent
 
-from linkedin_growth.agentes.principios import (
-    instrucao_de_entrega,
-    instrucoes_base,
-    instrucoes_de_voz,
+from linkedin_growth.agents.principles import (
+    base_instructions,
+    delivery_instruction,
+    voice_instructions,
 )
-from linkedin_growth.config import modelo, parametros_de_memoria
-from linkedin_growth.ferramentas.artefatos import ler_artefato, salvar_artefato
-from linkedin_growth.ferramentas.referencias import ler_referencia
-from linkedin_growth.perfil.contexto import contexto_do_perfil
+from linkedin_growth.config import memory_params, model
+from linkedin_growth.profile.context import profile_context
+from linkedin_growth.tools.artifacts import read_artifact, save_artifact
+from linkedin_growth.tools.references import read_reference
 
-ID = "perfil-writer"
-NOME = "Redator de Perfil"
-PAPEL = (
-    "Escreve headline, seção Sobre, descrições de experiência e de projetos "
-    "prontas para colar no LinkedIn"
+ID = "profile-writer"
+NAME = "Profile Writer"
+ROLE = (
+    "Writes the headline, About section, experience and project descriptions, "
+    "ready to paste into LinkedIn"
 )
 
 
-def construir() -> Agent:
+def build() -> Agent:
     return Agent(
-        name=NOME,
-        role=PAPEL,
-        model=modelo(),
-        tools=[ler_artefato, salvar_artefato, ler_referencia],
-        **parametros_de_memoria(ID),
+        name=NAME,
+        role=ROLE,
+        model=model(),
+        tools=[read_artifact, save_artifact, read_reference],
+        **memory_params(ID),
         description=(
             "Você escreve o texto de perfis do LinkedIn para profissionais "
             "técnicos. Você escreve como gente, não como consultoria."
         ),
         instructions=[
-            *instrucoes_base(),
-            *instrucoes_de_voz(),
-            "Se 'diagnostico.md' existir, leia primeiro com `ler_artefato` — "
-            "ele diz onde estão as lacunas.",
-            "Produza, nesta ordem:",
-            "1. HEADLINE — antes de escrever, chame `ler_referencia` com "
-            "'headline-formulas.md' para a fórmula e os antipadrões. Três "
-            "opções, cada uma com no máximo 220 caracteres. Explique em uma "
-            "linha o que cada opção prioriza e recomende uma.",
-            "2. SOBRE — de 900 a 1500 caracteres. Abra com a frase mais forte "
-            "(o LinkedIn corta em ~270). Estrutura: de onde ele vem, o que está "
-            "construindo agora, o que quer fazer, como falar com ele.",
-            "3. EXPERIÊNCIA — reescreva cada cargo REAL que existe nos dados. "
-            "Duas a quatro linhas por cargo, focando no que é transferível para "
-            "engenharia de IA (dados, automação, lógica, produto, comunicação). "
-            "Não invente responsabilidade que não está descrita.",
-            "4. PROJETOS — descrição para cada projeto real. Se ele tem poucos, "
-            "diga isso e sugira dois ou três projetos concretos que ele poderia "
-            "construir para preencher a lacuna, com escopo de uma a duas semanas.",
-            "5. SKILLS — a lista exata a marcar no LinkedIn, ordenada por "
-            "prioridade, separando 'já tenho' de 'terei quando terminar X'.",
-            "Cada bloco começa com uma linha de instrução no formato: "
+            *base_instructions(),
+            *voice_instructions(),
+            "If 'diagnosis.md' exists, read it first with `read_artifact`: it "
+            "says where the gaps are.",
+            "Produce, in this order:",
+            "1. HEADLINE: before writing, call `read_reference` with "
+            "'headline-formulas.md' for the formula and the antipatterns. Three "
+            "options, each at most 220 characters. Explain in one line what "
+            "each option prioritizes, and recommend one.",
+            "2. ABOUT: 900 to 1500 characters. Open with the strongest sentence "
+            "(LinkedIn truncates at about 270). Structure: where they come "
+            "from, what they are building now, what they want to do, how to "
+            "reach them.",
+            "3. EXPERIENCE: rewrite every REAL job that exists in the data. Two "
+            "to four lines per job, focused on what transfers to AI engineering "
+            "(data, automation, logic, product, communication). Do not invent a "
+            "responsibility that is not described.",
+            "4. PROJECTS: a description for each real project. If they have "
+            "few, say so and suggest two or three concrete projects they could "
+            "build to fill the gap, scoped to one or two weeks.",
+            "5. SKILLS: the exact list to tick on LinkedIn, ordered by "
+            "priority, separating 'already have' from 'will have once X is "
+            "done'.",
+            "Every block starts with an instruction line in this format: "
             "'>> Cole em: Perfil > Sobre > Editar'.",
-            "Escreva os textos em português. Depois de cada um, dê a versão em "
-            "inglês — recrutador internacional lê o perfil em inglês.",
-            *instrucao_de_entrega("perfil_otimizado.md"),
+            "Write the copy in Portuguese. After each piece, give the English "
+            "version: an international recruiter reads the profile in English.",
+            *delivery_instruction("optimized_profile.md"),
         ],
-        additional_context=contexto_do_perfil(),
+        additional_context=profile_context(),
         markdown=True,
         tool_call_limit=10,
     )

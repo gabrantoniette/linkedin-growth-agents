@@ -1,185 +1,195 @@
-"""A estratégia codificada.
+"""The codified strategy.
 
-`principios.py` não é código de apoio, é o produto: o comportamento do sistema
-inteiro sai daqui. Estes testes protegem invariantes — não a redação exata das
-regras, que deve mesmo evoluir, mas o fato de que certas regras continuam
-chegando a todo agente.
+`principles.py` is not support code, it is the product: the behaviour of the
+whole system comes from there. These tests protect invariants. Not the exact
+wording of the rules, which should evolve, but the fact that certain rules keep
+reaching every agent.
 """
 
 from __future__ import annotations
 
-from linkedin_growth.agentes.principios import (
-    HONESTIDADE,
-    O_QUE_NAO_FAZER,
-    PILARES,
-    REGRAS_DE_ESCRITA,
-    REGRAS_DE_VOZ,
-    RUBRICA,
-    instrucao_de_entrega,
-    instrucoes_base,
-    instrucoes_de_conteudo,
+from linkedin_growth.agents.principles import (
+    DO_NOT,
+    HONESTY,
+    PILLARS,
+    RUBRIC,
+    VOICE_RULES,
+    WRITING_RULES,
+    base_instructions,
+    content_instructions,
+    delivery_instruction,
 )
 
 
 # ==============================================================================
-# O que todo agente recebe
+# What every agent receives
 # ==============================================================================
 
 
-def test_instrucoes_base_carregam_todas_as_regras_de_honestidade():
-    """A regra que nenhum agente pode quebrar tem que chegar a todos eles."""
-    base = "\n".join(instrucoes_base())
+def test_base_instructions_carry_every_honesty_rule():
+    """The rule no agent may break has to reach all of them."""
+    base = "\n".join(base_instructions())
 
-    for regra in HONESTIDADE:
-        assert regra in base
-
-
-def test_instrucoes_base_pedem_resposta_em_portugues():
-    assert any("português" in instrucao.lower() for instrucao in instrucoes_base())
+    for rule in HONESTY:
+        assert rule in base
 
 
-def test_instrucoes_base_avisam_que_nao_ha_api_para_editar_o_perfil():
-    """Sem isto o agente promete ao usuário uma automação que não existe."""
-    base = "\n".join(instrucoes_base())
-
-    assert "Não existe API para editar o perfil" in base
-
-
-def test_instrucoes_de_conteudo_trazem_os_cinco_pilares():
-    conteudo = "\n".join(instrucoes_de_conteudo())
-
-    assert len(PILARES) == 5
-    for pilar in PILARES:
-        assert pilar in conteudo
-
-
-def test_instrucoes_nao_vem_vazias():
-    assert len(instrucoes_base()) > 5
-    assert len(instrucoes_de_conteudo()) > 5
-
-
-# ==============================================================================
-# Regressões de regras específicas
-# ==============================================================================
-# Cada uma destas regras foi decidida com um motivo. O teste existe para que
-# ninguém as reverta sem perceber.
-
-
-def test_regra_de_hashtag_permite_no_maximo_tres():
-    """Dado de 2026: 5+ hashtags é sinal de conta spam, não de alcance.
-
-    A regra antiga pedia 'de 3 a 5'. Se voltar, este teste falha.
-    """
-    escrita = "\n".join(REGRAS_DE_ESCRITA)
-
-    assert "0 a 3 hashtags" in escrita
-    assert "3 a 5 hashtags" not in escrita
-
-
-def test_existe_proibicao_explicita_de_travessao_longo():
-    """É o tique mais reconhecível de texto gerado por IA."""
-    voz = "\n".join(REGRAS_DE_VOZ)
-
-    assert "—" in voz and "NUNCA use travessão" in voz
-
-
-def test_quem_escreve_texto_de_perfil_recebe_as_regras_de_voz(banco_temp, sem_api):
-    """O 'Sobre' e a headline são publicados com o nome dele igual a um post.
-
-    Enquanto as regras de voz moravam só dentro de `instrucoes_de_conteudo`, o
-    Redator de Perfil não as recebia. Uma rodada real com o export do usuário
-    saiu com 84 travessões no texto pronto para colar no LinkedIn — o tique que
-    este projeto proíbe antes de qualquer outro.
-    """
-    from linkedin_growth.agentes import perfil_writer, redator
-
-    for modulo in (perfil_writer, redator):
-        agente = modulo.construir()
-        instrucoes = " ".join(str(i) for i in (agente.instructions or []))
-        assert "NUNCA use travessão" in instrucoes, agente.name
-
-
-def test_separar_voz_de_post_nao_tirou_nada_de_quem_escreve_post():
-    """Quem escrevia posts continua recebendo as regras de voz, agora por dentro."""
-    conteudo = "\n".join(instrucoes_de_conteudo())
-
-    for regra in REGRAS_DE_VOZ:
-        assert regra in conteudo
-
-
-def test_existe_regra_de_link_no_primeiro_comentario():
-    escrita = "\n".join(REGRAS_DE_ESCRITA)
-
-    assert "primeiro comentário" in escrita
-
-
-def test_pedir_engajamento_continua_proibido():
-    """Queima reputação com público técnico, e o LinkedIn suprime."""
-    proibido = "\n".join(O_QUE_NAO_FAZER)
-
-    assert "Não peça engajamento" in proibido
-
-
-# ==============================================================================
-# Rubrica do editor
-# ==============================================================================
-
-
-def test_rubrica_tem_os_sete_criterios():
-    for criterio in (
-        "GANCHO",
-        "VERDADE",
-        "PROVA",
-        "ESPECIFICIDADE",
-        "LEGIBILIDADE",
-        "VOZ",
-        "FECHAMENTO",
-    ):
-        assert criterio in RUBRICA
-
-
-def test_rubrica_reprova_o_post_inteiro_quando_verdade_e_zero():
-    """A honestidade é eliminatória, não um critério que se compensa com nota alta."""
-    assert "isto reprova o post inteiro" in RUBRICA
-    assert "Se VERDADE for 0, não entregue versão final" in RUBRICA
-
-
-# ==============================================================================
-# Entrega — a ordem que decide se o arquivo existe
-# ==============================================================================
-
-
-def test_instrucao_de_entrega_manda_gravar_antes_de_escrever():
-    """A ordem é o conteúdo da regra, não um detalhe de redação.
-
-    Escrever o documento na resposta e só depois gravar significa emitir o
-    texto duas vezes; o teto de tokens chega no meio e o que se perde é a
-    chamada da ferramenta. O arquivo então não existe — sem erro nenhum.
-    """
-    entrega = " ".join(instrucao_de_entrega("estrategia.md"))
-
-    assert "estrategia.md" in entrega
-    assert "ANTES" in entrega, "a ordem tem que estar explícita"
-    assert "NÃO repita o documento" in entrega
-
-
-def test_todo_agente_que_grava_arquivo_recebe_a_regra_de_entrega(banco_temp, sem_api):
-    """Cinco agentes produzem documento. Nenhum pode ficar de fora.
-
-    Este teste lê as instruções montadas de cada agente, não o código-fonte:
-    o que importa é o que chega ao modelo. As fixtures existem só para
-    construir os agentes sem chave da API nem o banco real.
-    """
-    from linkedin_growth.agentes import (
-        diagnostico,
-        editor,
-        estrategista,
-        perfil_writer,
-        planejador,
+def test_base_instructions_ask_for_answers_in_portuguese():
+    """The code is in English; the posts are not. This is what keeps them apart."""
+    assert any(
+        "Brazilian Portuguese" in instruction for instruction in base_instructions()
     )
 
-    for modulo in (diagnostico, estrategista, perfil_writer, planejador, editor):
-        agente = modulo.construir()
-        instrucoes = " ".join(str(i) for i in (agente.instructions or []))
-        assert "ENTREGA:" in instrucoes, f"{agente.name} não recebeu a regra"
-        assert "salvar_artefato" in instrucoes, agente.name
+
+def test_base_instructions_warn_there_is_no_profile_editing_api():
+    """Without this the agent promises the user an automation that does not exist."""
+    base = "\n".join(base_instructions())
+
+    assert "There is no API for editing a LinkedIn profile" in base
+
+
+def test_content_instructions_carry_the_five_pillars():
+    content = "\n".join(content_instructions())
+
+    assert len(PILLARS) == 5
+    for pillar in PILLARS:
+        assert pillar in content
+
+
+def test_instructions_do_not_come_back_empty():
+    assert len(base_instructions()) > 5
+    assert len(content_instructions()) > 5
+
+
+# ==============================================================================
+# Regressions on specific rules
+# ==============================================================================
+# Each of these rules was decided for a reason. The test exists so nobody
+# reverts them without noticing.
+
+
+def test_the_hashtag_rule_allows_at_most_three():
+    """2026 data: 5+ hashtags signals a spam account, not reach.
+
+    The old rule asked for 'three to five'. If that comes back, this fails.
+    """
+    writing = "\n".join(WRITING_RULES)
+
+    assert "Zero to three hashtags" in writing
+    assert "three to five hashtags" not in writing
+
+
+def test_there_is_an_explicit_ban_on_the_em_dash():
+    """It is the most recognizable tell of AI-generated text."""
+    voice = "\n".join(VOICE_RULES)
+
+    assert "—" in voice and "NEVER use an em dash" in voice
+
+
+def test_whoever_writes_profile_copy_gets_the_voice_rules(temp_db, no_api):
+    """The 'About' and the headline go out under the user's name, same as a post.
+
+    While the voice rules lived only inside `content_instructions`, the Profile
+    Writer never received them. A real run against the user's export came out
+    with 84 em dashes in the text meant to be pasted into LinkedIn, the tell
+    this project bans before any other.
+    """
+    from linkedin_growth.agents import profile_writer, writer
+
+    for module in (profile_writer, writer):
+        agent = module.build()
+        instructions = " ".join(str(i) for i in (agent.instructions or []))
+        assert "NEVER use an em dash" in instructions, agent.name
+
+
+def test_splitting_voice_from_post_took_nothing_away_from_post_writers():
+    """Whoever wrote posts still gets the voice rules, now from the inside."""
+    content = "\n".join(content_instructions())
+
+    for rule in VOICE_RULES:
+        assert rule in content
+
+
+def test_there_is_a_link_in_the_first_comment_rule():
+    writing = "\n".join(WRITING_RULES)
+
+    assert "first comment" in writing
+
+
+def test_asking_for_engagement_is_still_forbidden():
+    """It burns credibility with a technical audience, and LinkedIn suppresses it."""
+    forbidden = "\n".join(DO_NOT)
+
+    assert "Do not ask for engagement" in forbidden
+
+
+# ==============================================================================
+# The editor's rubric
+# ==============================================================================
+
+
+def test_the_rubric_has_the_seven_criteria():
+    for criterion in (
+        "HOOK",
+        "TRUTH",
+        "PROOF",
+        "SPECIFICITY",
+        "READABILITY",
+        "VOICE",
+        "CLOSING",
+    ):
+        assert criterion in RUBRIC
+
+
+def test_the_rubric_fails_the_whole_post_when_truth_is_zero():
+    """Honesty is disqualifying, not a criterion you offset with a high score.
+
+    The whitespace is normalized because the rubric is wrapped prose: the
+    sentence under test spans two lines, and matching it raw would test the
+    line breaks rather than the rule.
+    """
+    rubric = " ".join(RUBRIC.split())
+
+    assert "this fails the whole post" in rubric
+    assert "If TRUTH is 0, do not deliver a final version" in rubric
+
+
+# ==============================================================================
+# Delivery - the order that decides whether the file exists
+# ==============================================================================
+
+
+def test_delivery_instruction_says_save_before_writing():
+    """The order is the substance of the rule, not a wording detail.
+
+    Writing the document into the response and only then saving means emitting
+    the text twice; the token ceiling arrives halfway and what gets lost is the
+    tool call. The file then does not exist, with no error at all.
+    """
+    delivery = " ".join(delivery_instruction("strategy.md"))
+
+    assert "strategy.md" in delivery
+    assert "BEFORE" in delivery, "the order has to be explicit"
+    assert "Do NOT repeat the document" in delivery
+
+
+def test_every_agent_that_writes_a_file_gets_the_delivery_rule(temp_db, no_api):
+    """Five agents produce a document. None of them may be left out.
+
+    This test reads each agent's assembled instructions, not the source: what
+    matters is what reaches the model. The fixtures are only there to build the
+    agents without an API key or the real database.
+    """
+    from linkedin_growth.agents import (
+        diagnosis,
+        editor,
+        planner,
+        profile_writer,
+        strategist,
+    )
+
+    for module in (diagnosis, strategist, profile_writer, planner, editor):
+        agent = module.build()
+        instructions = " ".join(str(i) for i in (agent.instructions or []))
+        assert "DELIVERY:" in instructions, f"{agent.name} did not get the rule"
+        assert "save_artifact" in instructions, agent.name

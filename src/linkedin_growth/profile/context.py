@@ -1,10 +1,14 @@
-"""Transforma o `Perfil` em texto para injetar no contexto dos agentes.
+"""Turns the `Profile` into text to inject into the agents' context.
 
-Decisão de projeto: **não usamos banco vetorial nem RAG aqui.** O perfil de uma
-pessoa cabe em poucos milhares de tokens, e o embedder padrão do Agno exigiria
-uma chave da OpenAI que este projeto não tem. Injetar o perfil inteiro via
-`additional_context` é mais simples, mais barato de manter e mais confiável —
-o agente nunca "não encontra" um dado que está ali.
+Design decision: **no vector store and no RAG here.** One person's profile fits
+in a few thousand tokens, and Agno's default embedder would need an OpenAI key
+this project does not have. Injecting the whole profile through
+`additional_context` is simpler, cheaper to maintain and more reliable: the
+agent never "fails to find" a fact that is right there.
+
+The rendered block is in Portuguese on purpose. It is prompt content read by a
+model that writes Portuguese posts, and the section titles line up with the
+LinkedIn UI the user copies into.
 """
 
 from __future__ import annotations
@@ -13,142 +17,145 @@ from functools import lru_cache
 
 import yaml
 
-from linkedin_growth.config import PERFIL_YAML, VOZ_MD
-from linkedin_growth.perfil.esquema import Perfil
+from linkedin_growth.config import PROFILE_YAML, VOICE_MD
+from linkedin_growth.profile.schema import Profile
 
-# Quanto da amostra de voz cabe no contexto sem inchar toda chamada.
-MAX_CARACTERES_VOZ = 4000
-
-
-class PerfilAusente(RuntimeError):
-    """O perfil ainda não foi importado."""
+# How much of the voice sample fits in context without bloating every call.
+MAX_VOICE_CHARACTERS = 4000
 
 
-def carregar_perfil() -> Perfil:
-    """Lê `perfil/perfil.yaml`. Levanta erro com instrução se não existir."""
-    if not PERFIL_YAML.exists():
-        raise PerfilAusente(
-            "perfil/perfil.yaml não existe.\n"
-            "Coloque os CSVs do export do LinkedIn em perfil/linkedin_export/ "
-            "e rode:\n"
-            "    uv run linkedin importar"
+class ProfileMissing(RuntimeError):
+    """The profile has not been imported yet."""
+
+
+def load_profile() -> Profile:
+    """Read `profile/profile.yaml`. Raise with instructions if it is missing."""
+    if not PROFILE_YAML.exists():
+        raise ProfileMissing(
+            "profile/profile.yaml does not exist.\n"
+            "Put the LinkedIn export CSVs in profile/linkedin_export/ and run:\n"
+            "    uv run linkedin import"
         )
-    dados = yaml.safe_load(PERFIL_YAML.read_text(encoding="utf-8")) or {}
-    return Perfil.model_validate(dados)
+    data = yaml.safe_load(PROFILE_YAML.read_text(encoding="utf-8")) or {}
+    return Profile.model_validate(data)
 
 
-def _bloco(titulo: str, linhas: list[str]) -> list[str]:
-    """Só emite a seção se ela tiver conteúdo. Seção vazia é ruído no prompt."""
-    if not linhas:
+def _block(title: str, lines: list[str]) -> list[str]:
+    """Emit the section only if it has content. An empty section is prompt noise."""
+    if not lines:
         return []
-    return [f"### {titulo}", *linhas, ""]
+    return [f"### {title}", *lines, ""]
 
 
-def _periodo(inicio: str | None, fim: str | None) -> str:
-    if not inicio and not fim:
+def _period(start: str | None, end: str | None) -> str:
+    if not start and not end:
         return ""
-    return f" ({inicio or '?'} — {fim or 'atual'})"
+    return f" ({start or '?'} a {end or 'atual'})"
 
 
-def renderizar(perfil: Perfil) -> str:
-    """Perfil -> markdown compacto para o `additional_context` dos agentes."""
-    partes: list[str] = [
+def render(profile: Profile) -> str:
+    """Profile -> compact markdown for the agents' `additional_context`."""
+    parts: list[str] = [
         "## DADOS REAIS DO USUÁRIO",
         "",
         "Tudo abaixo é verdade verificável. Use só isto como base factual.",
-        "Se algo que você precisa não está aqui, pergunte — não invente.",
+        "Se algo que você precisa não está aqui, pergunte. Não invente.",
         "",
     ]
 
-    identidade = []
-    if perfil.nome:
-        identidade.append(f"- Nome: {perfil.nome}")
-    if perfil.headline:
-        identidade.append(f"- Headline atual: {perfil.headline}")
-    if perfil.setor:
-        identidade.append(f"- Setor: {perfil.setor}")
-    if perfil.localizacao:
-        identidade.append(f"- Localização: {perfil.localizacao}")
-    for site in perfil.sites:
-        identidade.append(f"- Site: {site}")
-    partes += _bloco("Identidade", identidade)
+    identity = []
+    if profile.name:
+        identity.append(f"- Nome: {profile.name}")
+    if profile.headline:
+        identity.append(f"- Headline atual: {profile.headline}")
+    if profile.industry:
+        identity.append(f"- Setor: {profile.industry}")
+    if profile.location:
+        identity.append(f"- Localização: {profile.location}")
+    for website in profile.websites:
+        identity.append(f"- Site: {website}")
+    parts += _block("Identidade", identity)
 
-    if perfil.sobre:
-        partes += _bloco("Seção 'Sobre' atual", [perfil.sobre])
+    if profile.about:
+        parts += _block("Seção 'Sobre' atual", [profile.about])
 
-    partes += _bloco("Objetivo de carreira", [perfil.objetivo])
+    parts += _block("Objetivo de carreira", [profile.goal])
 
-    if perfil.temas_de_interesse:
-        partes += _bloco(
-            "Temas de interesse", [", ".join(perfil.temas_de_interesse)]
+    if profile.topics_of_interest:
+        parts += _block(
+            "Temas de interesse", [", ".join(profile.topics_of_interest)]
         )
 
-    experiencias = []
-    for exp in perfil.experiencias:
-        cabecalho = f"- **{exp.cargo or 'Cargo não informado'}**"
-        if exp.empresa:
-            cabecalho += f" — {exp.empresa}"
-        cabecalho += _periodo(exp.inicio, exp.fim)
-        experiencias.append(cabecalho)
-        if exp.descricao:
-            experiencias.append(f"  {exp.descricao}")
-    partes += _bloco("Experiência profissional", experiencias)
+    experiences = []
+    for exp in profile.experiences:
+        heading = f"- **{exp.title or 'Cargo não informado'}**"
+        if exp.company:
+            heading += f", {exp.company}"
+        heading += _period(exp.start, exp.end)
+        experiences.append(heading)
+        if exp.description:
+            experiences.append(f"  {exp.description}")
+    parts += _block("Experiência profissional", experiences)
 
-    formacoes = []
-    for form in perfil.formacoes:
-        linha = f"- {form.grau or 'Formação'}"
-        if form.curso:
-            linha += f" em {form.curso}"
-        if form.instituicao:
-            linha += f" — {form.instituicao}"
-        linha += _periodo(form.inicio, form.fim)
-        formacoes.append(linha)
-    partes += _bloco("Formação", formacoes)
+    education = []
+    for item in profile.education:
+        line = f"- {item.degree or 'Formação'}"
+        if item.course:
+            line += f" em {item.course}"
+        if item.school:
+            line += f", {item.school}"
+        line += _period(item.start, item.end)
+        education.append(line)
+    parts += _block("Formação", education)
 
-    certificacoes = [
-        f"- {c.nome or 'Certificação'}"
-        + (f" — {c.emissor}" if c.emissor else "")
+    certifications = [
+        f"- {c.name or 'Certificação'}"
+        + (f", {c.issuer}" if c.issuer else "")
         + (f" ({c.url})" if c.url else "")
-        for c in perfil.certificacoes
+        for c in profile.certifications
     ]
-    partes += _bloco("Certificações", certificacoes)
+    parts += _block("Certificações", certifications)
 
-    projetos = []
-    for proj in perfil.projetos:
-        projetos.append(f"- **{proj.titulo or 'Projeto'}**" + (f" — {proj.url}" if proj.url else ""))
-        if proj.descricao:
-            projetos.append(f"  {proj.descricao}")
-    partes += _bloco("Projetos", projetos)
+    projects = []
+    for project in profile.projects:
+        projects.append(
+            f"- **{project.title or 'Projeto'}**"
+            + (f", {project.url}" if project.url else "")
+        )
+        if project.description:
+            projects.append(f"  {project.description}")
+    parts += _block("Projetos", projects)
 
-    if perfil.skills:
-        partes += _bloco("Skills declaradas", [", ".join(perfil.skills)])
+    if profile.skills:
+        parts += _block("Skills declaradas", [", ".join(profile.skills)])
 
-    idiomas = [
-        f"- {i.nome}" + (f" ({i.proficiencia})" if i.proficiencia else "")
-        for i in perfil.idiomas
-        if i.nome
+    languages = [
+        f"- {language.name}"
+        + (f" ({language.proficiency})" if language.proficiency else "")
+        for language in profile.languages
+        if language.name
     ]
-    partes += _bloco("Idiomas", idiomas)
+    parts += _block("Idiomas", languages)
 
-    return "\n".join(partes).strip()
+    return "\n".join(parts).strip()
 
 
-def amostra_de_voz() -> str:
-    """Trecho de `perfil/voz.md` para o agente imitar o tom do usuário."""
-    if not VOZ_MD.exists():
+def voice_sample() -> str:
+    """An excerpt of `profile/voice.md`, so the agent can mirror the user's tone."""
+    if not VOICE_MD.exists():
         return ""
-    texto = VOZ_MD.read_text(encoding="utf-8")
-    if len(texto) > MAX_CARACTERES_VOZ:
-        texto = texto[:MAX_CARACTERES_VOZ] + "\n\n[...amostra truncada]"
+    text = VOICE_MD.read_text(encoding="utf-8")
+    if len(text) > MAX_VOICE_CHARACTERS:
+        text = text[:MAX_VOICE_CHARACTERS] + "\n\n[...amostra truncada]"
     return (
         "\n\n## COMO O USUÁRIO ESCREVE\n\n"
         "Posts que ele já publicou. Imite o ritmo e o vocabulário, não o assunto.\n"
         "Se estiver vazio, use um tom direto e sem jargão de marketing.\n\n"
-        + texto
+        + text
     )
 
 
-SEM_PERFIL = """## DADOS REAIS DO USUÁRIO
+NO_PROFILE = """## DADOS REAIS DO USUÁRIO
 
 O perfil ainda não foi importado, então você não sabe nada de concreto sobre
 este usuário.
@@ -156,24 +163,25 @@ este usuário.
 Não invente nada. Se a tarefa depender de dados do perfil, responda dizendo que
 é preciso rodar primeiro:
 
-    uv run linkedin importar
+    uv run linkedin import
 
-depois de colocar os CSVs do export do LinkedIn em `perfil/linkedin_export/`.
+depois de colocar os CSVs do export do LinkedIn em `profile/linkedin_export/`.
 """
 
 
 @lru_cache(maxsize=1)
-def contexto_do_perfil() -> str:
-    """Contexto completo, montado uma vez por processo.
+def profile_context() -> str:
+    """The full context, assembled once per process.
 
-    Cacheado porque todo agente pede o mesmo texto: montar sete vezes o mesmo
-    markdown seria desperdício, e o conteúdo não muda durante uma execução.
+    Cached because every agent asks for the same text: building the same
+    markdown seven times would be waste, and the content does not change during
+    a run.
 
-    Se o perfil ainda não foi importado, devolve um bloco que instrui o agente
-    a pedir a importação — em vez de estourar. Assim o chat e o servidor sobem
-    mesmo antes do primeiro `importar`.
+    If the profile has not been imported yet, this returns a block that tells
+    the agent to ask for the import instead of blowing up. That way the chat and
+    the server start even before the first `import`.
     """
     try:
-        return renderizar(carregar_perfil()) + amostra_de_voz()
-    except (PerfilAusente, ValueError):
-        return SEM_PERFIL
+        return render(load_profile()) + voice_sample()
+    except (ProfileMissing, ValueError):
+        return NO_PROFILE

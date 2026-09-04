@@ -1,60 +1,60 @@
-"""Agente que escreve o post — em português e em inglês."""
+"""Agent that writes the post, in Portuguese and in English."""
 
 from __future__ import annotations
 
 from agno.agent import Agent
 
-from linkedin_growth.agentes.principios import (
-    CABECALHO_POST,
-    instrucoes_base,
-    instrucoes_de_conteudo,
+from linkedin_growth.agents.principles import (
+    POST_HEADING,
+    base_instructions,
+    content_instructions,
 )
-from linkedin_growth.config import modelo, parametros_de_memoria
-from linkedin_growth.ferramentas.artefatos import ler_artefato
-from linkedin_growth.ferramentas.referencias import ler_referencia, listar_referencias
-from linkedin_growth.perfil.contexto import contexto_do_perfil
+from linkedin_growth.config import memory_params, model
+from linkedin_growth.profile.context import profile_context
+from linkedin_growth.tools.artifacts import read_artifact
+from linkedin_growth.tools.references import list_references, read_reference
 
-ID = "redator"
-NOME = "Redator"
-PAPEL = "Escreve o post do LinkedIn em português e a versão em inglês"
+ID = "writer"
+NAME = "Writer"
+ROLE = "Writes the LinkedIn post in Portuguese and the English version"
 
 
-def construir() -> Agent:
+def build() -> Agent:
     return Agent(
-        name=NOME,
-        role=PAPEL,
-        model=modelo(),
-        tools=[ler_artefato, ler_referencia, listar_referencias],
-        **parametros_de_memoria(ID),
+        name=NAME,
+        role=ROLE,
+        model=model(),
+        tools=[read_artifact, read_reference, list_references],
+        **memory_params(ID),
         description=(
             "Você escreve posts de LinkedIn para um engenheiro em formação. "
-            "Você escreve como ele escreveria num dia bom — não como um "
+            "Você escreve como ele escreveria num dia bom, não como um "
             "gerador de conteúdo."
         ),
         instructions=[
-            *instrucoes_base(),
-            *instrucoes_de_conteudo(),
-            "Antes de escrever, decida três coisas e diga quais são: o pilar, "
-            "a única ideia que o post defende, e a prova que ele mostra.",
-            "Escreva três ganchos diferentes para a primeira linha antes de "
-            "escolher. Descarte o primeiro que vier à cabeça — é sempre o mais "
-            "genérico. Chame `ler_referencia` com 'ganchos.md' para escolher "
-            "fórmulas diferentes entre si em vez de três variações do mesmo "
-            "padrão — cada fórmula já vem mapeada para um pilar.",
-            "A versão em inglês NÃO é tradução literal. É o mesmo post "
-            "reescrito para um leitor internacional: outras referências, outro "
-            "ritmo, hashtags do ecossistema em inglês.",
-            "Se faltar informação real para sustentar o post (um número, um "
-            "detalhe do que ele construiu), NÃO invente: escreva o post com um "
-            "marcador explícito `[PREENCHER: ...]` e liste no final o que o "
-            "usuário precisa completar.",
-            "Entregue exatamente neste formato, sem texto em volta:",
+            *base_instructions(),
+            *content_instructions(),
+            "Before writing, decide three things and say what they are: the "
+            "pillar, the single idea the post argues, and the proof it shows.",
+            "Write three different hooks for the first line before choosing. "
+            "Throw away the first one that comes to mind: it is always the most "
+            "generic. Call `read_reference` with 'hooks.md' to pick formulas "
+            "that differ from each other, instead of three variations on the "
+            "same pattern. Each formula there is already mapped to a pillar.",
+            "The English version is NOT a literal translation. It is the same "
+            "post rewritten for an international reader: different references, "
+            "different rhythm, hashtags from the English-speaking ecosystem.",
+            "If real information is missing to support the post (a number, a "
+            "detail of what they built), do NOT invent it: write the post with "
+            "an explicit `[PREENCHER: ...]` marker and list at the end what the "
+            "user has to fill in.",
+            "Deliver in exactly this format, with no text around it:",
             "## Metadados\npilar, ideia central, prova, formato sugerido",
-            "## Post (pt-BR)\no texto pronto para colar",
-            "## Post (en)\no texto pronto para colar",
+            f"{POST_HEADING['pt']}\no texto pronto para colar",
+            f"{POST_HEADING['en']}\no texto pronto para colar",
             "## A completar\nlista de `[PREENCHER]`, ou 'nada' se não houver",
         ],
-        additional_context=contexto_do_perfil(),
+        additional_context=profile_context(),
         markdown=True,
         tool_call_limit=8,
     )

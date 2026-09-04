@@ -1,12 +1,12 @@
-"""Ferramentas de arquivo dos agentes.
+"""The agents' file tools.
 
-O que mais importa aqui é o confinamento: um agente só pode escrever dentro de
-`conteudo/`. Se essa checagem quebrar, um post mal formatado vira sobrescrita
-de `.env` ou de código-fonte.
+What matters most here is the confinement: an agent may only write inside
+`content/`. If that check breaks, a badly formatted post turns into an overwrite
+of `.env` or of source code.
 
-A segunda convenção testada é a do próprio módulo: ferramenta não levanta
-exceção, devolve o erro como texto — para o agente ler a falha e tentar outro
-caminho em vez de derrubar a execução.
+The second convention under test is the module's own: a tool never raises, it
+returns the error as text, so the agent can read the failure and try another
+path instead of bringing the run down.
 """
 
 from __future__ import annotations
@@ -16,133 +16,133 @@ from pathlib import Path
 
 import pytest
 
-from linkedin_growth.ferramentas.artefatos import (
-    _resolver,
-    data_de_hoje,
-    ler_artefato,
-    listar_artefatos,
-    salvar_artefato,
+from linkedin_growth.tools.artifacts import (
+    _resolve,
+    list_artifacts,
+    read_artifact,
+    save_artifact,
+    today,
 )
-from tests.conftest import chamar
+from tests.conftest import call
 
 
 # ==============================================================================
-# Confinamento a conteudo/
+# Confinement to content/
 # ==============================================================================
 
 
-def test_resolver_com_caminho_simples_devolve_alvo_dentro_de_conteudo(conteudo_temp: Path):
-    alvo = _resolver("posts/2026-09-03-rag.md")
+def test_resolve_with_a_simple_path_returns_a_target_inside_content(temp_content: Path):
+    target = _resolve("posts/2026-09-03-rag.md")
 
-    assert alvo is not None
-    assert conteudo_temp.resolve() in alvo.parents
+    assert target is not None
+    assert temp_content.resolve() in target.parents
 
 
 @pytest.mark.parametrize(
-    "fuga",
+    "escape",
     [
-        "../segredo.md",
+        "../secret.md",
         "../../.env",
         "posts/../../../pyproject.toml",
         "posts/../../src/linkedin_growth/config.py",
     ],
 )
-def test_resolver_com_path_traversal_devolve_none(conteudo_temp: Path, fuga: str):
-    """Qualquer caminho que escape de conteudo/ tem que ser recusado."""
-    assert _resolver(fuga) is None
+def test_resolve_with_path_traversal_returns_none(temp_content: Path, escape: str):
+    """Any path that leaves content/ has to be refused."""
+    assert _resolve(escape) is None
 
 
-def test_salvar_artefato_com_path_traversal_nao_grava_e_devolve_erro(
-    conteudo_temp: Path, tmp_path: Path
+def test_save_artifact_with_path_traversal_writes_nothing_and_returns_an_error(
+    temp_content: Path, tmp_path: Path
 ):
-    alvo_proibido = tmp_path / "invadido.md"
+    forbidden_target = tmp_path / "breached.md"
 
-    resultado = chamar(salvar_artefato, "../invadido.md", "conteudo malicioso")
+    result = call(save_artifact, "../breached.md", "malicious content")
 
-    assert resultado.startswith("ERRO")
-    assert not alvo_proibido.exists()
+    assert result.startswith("ERROR")
+    assert not forbidden_target.exists()
 
 
 # ==============================================================================
-# Gravar e ler
+# Writing and reading
 # ==============================================================================
 
 
-def test_salvar_artefato_grava_o_conteudo_e_cria_a_subpasta(conteudo_temp: Path):
-    resultado = chamar(salvar_artefato, "posts/2026-09-03-agentes.md", "# Post\n\ncorpo")
+def test_save_artifact_writes_the_content_and_creates_the_subfolder(temp_content: Path):
+    result = call(save_artifact, "posts/2026-09-03-agents.md", "# Post\n\nbody")
 
-    gravado = conteudo_temp / "posts" / "2026-09-03-agentes.md"
-    assert gravado.read_text(encoding="utf-8") == "# Post\n\ncorpo"
-    assert "posts/2026-09-03-agentes.md" in resultado
+    written = temp_content / "posts" / "2026-09-03-agents.md"
+    assert written.read_text(encoding="utf-8") == "# Post\n\nbody"
+    assert "posts/2026-09-03-agents.md" in result
 
 
-def test_salvar_e_ler_artefato_preserva_acentuacao(conteudo_temp: Path):
-    """Todo o conteúdo do projeto é em português: perder acento aqui é perder tudo."""
+def test_save_and_read_artifact_preserves_accents(temp_content: Path):
+    """The posts are written in Portuguese: losing accents here loses everything."""
     original = "Construí um agente. A pergunta é: compensou?"
 
-    chamar(salvar_artefato, "estrategia.md", original)
-    lido = chamar(ler_artefato, "estrategia.md")
+    call(save_artifact, "strategy.md", original)
+    read_back = call(read_artifact, "strategy.md")
 
-    assert lido == original
-
-
-def test_ler_artefato_inexistente_devolve_erro_como_texto(conteudo_temp: Path):
-    """A convenção do módulo: erro é texto de retorno, não exceção."""
-    resultado = chamar(ler_artefato, "nao-existe.md")
-
-    assert resultado.startswith("ERRO")
-    assert "não existe" in resultado
+    assert read_back == original
 
 
-def test_salvar_artefato_sobrescreve_arquivo_existente(conteudo_temp: Path):
-    chamar(salvar_artefato, "estrategia.md", "primeira versão")
-    chamar(salvar_artefato, "estrategia.md", "segunda versão")
+def test_reading_a_missing_artifact_returns_the_error_as_text(temp_content: Path):
+    """The module's convention: an error is a return value, not an exception."""
+    result = call(read_artifact, "does-not-exist.md")
 
-    assert chamar(ler_artefato, "estrategia.md") == "segunda versão"
+    assert result.startswith("ERROR")
+    assert "does not exist" in result
+
+
+def test_save_artifact_overwrites_an_existing_file(temp_content: Path):
+    call(save_artifact, "strategy.md", "first version")
+    call(save_artifact, "strategy.md", "second version")
+
+    assert call(read_artifact, "strategy.md") == "second version"
 
 
 # ==============================================================================
-# Listagem
+# Listing
 # ==============================================================================
 
 
-def test_listar_artefatos_sem_nada_avisa_que_esta_vazio(conteudo_temp: Path):
-    assert chamar(listar_artefatos) == "Nenhum arquivo ainda."
+def test_listing_with_nothing_there_says_it_is_empty(temp_content: Path):
+    assert call(list_artifacts) == "No files yet."
 
 
-def test_listar_artefatos_usa_barra_normal_mesmo_no_windows(conteudo_temp: Path):
-    """O agente recebe caminhos que ele vai repassar para `ler_artefato`.
+def test_listing_uses_forward_slashes_even_on_windows(temp_content: Path):
+    """The agent gets paths it will hand straight back to `read_artifact`.
 
-    Se vierem com barra invertida no Windows, o caminho volta diferente do que
-    o agente mandou gravar.
+    If they come out with backslashes on Windows, the path comes back different
+    from the one the agent asked to write.
     """
-    chamar(salvar_artefato, "posts/2026-09-03-rag.md", "x")
-    chamar(salvar_artefato, "calendario/2026-W36.md", "y")
+    call(save_artifact, "posts/2026-09-03-rag.md", "x")
+    call(save_artifact, "calendar/2026-W36.md", "y")
 
-    listagem = chamar(listar_artefatos)
+    listing = call(list_artifacts)
 
-    assert "posts/2026-09-03-rag.md" in listagem
-    assert "calendario/2026-W36.md" in listagem
-    assert "\\" not in listagem
+    assert "posts/2026-09-03-rag.md" in listing
+    assert "calendar/2026-W36.md" in listing
+    assert "\\" not in listing
 
 
-def test_listar_artefatos_com_subpasta_filtra_so_ela(conteudo_temp: Path):
-    chamar(salvar_artefato, "posts/um.md", "x")
-    chamar(salvar_artefato, "calendario/dois.md", "y")
+def test_listing_a_subfolder_filters_to_it(temp_content: Path):
+    call(save_artifact, "posts/one.md", "x")
+    call(save_artifact, "calendar/two.md", "y")
 
-    listagem = chamar(listar_artefatos, "posts")
+    listing = call(list_artifacts, "posts")
 
-    assert "posts/um.md" in listagem
-    assert "dois.md" not in listagem
+    assert "posts/one.md" in listing
+    assert "two.md" not in listing
 
 
 # ==============================================================================
-# Data
+# Date
 # ==============================================================================
 
 
-def test_data_de_hoje_devolve_iso_e_semana_iso():
-    """O Editor usa isto para nomear arquivo; formato errado quebra o nome."""
-    resultado = chamar(data_de_hoje)
+def test_today_returns_iso_date_and_iso_week():
+    """The Editor uses this to name files; a wrong format breaks the name."""
+    result = call(today)
 
-    assert re.fullmatch(r"data=\d{4}-\d{2}-\d{2} semana_iso=\d{4}-W\d{2}", resultado)
+    assert re.fullmatch(r"date=\d{4}-\d{2}-\d{2} iso_week=\d{4}-W\d{2}", result)

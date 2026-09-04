@@ -1,8 +1,8 @@
-"""Consulta ao material de apoio em `referencias/`.
+"""Lookups into the supporting material in `references/`.
 
-`referencias/` é somente leitura por decisão de projeto: é a base de consulta
-dos agentes (fórmulas de gancho, heurísticas do algoritmo, vocabulário
-proibido), e um agente não deveria poder reescrever a própria referência.
+`references/` is read-only by design: it is the agents' reference base (hook
+formulas, algorithm heuristics, banned vocabulary), and an agent should not be
+able to rewrite its own reference.
 """
 
 from __future__ import annotations
@@ -11,99 +11,101 @@ from pathlib import Path
 
 import pytest
 
-from linkedin_growth.ferramentas import referencias as modulo_referencias
-from linkedin_growth.ferramentas.referencias import (
-    _resolver,
-    ler_referencia,
-    listar_referencias,
+from linkedin_growth.tools import references as references_module
+from linkedin_growth.tools.references import (
+    _resolve,
+    list_references,
+    read_reference,
 )
-from tests.conftest import chamar
+from tests.conftest import call
 
 
 # ==============================================================================
-# Só leitura
+# Read-only
 # ==============================================================================
 
 
-def test_modulo_nao_expoe_ferramenta_de_escrita():
-    """Se alguém adicionar um `salvar_referencia`, este teste chama a atenção."""
-    nomes = dir(modulo_referencias)
+def test_module_exposes_no_write_tool():
+    """If somebody adds a `save_reference`, this test raises its hand."""
+    names = dir(references_module)
 
-    assert not [n for n in nomes if n.startswith("salvar") or n.startswith("gravar")]
+    assert not [n for n in names if n.startswith("save") or n.startswith("write")]
 
 
 # ==============================================================================
-# Confinamento
+# Confinement
 # ==============================================================================
 
 
 @pytest.mark.parametrize(
-    "fuga",
-    ["../.env", "../../pyproject.toml", "subpasta/../../fora.md"],
+    "escape",
+    ["../.env", "../../pyproject.toml", "subfolder/../../outside.md"],
 )
-def test_resolver_com_path_traversal_devolve_none(referencias_temp: Path, fuga: str):
-    assert _resolver(fuga) is None
+def test_resolve_with_path_traversal_returns_none(temp_references: Path, escape: str):
+    assert _resolve(escape) is None
 
 
-def test_ler_referencia_com_path_traversal_devolve_erro(referencias_temp: Path):
-    resultado = chamar(ler_referencia, "../.env")
+def test_read_reference_with_path_traversal_returns_an_error(temp_references: Path):
+    result = call(read_reference, "../.env")
 
-    assert resultado.startswith("ERRO")
-    assert "referencias/" in resultado
-
-
-# ==============================================================================
-# Leitura
-# ==============================================================================
-
-
-def test_ler_referencia_devolve_o_conteudo_do_arquivo(referencias_temp: Path):
-    (referencias_temp / "ganchos.md").write_text("# Fórmulas\n\nF1 — teste", encoding="utf-8")
-
-    assert chamar(ler_referencia, "ganchos.md") == "# Fórmulas\n\nF1 — teste"
-
-
-def test_ler_referencia_inexistente_devolve_erro_como_texto(referencias_temp: Path):
-    resultado = chamar(ler_referencia, "nao-existe.md")
-
-    assert resultado.startswith("ERRO")
-    assert "não existe" in resultado
-
-
-def test_listar_referencias_sem_nada_avisa_que_esta_vazio(referencias_temp: Path):
-    assert chamar(listar_referencias) == "Nenhuma referência ainda."
-
-
-def test_listar_referencias_devolve_um_por_linha_com_barra_normal(referencias_temp: Path):
-    (referencias_temp / "ganchos.md").write_text("x", encoding="utf-8")
-    (referencias_temp / "algoritmo-linkedin.md").write_text("y", encoding="utf-8")
-
-    listagem = chamar(listar_referencias)
-
-    assert sorted(listagem.splitlines()) == ["algoritmo-linkedin.md", "ganchos.md"]
-    assert "\\" not in listagem
+    assert result.startswith("ERROR")
+    assert "references/" in result
 
 
 # ==============================================================================
-# Os arquivos de referência de verdade, que os agentes citam pelo nome
+# Reading
+# ==============================================================================
+
+
+def test_read_reference_returns_the_file_contents(temp_references: Path):
+    (temp_references / "hooks.md").write_text("# Formulas\n\nF1: test", encoding="utf-8")
+
+    assert call(read_reference, "hooks.md") == "# Formulas\n\nF1: test"
+
+
+def test_reading_a_missing_reference_returns_the_error_as_text(temp_references: Path):
+    result = call(read_reference, "does-not-exist.md")
+
+    assert result.startswith("ERROR")
+    assert "does not exist" in result
+
+
+def test_listing_with_nothing_there_says_it_is_empty(temp_references: Path):
+    assert call(list_references) == "No references yet."
+
+
+def test_listing_returns_one_per_line_with_forward_slashes(temp_references: Path):
+    (temp_references / "hooks.md").write_text("x", encoding="utf-8")
+    (temp_references / "linkedin-algorithm.md").write_text("y", encoding="utf-8")
+
+    listing = call(list_references)
+
+    assert sorted(listing.splitlines()) == ["hooks.md", "linkedin-algorithm.md"]
+    assert "\\" not in listing
+
+
+# ==============================================================================
+# The real reference files, which the agents cite by name
 # ==============================================================================
 
 
 @pytest.mark.parametrize(
-    "arquivo",
+    "file_name",
     [
-        "ganchos.md",
-        "algoritmo-linkedin.md",
-        "vocabulario-ia.md",
+        "hooks.md",
+        "linkedin-algorithm.md",
+        "ai-vocabulary.md",
         "headline-formulas.md",
     ],
 )
-def test_referencia_citada_nas_instrucoes_existe_no_repositorio(arquivo: str):
-    """Os agentes chamam `ler_referencia` com estes nomes exatos.
+def test_a_reference_cited_in_the_instructions_exists_in_the_repo(file_name: str):
+    """The agents call `read_reference` with these exact names.
 
-    Renomear um arquivo sem atualizar a instrução do agente deixaria o agente
-    pedindo um arquivo que não existe — falha silenciosa, difícil de notar.
+    Renaming a file without updating the agent instruction would leave the agent
+    asking for a file that does not exist: a silent failure, hard to notice.
     """
-    caminho = Path(__file__).resolve().parents[1] / "referencias" / arquivo
+    path = Path(__file__).resolve().parents[1] / "references" / file_name
 
-    assert caminho.is_file(), f"referencias/{arquivo} sumiu, mas algum agente ainda pede por ele"
+    assert path.is_file(), (
+        f"references/{file_name} is gone, but some agent still asks for it"
+    )

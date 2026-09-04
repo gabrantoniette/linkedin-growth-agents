@@ -1,11 +1,11 @@
-"""Ferramentas de arquivo: os agentes escrevem e leem dentro de `conteudo/`.
+"""File tools: the agents read and write inside `content/`.
 
-Tudo é confinado a `conteudo/`. Um agente não tem por que escrever em qualquer
-lugar do disco, e uma checagem de caminho custa três linhas.
+Everything is confined to `content/`. An agent has no business writing anywhere
+else on disk, and a path check costs three lines.
 
-Convenção do projeto: ferramenta não levanta exceção — devolve o erro como
-texto. Assim o agente lê a falha, entende e tenta outro caminho, em vez de
-derrubar a execução inteira.
+Project convention: a tool never raises, it returns the error as text. That way
+the agent reads the failure, understands it and tries another path, instead of
+bringing the whole run down.
 """
 
 from __future__ import annotations
@@ -15,103 +15,107 @@ from pathlib import Path
 
 from agno.tools import tool
 
-from linkedin_growth.config import CONTEUDO_DIR
+from linkedin_growth.config import CONTENT_DIR
 
 
-def _resolver(caminho_relativo: str) -> Path | None:
-    """Resolve um caminho dentro de `conteudo/`, ou None se tentar escapar."""
-    alvo = (CONTEUDO_DIR / caminho_relativo).resolve()
-    raiz = CONTEUDO_DIR.resolve()
-    if raiz not in alvo.parents and alvo != raiz:
+def _resolve(relative_path: str) -> Path | None:
+    """Resolve a path inside `content/`, or None if it tries to escape."""
+    target = (CONTENT_DIR / relative_path).resolve()
+    root = CONTENT_DIR.resolve()
+    if root not in target.parents and target != root:
         return None
-    return alvo
+    return target
 
 
 @tool
-def salvar_artefato(caminho_relativo: str, conteudo: str) -> str:
-    """Salva um arquivo de texto dentro da pasta `conteudo/` do projeto.
+def save_artifact(relative_path: str, content: str) -> str:
+    """Save a text file inside the project's `content/` folder.
 
-    Use ao final de uma tarefa para gravar o resultado — diagnóstico, estratégia,
-    calendário, rascunho de post. Sobrescreve se o arquivo já existir.
+    Use it at the end of a task to write the result: a diagnosis, a strategy, a
+    calendar, a post draft. Overwrites the file if it already exists.
 
     Args:
-        caminho_relativo: Caminho a partir de `conteudo/`, com extensão.
-            Exemplos: 'diagnostico.md', 'posts/2026-09-02-rag.md'.
-        conteudo: Texto completo do arquivo, em markdown.
+        relative_path: Path from `content/`, with extension.
+            Examples: 'diagnosis.md', 'posts/2026-09-02-rag.md'.
+        content: Full text of the file, in markdown.
 
     Returns:
-        Confirmação com o caminho gravado, ou a descrição do erro.
+        Confirmation with the written path, or a description of the error.
     """
-    alvo = _resolver(caminho_relativo)
-    if alvo is None:
-        return f"ERRO: '{caminho_relativo}' sai da pasta conteudo/. Use um caminho relativo simples."
+    target = _resolve(relative_path)
+    if target is None:
+        return (
+            f"ERROR: '{relative_path}' leaves the content/ folder. "
+            "Use a simple relative path."
+        )
     try:
-        alvo.parent.mkdir(parents=True, exist_ok=True)
-        alvo.write_text(conteudo, encoding="utf-8")
-        return f"Gravado em conteudo/{caminho_relativo} ({len(conteudo)} caracteres)."
-    except OSError as erro:
-        return f"ERRO ao gravar: {erro}"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+        return f"Written to content/{relative_path} ({len(content)} characters)."
+    except OSError as error:
+        return f"ERROR while writing: {error}"
 
 
 @tool
-def ler_artefato(caminho_relativo: str) -> str:
-    """Lê um arquivo de texto de dentro da pasta `conteudo/`.
+def read_artifact(relative_path: str) -> str:
+    """Read a text file from inside the `content/` folder.
 
-    Use para consultar algo que você ou outro agente já produziu — a estratégia
-    antes de planejar o calendário, o calendário antes de escrever um post.
+    Use it to look up something you or another agent already produced: the
+    strategy before planning the calendar, the calendar before writing a post.
 
     Args:
-        caminho_relativo: Caminho a partir de `conteudo/`.
-            Exemplos: 'estrategia.md', 'calendario/2026-W36.md'.
+        relative_path: Path from `content/`.
+            Examples: 'strategy.md', 'calendar/2026-W36.md'.
 
     Returns:
-        O conteúdo do arquivo, ou a descrição do erro.
+        The file contents, or a description of the error.
     """
-    alvo = _resolver(caminho_relativo)
-    if alvo is None:
-        return f"ERRO: '{caminho_relativo}' sai da pasta conteudo/."
-    if not alvo.exists():
-        return f"ERRO: conteudo/{caminho_relativo} não existe ainda."
+    target = _resolve(relative_path)
+    if target is None:
+        return f"ERROR: '{relative_path}' leaves the content/ folder."
+    if not target.exists():
+        return f"ERROR: content/{relative_path} does not exist yet."
     try:
-        return alvo.read_text(encoding="utf-8")
-    except OSError as erro:
-        return f"ERRO ao ler: {erro}"
+        return target.read_text(encoding="utf-8")
+    except OSError as error:
+        return f"ERROR while reading: {error}"
 
 
 @tool
-def listar_artefatos(subpasta: str = "") -> str:
-    """Lista os arquivos já produzidos dentro de `conteudo/`.
+def list_artifacts(subfolder: str = "") -> str:
+    """List the files already produced inside `content/`.
 
-    Use para descobrir o que já existe antes de criar algo do zero.
+    Use it to find out what already exists before creating something from
+    scratch.
 
     Args:
-        subpasta: Subpasta a listar. Vazio lista tudo, recursivamente.
-            Exemplos: '', 'posts', 'calendario'.
+        subfolder: Subfolder to list. Empty lists everything, recursively.
+            Examples: '', 'posts', 'calendar'.
 
     Returns:
-        Um caminho por linha, ou aviso de pasta vazia.
+        One path per line, or a note that the folder is empty.
     """
-    base = _resolver(subpasta) if subpasta else CONTEUDO_DIR
+    base = _resolve(subfolder) if subfolder else CONTENT_DIR
     if base is None:
-        return f"ERRO: '{subpasta}' sai da pasta conteudo/."
+        return f"ERROR: '{subfolder}' leaves the content/ folder."
     if not base.exists():
-        return "Nenhum arquivo ainda."
+        return "No files yet."
 
-    raiz = CONTEUDO_DIR.resolve()
-    encontrados = sorted(
-        str(p.resolve().relative_to(raiz)).replace("\\", "/")
+    root = CONTENT_DIR.resolve()
+    found = sorted(
+        str(p.resolve().relative_to(root)).replace("\\", "/")
         for p in base.rglob("*")
         if p.is_file()
     )
-    return "\n".join(encontrados) if encontrados else "Nenhum arquivo ainda."
+    return "\n".join(found) if found else "No files yet."
 
 
 @tool
-def data_de_hoje() -> str:
-    """Retorna a data de hoje em ISO (AAAA-MM-DD) e o número da semana.
+def today() -> str:
+    """Return today's date in ISO form (YYYY-MM-DD) and the week number.
 
-    Use ao nomear arquivos de post ou de calendário, para não chutar a data.
+    Use it when naming post or calendar files, so the date is never a guess.
     """
-    hoje = date.today()
-    ano, semana, _ = hoje.isocalendar()
-    return f"data={hoje.isoformat()} semana_iso={ano}-W{semana:02d}"
+    now = date.today()
+    year, week, _ = now.isocalendar()
+    return f"date={now.isoformat()} iso_week={year}-W{week:02d}"

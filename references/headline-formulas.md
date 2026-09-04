@@ -1,72 +1,78 @@
-# Fórmulas de headline
+# Headline formulas
 
-Adaptado de [sergebulaev/linkedin-skills](https://github.com/sergebulaev/linkedin-skills)
-(MIT), skill `linkedin-profile-optimizer`. O original é voltado a founder/B2B
-("ajudo empresas X a alcançar Y"); aqui adaptado para quem está migrando para
-engenharia de IA sem experiência profissional na área — ver POSICIONAMENTO em
-`principios.py`. Use como estrutura, não copie os exemplos de founder do
-repositório original.
+Adapted from [sergebulaev/linkedin-skills](https://github.com/sergebulaev/linkedin-skills)
+(MIT), the `linkedin-profile-optimizer` skill. The original targets founders and
+B2B ("I help X companies reach Y"); this version is adapted for someone moving
+into AI engineering with no professional experience in the field. See
+POSITIONING in `principles.py`. Use it as a structure; do not copy the founder
+examples from the original repository.
 
-**Limite:** 220 caracteres. Use a maior parte disso — headline curta demais
-desperdiça espaço de busca.
+**Limit:** 220 characters. Use most of it. A headline that is too short wastes
+search space.
 
-## A fórmula
+**The examples are in Portuguese** because that is the language of the profile
+this system writes for.
+
+## The formula
 
 ```
-[O que você constrói/está aprendendo] | [Prova ou direção verificável]
+[What you build / are learning] | [Verifiable proof or direction]
 ```
 
-Duas partes, separadas por `|`:
-- **O que você constrói** — a ação concreta, não o status ("estudando IA" não
-  é ação, "construindo agentes em Python" é).
-- **Prova ou direção verificável** — algo que dá pra conferir: tecnologias
-  específicas, o que você está buscando, um projeto nomeado.
+Two halves, separated by `|`:
 
-Isto é a mesma lógica do POSICIONAMENTO já definido no projeto: "a headline
-não anuncia cargo, anuncia direção e evidência."
+- **What you build**: the concrete action, not the status. "estudando IA" is not
+  an action; "construindo agentes em Python" is.
+- **Verifiable proof or direction**: something checkable. Specific technologies,
+  what you are looking for, a named project.
 
-## Regras
+This is the same logic as the POSITIONING already defined in the project: the
+headline does not announce a job title, it announces a direction and the
+evidence for it.
 
-1. **Lidere com o que é verificável, não com o título.** Quem não tem cargo
-   na área não tem título para liderar — e não faz mal, porque prova conta
-   mais que título mesmo para quem tem.
-2. **Seja específico sobre a direção.** "Buscando oportunidades em IA" é
-   fraco. "Buscando minha primeira posição como engenheiro de IA — RAG,
-   agentes, LLMs" é forte, porque nomeia exatamente o que buscar por você.
-3. **Inclua as palavras-chave que recrutador técnico busca.** Nomes de
-   ferramenta e conceito (RAG, agentes, LLMs, Python, Agno) aumentam
-   aparição em busca — mas só entram se forem verdade, nunca por SEO.
-4. **Sem adjetivo de enchimento.** Corte "apaixonado", "dedicado",
-   "orientado a resultados" — não carregam informação.
-5. **Maiúscula em nome próprio** — produtos, empresas, frameworks (Python,
-   Agno, LangChain).
+## Rules
 
-## Antes → depois
+1. **Lead with what is verifiable, not with the title.** Someone with no job in
+   the field has no title to lead with, and that is fine, because proof counts
+   for more than a title even for people who have one.
+2. **Be specific about the direction.** "Buscando oportunidades em IA" is weak.
+   "Buscando minha primeira posição como engenheiro de IA: RAG, agentes, LLMs"
+   is strong, because it names exactly what to search for you by.
+3. **Include the keywords a technical recruiter searches.** Tool and concept
+   names (RAG, agentes, LLMs, Python, Agno) increase search appearances, but
+   they only go in if they are true. Never for SEO.
+4. **No filler adjectives.** Cut "apaixonado", "dedicado", "orientado a
+   resultados". They carry no information.
+5. **Capitalize proper nouns**: products, companies, frameworks (Python, Agno,
+   LangChain).
 
-Exemplo adaptado ao público deste projeto (migração de carreira, sem
-experiência formal em IA):
+## Before and after
 
-- ❌ "Estudando Inteligência Artificial"
-- ❌ "Aspiring AI Engineer | Apaixonado por tecnologia"
-- ✅ "Construindo agentes de IA em Python — LLMs, RAG, Agno | Buscando minha
+An example fitted to this project's audience (career change, no formal AI
+experience):
+
+- Weak: "Estudando Inteligência Artificial"
+- Weak: "Aspiring AI Engineer | Apaixonado por tecnologia"
+- Strong: "Construindo agentes de IA em Python: LLMs, RAG, Agno | Buscando minha
   primeira posição em engenharia de IA"
 
-A diferença não é tom, é verificabilidade: a versão ruim é uma afirmação de
-identidade: a boa aponta para algo que existe e pode ser conferido no perfil.
+The difference is not tone, it is verifiability. The weak version is an identity
+claim; the strong one points at something that exists and can be checked on the
+profile.
 
-## Antipadrões (reprovam automaticamente)
+## Antipatterns (automatic fail)
 
-- "Apaixonado", "dedicado(a)", "orientado(a) a resultados" — sinal vazio.
-- "Estudando X há N anos" — ninguém busca por isso.
-- Headline toda em caixa alta.
-- Sequência de emoji decorativo (🚀🔥💡) — lê como baixo esforço.
-- "Aberto a oportunidades" genérico na própria headline — isso é para o
-  badge "Open to Work" do LinkedIn, não para ocupar espaço da headline.
+- "Apaixonado", "dedicado(a)", "orientado(a) a resultados": empty signal.
+- "Estudando X há N anos": nobody searches for that.
+- A headline in all caps.
+- A run of decorative emoji: it reads as low effort.
+- A generic "aberto a oportunidades" in the headline itself. That is what
+  LinkedIn's "Open to Work" badge is for; it should not eat headline space.
 
-## Onde a busca do LinkedIn indexa
+## What LinkedIn search indexes
 
-A busca do LinkedIn pesa muito a headline. Para aparecer em buscas de
-recrutador:
-- inclua o cargo-alvo ("Engenheiro de IA", "AI Engineer")
-- inclua a especialidade concreta ("RAG", "agentes", "LLMs em produção")
-- evite termo genérico demais ("tecnologia", "inovação") que não filtra nada
+LinkedIn search weighs the headline heavily. To show up in recruiter searches:
+
+- include the target role ("Engenheiro de IA", "AI Engineer")
+- include the concrete specialty ("RAG", "agentes", "LLMs em produção")
+- avoid terms so generic they filter nothing ("tecnologia", "inovação")

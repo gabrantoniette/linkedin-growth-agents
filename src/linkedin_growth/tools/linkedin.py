@@ -1,21 +1,21 @@
-"""Publicação no LinkedIn pela API oficial.
+"""Publishing to LinkedIn through the official API.
 
-Só o caminho sancionado: OAuth + produto `Share on LinkedIn` (escopo
-`w_member_social`), publicando no seu próprio perfil, com o seu consentimento.
-Nada de scraping, cookie `li_at` ou automação de navegador — isso é proibido
-pelos Termos de Uso e derruba conta.
+Only the sanctioned path: OAuth plus the `Share on LinkedIn` product (the
+`w_member_social` scope), publishing to your own profile, with your consent. No
+scraping, no `li_at` cookie, no browser automation. Those are forbidden by the
+Terms of Use and get accounts banned.
 
-Duas sutilezas da API que este módulo resolve:
+Two API subtleties this module handles:
 
-1. **Dois endpoints.** `/rest/posts` é o atual, mas a documentação nunca afirma
-   que um app apenas com `Share on LinkedIn` pode chamá-lo. `/v2/ugcPosts` é o
-   legado e é o que a própria página self-serve documenta. Tentamos o primeiro
-   e caímos para o segundo em 403.
+1. **Two endpoints.** `/rest/posts` is the current one, but the documentation
+   never states that an app holding only `Share on LinkedIn` may call it.
+   `/v2/ugcPosts` is the legacy one, and it is what the self-serve page itself
+   documents. We try the first and fall back to the second on a 403.
 
-2. **`commentary` não é texto puro.** Ele usa o "little text format", em que
-   quinze caracteres são reservados e precisam de contrabarra — inclusive
-   parênteses, que aparecem o tempo todo em texto escrito por IA. Sem escapar,
-   o post falha ou sai deformado. `/v2/ugcPosts` usa texto puro, sem escape.
+2. **`commentary` is not plain text.** It uses the "little text format", where
+   fifteen characters are reserved and need a backslash, parentheses included,
+   which show up constantly in text written by an AI. Without escaping, the post
+   fails or comes out mangled. `/v2/ugcPosts` takes plain text, no escaping.
 """
 
 from __future__ import annotations
@@ -29,106 +29,107 @@ from agno.tools import tool
 
 from linkedin_growth.config import (
     LINKEDIN_VERSION,
-    ConfiguracaoAusente,
-    exigir_linkedin,
+    MissingConfiguration,
+    require_linkedin,
 )
 
-URL_USERINFO = "https://api.linkedin.com/v2/userinfo"
-URL_POSTS = "https://api.linkedin.com/rest/posts"
-URL_UGC = "https://api.linkedin.com/v2/ugcPosts"
+USERINFO_URL = "https://api.linkedin.com/v2/userinfo"
+POSTS_URL = "https://api.linkedin.com/rest/posts"
+UGC_URL = "https://api.linkedin.com/v2/ugcPosts"
 
 TIMEOUT = httpx.Timeout(30.0)
 
-# Caracteres reservados do "little text format". A documentação é explícita:
-# "All reserved characters need to be escaped with a backslash, even if those
-# characters are not used in one of the supported elements or templates."
-RESERVADOS_LITTLE = set(r"\|{}@[]()<>#*_~")
+# Reserved characters of the "little text format". The documentation is
+# explicit: "All reserved characters need to be escaped with a backslash, even
+# if those characters are not used in one of the supported elements or
+# templates."
+LITTLE_RESERVED = set(r"\|{}@[]()<>#*_~")
 
-# Hashtag: '#' seguido de letras/números. Sem underscore — o LinkedIn não o
-# aceita em hashtag, e ele é caractere reservado do formato.
+# Hashtag: '#' followed by letters or digits. No underscore: LinkedIn does not
+# accept it in a hashtag, and it is a reserved character of the format.
 _HASHTAG = re.compile(r"(?<![\w#])#([0-9A-Za-zÀ-ÖØ-öø-ÿ]+)")
 
 
 # ==============================================================================
-# Formatação do texto
+# Text formatting
 # ==============================================================================
 
 
-def escapar_little(texto: str) -> str:
-    """Escapa todo caractere reservado do little text format."""
-    return "".join("\\" + c if c in RESERVADOS_LITTLE else c for c in texto)
+def escape_little(text: str) -> str:
+    """Escape every reserved character of the little text format."""
+    return "".join("\\" + c if c in LITTLE_RESERVED else c for c in text)
 
 
-def para_little(texto: str) -> str:
-    """Converte texto comum para little text format, preservando hashtags.
+def to_little(text: str) -> str:
+    """Convert plain text to little text format, preserving hashtags.
 
-    As hashtags viram o template `{hashtag|\\#|valor}`, que é o que faz o
-    LinkedIn renderizar um link clicável. Todo o resto é escapado.
+    Hashtags become the `{hashtag|\\#|value}` template, which is what makes
+    LinkedIn render a clickable link. Everything else is escaped.
     """
-    partes: list[str] = []
-    ultimo = 0
-    for achado in _HASHTAG.finditer(texto):
-        partes.append(escapar_little(texto[ultimo : achado.start()]))
-        partes.append("{hashtag|\\#|" + achado.group(1) + "}")
-        ultimo = achado.end()
-    partes.append(escapar_little(texto[ultimo:]))
-    return "".join(partes)
+    parts: list[str] = []
+    last = 0
+    for match in _HASHTAG.finditer(text):
+        parts.append(escape_little(text[last : match.start()]))
+        parts.append("{hashtag|\\#|" + match.group(1) + "}")
+        last = match.end()
+    parts.append(escape_little(text[last:]))
+    return "".join(parts)
 
 
 # ==============================================================================
-# Cliente HTTP
+# HTTP client
 # ==============================================================================
 
 
-def _cabecalhos(*, versionado: bool) -> dict[str, str]:
-    cabecalhos = {
-        "Authorization": f"Bearer {exigir_linkedin()}",
+def _headers(*, versioned: bool) -> dict[str, str]:
+    headers = {
+        "Authorization": f"Bearer {require_linkedin()}",
         "X-Restli-Protocol-Version": "2.0.0",
         "Content-Type": "application/json",
     }
-    if versionado:
-        cabecalhos["LinkedIn-Version"] = LINKEDIN_VERSION
-    return cabecalhos
+    if versioned:
+        headers["LinkedIn-Version"] = LINKEDIN_VERSION
+    return headers
 
 
-def perfil_do_token() -> dict[str, Any]:
-    """Identidade do dono do token, via endpoint OIDC `userinfo`.
+def token_profile() -> dict[str, Any]:
+    """Identity of the token's owner, via the OIDC `userinfo` endpoint.
 
-    É o único jeito self-serve de saber quem é o usuário. Note que `sub` é
-    específico do seu app: o mesmo membro tem `sub` diferente em outro app.
+    It is the only self-serve way to know who the user is. Note that `sub` is
+    specific to your app: the same member has a different `sub` in another app.
     """
-    resposta = httpx.get(
-        URL_USERINFO,
-        headers={"Authorization": f"Bearer {exigir_linkedin()}"},
+    response = httpx.get(
+        USERINFO_URL,
+        headers={"Authorization": f"Bearer {require_linkedin()}"},
         timeout=TIMEOUT,
     )
-    resposta.raise_for_status()
-    return resposta.json()
+    response.raise_for_status()
+    return response.json()
 
 
-def urn_do_membro() -> str:
-    """URN do autor, no formato `urn:li:person:{sub}`."""
-    dados = perfil_do_token()
-    sub = dados.get("sub")
+def member_urn() -> str:
+    """The author URN, in the form `urn:li:person:{sub}`."""
+    data = token_profile()
+    sub = data.get("sub")
     if not sub:
         raise RuntimeError(
-            "A resposta de /v2/userinfo não trouxe o campo 'sub'. "
-            "Confira se o token tem os escopos 'openid' e 'profile'."
+            "The /v2/userinfo response did not include the 'sub' field. Check "
+            "that the token carries the 'openid' and 'profile' scopes."
         )
     return f"urn:li:person:{sub}"
 
 
 # ==============================================================================
-# Montagem do payload
+# Payload assembly
 # ==============================================================================
 
 
-def payload_rest(texto: str, autor: str, visibilidade: str = "PUBLIC") -> dict[str, Any]:
-    """Corpo para `POST /rest/posts` (endpoint atual, little text format)."""
+def rest_payload(text: str, author: str, visibility: str = "PUBLIC") -> dict[str, Any]:
+    """Body for `POST /rest/posts` (current endpoint, little text format)."""
     return {
-        "author": autor,
-        "commentary": para_little(texto),
-        "visibility": visibilidade,
+        "author": author,
+        "commentary": to_little(text),
+        "visibility": visibility,
         "distribution": {
             "feedDistribution": "MAIN_FEED",
             "targetEntities": [],
@@ -139,170 +140,178 @@ def payload_rest(texto: str, autor: str, visibilidade: str = "PUBLIC") -> dict[s
     }
 
 
-def payload_ugc(texto: str, autor: str, visibilidade: str = "PUBLIC") -> dict[str, Any]:
-    """Corpo para `POST /v2/ugcPosts` (endpoint legado, texto puro)."""
+def ugc_payload(text: str, author: str, visibility: str = "PUBLIC") -> dict[str, Any]:
+    """Body for `POST /v2/ugcPosts` (legacy endpoint, plain text)."""
     return {
-        "author": autor,
+        "author": author,
         "lifecycleState": "PUBLISHED",
         "specificContent": {
             "com.linkedin.ugc.ShareContent": {
-                "shareCommentary": {"text": texto},
+                "shareCommentary": {"text": text},
                 "shareMediaCategory": "NONE",
             }
         },
-        "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": visibilidade},
+        "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": visibility},
     }
 
 
-def previa(texto: str, visibilidade: str = "PUBLIC") -> str:
-    """Mostra o que seria enviado, sem enviar. Usado pelo `--dry-run` da CLI."""
+def preview(text: str, visibility: str = "PUBLIC") -> str:
+    """Show what would be sent, without sending. Used by the CLI's `--dry-run`."""
     try:
-        autor = urn_do_membro()
-    except (httpx.HTTPError, ConfiguracaoAusente, RuntimeError) as erro:
-        autor = f"urn:li:person:<não foi possível obter: {erro}>"
+        author = member_urn()
+    except (httpx.HTTPError, MissingConfiguration, RuntimeError) as error:
+        author = f"urn:li:person:<could not resolve: {error}>"
 
     return (
-        f"POST {URL_POSTS}\n"
+        f"POST {POSTS_URL}\n"
         f"LinkedIn-Version: {LINKEDIN_VERSION}\n\n"
-        + json.dumps(payload_rest(texto, autor, visibilidade), indent=2, ensure_ascii=False)
-        + f"\n\n--- alternativa em caso de 403 ---\nPOST {URL_UGC}\n\n"
-        + json.dumps(payload_ugc(texto, autor, visibilidade), indent=2, ensure_ascii=False)
+        + json.dumps(rest_payload(text, author, visibility), indent=2, ensure_ascii=False)
+        + f"\n\n--- fallback if 403 ---\nPOST {UGC_URL}\n\n"
+        + json.dumps(ugc_payload(text, author, visibility), indent=2, ensure_ascii=False)
     )
 
 
 # ==============================================================================
-# Publicação
+# Publishing
 # ==============================================================================
 
 
-def _url_do_post(resposta: httpx.Response) -> str:
-    """Monta o link do post a partir do URN devolvido no header `x-restli-id`."""
-    urn = resposta.headers.get("x-restli-id", "")
+def _post_url(response: httpx.Response) -> str:
+    """Build the post link from the URN returned in the `x-restli-id` header."""
+    urn = response.headers.get("x-restli-id", "")
     if not urn:
         try:
-            urn = resposta.json().get("id", "")
+            urn = response.json().get("id", "")
         except (ValueError, json.JSONDecodeError):
             urn = ""
     if not urn:
-        return "(publicado, mas o LinkedIn não devolveu o identificador)"
+        return "(published, but LinkedIn returned no identifier)"
     return f"https://www.linkedin.com/feed/update/{urn}/"
 
 
-def publicar(texto: str, visibilidade: str = "PUBLIC") -> dict[str, Any]:
-    """Publica um post de texto no perfil do dono do token.
+def publish(text: str, visibility: str = "PUBLIC") -> dict[str, Any]:
+    """Publish a text post on the token owner's profile.
 
-    Tenta o endpoint versionado e cai para o legado se o app não tiver acesso.
+    Tries the versioned endpoint and falls back to the legacy one if the app
+    lacks access.
     """
-    autor = urn_do_membro()
+    author = member_urn()
 
-    resposta = httpx.post(
-        URL_POSTS,
-        headers=_cabecalhos(versionado=True),
-        json=payload_rest(texto, autor, visibilidade),
+    response = httpx.post(
+        POSTS_URL,
+        headers=_headers(versioned=True),
+        json=rest_payload(text, author, visibility),
         timeout=TIMEOUT,
     )
 
-    if resposta.status_code == 403:
-        # O app provavelmente só tem 'Share on LinkedIn'. O endpoint legado é o
-        # que a página self-serve documenta e aceita texto puro.
-        resposta = httpx.post(
-            URL_UGC,
-            headers=_cabecalhos(versionado=False),
-            json=payload_ugc(texto, autor, visibilidade),
+    if response.status_code == 403:
+        # The app probably only holds 'Share on LinkedIn'. The legacy endpoint
+        # is the one the self-serve page documents, and it takes plain text.
+        response = httpx.post(
+            UGC_URL,
+            headers=_headers(versioned=False),
+            json=ugc_payload(text, author, visibility),
             timeout=TIMEOUT,
         )
-        endpoint = "/v2/ugcPosts (legado)"
+        endpoint = "/v2/ugcPosts (legacy)"
     else:
         endpoint = "/rest/posts"
 
-    if resposta.status_code not in (200, 201):
+    if response.status_code not in (200, 201):
         return {
             "ok": False,
             "endpoint": endpoint,
-            "status": resposta.status_code,
-            "erro": resposta.text[:1000],
+            "status": response.status_code,
+            "error": response.text[:1000],
         }
 
     return {
         "ok": True,
         "endpoint": endpoint,
-        "status": resposta.status_code,
-        "url": _url_do_post(resposta),
+        "status": response.status_code,
+        "url": _post_url(response),
     }
 
 
 # ==============================================================================
-# Ferramentas expostas aos agentes
+# Tools exposed to the agents
 # ==============================================================================
 
 
 @tool(requires_confirmation=True)
-def publicar_post(texto: str, visibilidade: str = "PUBLIC") -> str:
-    """Publica um post de texto no perfil do usuário no LinkedIn.
+def publish_post(text: str, visibility: str = "PUBLIC") -> str:
+    """Publish a text post on the user's LinkedIn profile.
 
-    Isto é irreversível e público: o post aparece no feed imediatamente. O
-    usuário sempre aprova antes da execução.
+    This is irreversible and public: the post shows up in the feed immediately.
+    The user always approves before it runs.
 
     Args:
-        texto: Conteúdo completo do post, já revisado e pronto. Quebras de
-            linha simples são preservadas. Hashtags no formato '#palavra'
-            viram links clicáveis.
-        visibilidade: 'PUBLIC' (qualquer pessoa) ou 'CONNECTIONS' (só conexões).
+        text: Full post content, already reviewed and ready. Single line breaks
+            are preserved. Hashtags written as '#word' become clickable links.
+        visibility: 'PUBLIC' (anyone) or 'CONNECTIONS' (connections only).
 
     Returns:
-        JSON com o resultado e a URL do post publicado, ou a descrição do erro.
+        JSON with the result and the URL of the published post, or the error.
     """
     try:
-        resultado = publicar(texto, visibilidade)
-    except ConfiguracaoAusente as erro:
-        return json.dumps({"ok": False, "erro": str(erro)}, ensure_ascii=False)
-    except httpx.HTTPError as erro:
-        return json.dumps({"ok": False, "erro": f"Falha de rede: {erro}"}, ensure_ascii=False)
-    except RuntimeError as erro:
-        return json.dumps({"ok": False, "erro": str(erro)}, ensure_ascii=False)
-    return json.dumps(resultado, indent=2, ensure_ascii=False)
+        result = publish(text, visibility)
+    except MissingConfiguration as error:
+        return json.dumps({"ok": False, "error": str(error)}, ensure_ascii=False)
+    except httpx.HTTPError as error:
+        return json.dumps(
+            {"ok": False, "error": f"Network failure: {error}"}, ensure_ascii=False
+        )
+    except RuntimeError as error:
+        return json.dumps({"ok": False, "error": str(error)}, ensure_ascii=False)
+    return json.dumps(result, indent=2, ensure_ascii=False)
 
 
 @tool
-def verificar_conexao_linkedin() -> str:
-    """Confere se o token do LinkedIn está válido e de quem ele é.
+def check_linkedin_connection() -> str:
+    """Check whether the LinkedIn token is valid, and whose it is.
 
-    Use antes de tentar publicar, ou quando o usuário perguntar se a conexão
-    com o LinkedIn está funcionando.
+    Use it before trying to publish, or when the user asks whether the LinkedIn
+    connection is working.
 
     Returns:
-        JSON com o nome do dono do token, ou a descrição do problema.
+        JSON with the token owner's name, or a description of the problem.
     """
     try:
-        dados = perfil_do_token()
-    except ConfiguracaoAusente as erro:
-        return json.dumps({"ok": False, "erro": str(erro)}, ensure_ascii=False)
-    except httpx.HTTPStatusError as erro:
-        if erro.response.status_code == 401:
+        data = token_profile()
+    except MissingConfiguration as error:
+        return json.dumps({"ok": False, "error": str(error)}, ensure_ascii=False)
+    except httpx.HTTPStatusError as error:
+        if error.response.status_code == 401:
             return json.dumps(
                 {
                     "ok": False,
-                    "erro": (
-                        "Token inválido ou expirado. Tokens do LinkedIn duram 60 "
-                        "dias. Gere outro em "
+                    "error": (
+                        "Invalid or expired token. LinkedIn tokens last 60 "
+                        "days. Generate another at "
                         "https://www.linkedin.com/developers/tools/oauth/token-generator"
                     ),
                 },
                 ensure_ascii=False,
             )
         return json.dumps(
-            {"ok": False, "status": erro.response.status_code, "erro": erro.response.text[:500]},
+            {
+                "ok": False,
+                "status": error.response.status_code,
+                "error": error.response.text[:500],
+            },
             ensure_ascii=False,
         )
-    except httpx.HTTPError as erro:
-        return json.dumps({"ok": False, "erro": f"Falha de rede: {erro}"}, ensure_ascii=False)
+    except httpx.HTTPError as error:
+        return json.dumps(
+            {"ok": False, "error": f"Network failure: {error}"}, ensure_ascii=False
+        )
 
     return json.dumps(
         {
             "ok": True,
-            "nome": dados.get("name"),
-            "email": dados.get("email"),
-            "urn": f"urn:li:person:{dados.get('sub')}",
+            "name": data.get("name"),
+            "email": data.get("email"),
+            "urn": f"urn:li:person:{data.get('sub')}",
         },
         indent=2,
         ensure_ascii=False,

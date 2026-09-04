@@ -1,349 +1,353 @@
-# Fórmulas de gancho
+# Hook formulas
 
-Adaptado de [sergebulaev/linkedin-skills](https://github.com/sergebulaev/linkedin-skills)
-(MIT), skill `linkedin-post-writer`. O original tem 20 fórmulas validadas contra
-posts de alto desempenho; aqui elas foram traduzidas, reduzidas ao essencial
-(sem os números de engajamento do corpus original — não se aplicam à conta do
-usuário) e mapeadas para os cinco pilares deste projeto: **Construí, Quebrou,
-Entendi, Li, Comparei** (ver `principios.py`).
+Adapted from [sergebulaev/linkedin-skills](https://github.com/sergebulaev/linkedin-skills)
+(MIT), the `linkedin-post-writer` skill. The original carries 20 formulas
+validated against high-performing posts; here they are trimmed to the essentials
+(without the engagement numbers from the original corpus, which do not apply to
+this user's account) and mapped onto this project's five pillars: **Built,
+Broke, Understood, Read, Compared** (see `principles.py`).
 
-Use como ponto de partida, não como molde a preencher sem pensar. O Redator já
-é instruído a escrever três ganchos e descartar o mais óbvio — esta lista serve
-para o segundo e o terceiro gancho não serem variação do primeiro.
+Use them as a starting point, not as a template to fill in without thinking. The
+Writer is already instructed to draft three hooks and throw away the most
+obvious one; this list exists so the second and third hook are not variations of
+the first.
 
-**F6 (Isca de Comentário) está marcada como proibida neste projeto** — pedir
-"comente X" é uma das coisas explicitamente vetadas em `O_QUE_NAO_FAZER`.
-Ela fica listada aqui só para você reconhecer o padrão e não escrever algo
-parecido sem perceber.
+**F6 (Comment Bait) is marked forbidden in this project.** Asking people to
+"comment X" is one of the things explicitly vetoed in `DO_NOT`. It stays listed
+here only so you recognize the pattern and do not write something like it
+without noticing.
 
----
-
-## F1 — Anáfora de risco de plataforma
-
-```
-{Plataforma/situação} pode {restringir|prejudicar} você {quando}.
-{Outra situação} pode {coisa ruim} por {motivo}.
-[mais 2-3 linhas no mesmo padrão, aumentando a especificidade]
-Você não controla {X}. Você não controla {Y}. Você está só de passagem.
-[anedota concreta com número real]
-O que a maioria não percebe: {reformulação}.
-Então eu mudei o que faço:
-— {tática 1}
-— {tática 2}
-[pergunta de autoavaliação para quem lê]
-```
-**Por quê:** aversão à perda empilhada + ameaça de identidade.
-**Pilar:** Quebrou, Entendi.
-
-## F2 — Obituário de categoria
-
-```
-Óbito de {abordagem/ferramenta antiga}.
-Causa da morte: {mecanismo específico + números}.
-[evidência concreta, 2-3 parágrafos]
-Eu defendi {coisa antiga} até {evento que mudou isso}.
-Funcionava. Até {data/gatilho}.
-O que mudou por baixo do capô:
-1. {mudança 1}
-...
-Quem ganha agora não é {perfil antigo}. É {perfil novo}.
-```
-**Por quê:** tira a vergonha de "eu estava desatualizado" e troca por curiosidade.
-**Pilar:** Comparei, Entendi.
-
-## F3 — Virada ano a ano
-
-```
-Em {ano passado}, eu {marco humilde}.
-Em {este ano}, eu {objetivo transformador}.
-Aqui está o que realmente mudou.
-[verdade vulnerável + números específicos]
-A mudança não foi de ferramenta, foi de identidade.
-[fechamento espelho: "qual foi a sua virada de X para Y este ano?"]
-```
-**Por quê:** o gancho de duas linhas carrega quase todo o peso; a pergunta-espelho
-puxa comentário.
-**Pilar:** Entendi, Construí.
-
-## F4 — Confissão ancorada no tempo
-
-```
-{N} {dias|meses} atrás, eu parei de {comportamento}.
-Aqui está o que aconteceu.
-[contexto de por que o comportamento antigo fazia sentido, com números]
-[o custo silencioso que isso tinha]
-Então eu parei. [novo comportamento, 2-3 linhas]
-{Métrica} caiu N%. Eu esperava pior.
-O que me surpreendeu: {ganho contraintuitivo}.
-[pergunta-espelho: "o que você parou de fazer que melhorou seu trabalho, sem alarde?"]
-```
-**Por quê:** confissão conquista a atenção; números matam o "achismo". Fórmula
-mais alinhada com HONESTIDADE — só use com números reais.
-**Pilar:** Quebrou, Entendi.
-
-## F5 — Meta-prova (auto-comprovação)
-
-```
-A maioria dos posts técnicos morre nos primeiros minutos.
-Não por {motivo comum}. Por {motivo real}.
-Então aqui vai o teste.
-Nas próximas 24h eu vou {compromisso específico e verificável}.
-Você faz duas coisas:
-1. {ação simples}
-2. {ação de verificação}
-Se a tese estiver certa, {resultado esperado}. Se estiver errada, eu volto aqui
-e admito.
-```
-**Por quê:** a afirmação é validada pela ação de quem lê. Só use se você for
-mesmo cumprir o compromisso — combina com HONESTIDADE, quebra a regra se virar
-promessa vazia.
-**Pilar:** Construí.
-
-## F6 — Isca de comentário — **PROIBIDA NESTE PROJETO**
-
-Pede "comente X para receber Y". `O_QUE_NAO_FAZER` já veta pedir engajamento
-("comente ABC", "marque um amigo") porque queima reputação com público técnico.
-Não use, mesmo em variação disfarçada.
-
-## F7 — Ledger de precisão estranha
-
-```
-{Número ímpar e específico — "R$ 47,32", "3h42min"}
-[uma linha de contexto do que esse número cobre]
-Aqui está cada item, sem arredondar:
-- {item 1}: {valor}
-- {item 2}: {valor}
-...
-[o que esse total substitui ou representa]
-[o que te surpreendeu — o que quebrou, o que funcionou]
-```
-**Por quê:** números não arredondados sinalizam registro real, não estimativa.
-Vira print/captura de tela.
-**Pilar:** Construí, Comparei.
-
-## F8 — Reversão pago-vira-grátis
-
-```
-{Contexto: algo que normalmente custaria caro ou levaria muito esforço}.
-Hoje eu abro de graça.
-Abaixo está o passo a passo exato que eu uso antes de {decisão}. Chama de
-{NOME-DO-FRAMEWORK}.
-[bloco de tempo sugerido para quem for aplicar]
-1. {passo 1} — [instrução acionável com número ou proporção]
-...
-Rode isso hoje. A maioria encontra 2-3 ajustes nos primeiros 20 minutos.
-```
-**Por quê:** framework nomeado sinaliza pensamento próprio, não genérico;
-checklist gera mais "salvar" que curtida.
-**Pilar:** Construí, Entendi.
-
-## F9 — Teaser de lacuna de curiosidade
-
-```
-Ontem, {sistema/código} fez uma coisa.
-Uma coisa que eu não esperava.
-[uma âncora sensorial: onde você estava, o que estava fazendo]
-[revelação específica, não um clichê]
-[o que isso significa, um parágrafo]
-[fechamento filosófico nomeando um sentimento, terminando em pergunta]
-```
-**Por quê:** linha 1 incompleta + linha 2 aprofunda a lacuna = leitor não solta
-o scroll. O detalhe sensorial evita soar gerado.
-**Pilar:** Quebrou, Entendi.
-
-## F10 — Contrarian com evidência histórica
-
-```
-{Ideia consolidada} está "morrendo" desde {ano}.
-{Mês/ano} — {evento}. "{previsão de morte}."
-[6-9 entradas datadas, 1-2 linhas cada]
-Todo trimestre, o mesmo obituário.
-Aqui está o contra-argumento.
-[estatística dura com fonte]
-O que realmente morreu não foi {X}. Foi {subconjunto específico}.
-O que está funcionando: {subconjunto oposto, com detalhes}.
-Se você ainda está {comportamento perdedor}, já perdeu.
-Se você está {comportamento vencedor}, já ganhou.
-[pergunta provocativa]
-```
-**Por quê:** lista de evidências prende atenção; fechamento binário força
-posicionamento nos comentários.
-**Pilar:** Comparei, Li.
-
-## F11 — Abertura emocional in medias res
-
-```
-{Uma linha curta, jogada direto no pico emocional de uma história real —
-o momento de quebra, perda ou dificuldade máxima. Sem preparação.}
-[narrativa em cena, 3-6 linhas curtas, sensorial]
-[a virada: o que mudou, o que custou]
-[um significado em uma linha, sem virar lição de moral]
-```
-**Por quê:** começar no pico emocional pula o aquecimento que o scroll pune.
-**Aviso:** só use se for uma história real — inventar drama para engajar viola
-HONESTIDADE. Não escreva a primeira linha em CAIXA ALTA.
-**Pilar:** Quebrou.
-
-## F12 — Autorização (permission slip)
-
-```
-Não sei quem precisa ouvir isso hoje, mas {verdade reconfortante para um
-leitor anônimo}.
-[2-4 linhas específicas e ganhas, não um clichê motivacional]
-[uma pequena permissão concreta: "você pode {X}"]
-[fechamento suave que convida o leitor a se identificar]
-```
-**Por quê:** reconforto em segunda pessoa faz o leitor se marcar nos
-comentários.
-**Aviso:** é o formato mais "engenheirado" da lista — e colide com
-`O_QUE_NAO_FAZER` ("não escreva post de autoajuda/motivação"). Use raramente
-e só se for algo em que você realmente acredita, nunca como recurso padrão.
-**Pilar:** nenhum — evite, a menos que a situação seja excepcional.
-
-## F13 — Reversão de má notícia
-
-```
-Chega. Não vou mais {prática comum ou hábito querido}.
-Também estou cortando {segunda coisa}.
-[pausa de suspense — deixe o leitor supor má notícia]
-[a virada: na verdade é upgrade. O que substituiu e por quê.]
-[o que essa mudança realmente representa]
-```
-**Por quê:** falsa má notícia ativa aversão à perda; a virada positiva libera a
-tensão.
-**Aviso:** só funciona se a virada for genuinamente positiva.
-**Pilar:** Entendi, Comparei.
-
-## F14 — Gratidão nomeada
-
-```
-Para {Nome}, {Nome} e {Nome}: obrigado por {o que cada um fez, especificamente}.
-[2-4 linhas nomeando o que cada pessoa fez — específico, não elogio genérico]
-[por que isso importou pra você ou pro trabalho]
-[fechamento que homenageia eles, não você]
-```
-**Por quê:** nomear pessoas reais convida a rede delas a repostar.
-**Aviso:** só nomeie gente real, por motivo real.
-**Pilar:** qualquer um, como post ocasional — não é pilar de conteúdo técnico.
-
-## F15 — Explicando para leigos
-
-```
-{Termo técnico} explicado de um jeito simples.
-{emoji} {TERMO}: o que significa cada parte?
-{emoji} {parte 1} = {explicação em linguagem simples}
-{emoji} {parte 2} = {explicação em linguagem simples}
-[continue o glossário, escaneável]
-[fechamento de uma linha: "agora você nunca mais esquece"]
-```
-**Por quê:** simplificação correta de algo denso é salva e compartilhada como
-referência.
-**Aviso:** a simplificação tem que estar certa — errar o próprio campo destrói
-credibilidade.
-**Pilar:** Entendi.
-
-## F16 — Tira-status / humildade
-
-```
-Lá fora, me chamam de {título/rótulo}.
-Em casa, nada disso sobrevive a {o momento que desarma}.
-[a cena que tira o status — um detalhe real, uma falha silenciosa]
-[o que o contraste ensinou, uma ou duas linhas]
-```
-**Por quê:** trocar prestígio por relatabilidade converte autoridade em
-proximidade.
-**Aviso:** não pode virar "elogio disfarçado de humildade".
-**Pilar:** uso ocasional, fora dos cinco pilares técnicos.
-
-## F17 — Anedota A/B controlada
-
-```
-{Ação A} → {resultado A}.
-{A mesma ação, com uma variável mudada} → {resultado oposto B}.
-Mesmo {constante 1}. Mesmo {constante 2}. A única variável foi {a única coisa}.
-[o que você achou que isso significava, uma linha]
-[a reformulação: o que a comparação realmente revela]
-[pergunta operacional que faz o leitor testar a própria variável]
-```
-**Por quê:** uma comparação controlada lê como evidência, não opinião.
-**Aviso:** as duas situações têm que diferir em exatamente uma variável — real,
-não construída para parecer mais impressionante.
-**Pilar:** Quebrou, Comparei — é quase a definição do pilar "Comparei".
-
-## F18 — Dissolução de falso binário
-
-```
-Todo mundo recorre a uma de duas respostas para {problema}.
-{Opção A}? {uma linha que mata essa opção}.
-{Opção B}? {uma linha que mata essa opção}.
-As duas falham pelo mesmo motivo: {a falha compartilhada}.
-Então eu tentei uma terceira: {a síntese}.
-[como funciona, 2-3 linhas concretas]
-[o princípio que torna a terceira opção obviamente melhor]
-[pergunta: como você lida com {problema} hoje — A, B, ou outra coisa?]
-```
-**Por quê:** nomear e derrubar as duas opções óbvias ganha o direito à
-terceira.
-**Aviso:** as duas opções têm que ser as que o leitor realmente consideraria —
-um binário de fachada soa como manipulação.
-**Pilar:** Comparei, Entendi.
-
-## F19 — Ponte anedota-evidência
-
-```
-[algo pequeno e pessoal que você notou — uma ou duas linhas concretas]
-Achei que tinha descoberto algo. Descobri que já era conhecido:
-→ {evidência 1, com número}
-→ {evidência 2, com número}
-[a linha que nomeia o padrão de verdade]
-[o que você fez a respeito — a decisão, não a teoria]
-[pergunta operacional]
-```
-**Por quê:** a observação pessoal ganha atenção; a pilha de evidências ganha
-crédito.
-**Aviso:** só números reais — sem fonte real, use F4 em vez disso.
-**Pilar:** Li, Entendi.
-
-## F20 — Fechamento de curvas divergentes
-
-```
-[duas coisas que hoje parecem parecidas]
-{Abordagem A}: {o que faz ao longo do tempo — cresce/decai/pesa}.
-{Abordagem B}: {o oposto ao longo do tempo}.
-[ancore numa linha do tempo: "mês 1, X. mês 6, Y."]
-{Máxima de uma linha contrastando as duas trajetórias.}
-```
-**Por quê:** duas trajetórias opostas numa linha do tempo tornam uma ideia
-inevitável; a máxima é o gatilho de repost.
-**Aviso:** as curvas têm que divergir de verdade.
-**Pilar:** Comparei — costuma funcionar bem como fechamento de um post que já
-usou F17 ou F18.
+The templates keep their Portuguese example phrases, because the posts they
+produce are in Portuguese.
 
 ---
 
-## Divisão por objetivo de engajamento
+## F1: Platform-risk anaphora
 
-| Objetivo | Ganho por | Fórmulas |
+```
+{Platform/situation} can {restrict|hurt} you {when}.
+{Another situation} can {bad thing} because of {reason}.
+[2-3 more lines in the same pattern, increasing specificity]
+You do not control {X}. You do not control {Y}. You are only passing through.
+[concrete anecdote with a real number]
+What most people miss: {reframe}.
+So I changed what I do:
+- {tactic 1}
+- {tactic 2}
+[a self-assessment question for the reader]
+```
+**Why:** stacked loss aversion plus an identity threat.
+**Pillar:** Broke, Understood.
+
+## F2: Category obituary
+
+```
+Obituary for {old approach/tool}.
+Cause of death: {specific mechanism + numbers}.
+[concrete evidence, 2-3 paragraphs]
+I defended {the old thing} until {the event that changed it}.
+It worked. Until {date/trigger}.
+What changed under the hood:
+1. {change 1}
+...
+The winner now is not {old profile}. It is {new profile}.
+```
+**Why:** replaces the shame of "I was out of date" with curiosity.
+**Pillar:** Compared, Understood.
+
+## F3: Year-over-year turn
+
+```
+In {last year}, I {humble milestone}.
+In {this year}, I {transformative goal}.
+Here is what actually changed.
+[a vulnerable truth plus specific numbers]
+The change was not a tool, it was an identity.
+[mirror close: "what was your turn from X to Y this year?"]
+```
+**Why:** the two-line hook carries nearly all the weight; the mirror question
+pulls comments.
+**Pillar:** Understood, Built.
+
+## F4: Time-anchored confession
+
+```
+{N} {days|months} ago, I stopped {behaviour}.
+Here is what happened.
+[context for why the old behaviour made sense, with numbers]
+[the silent cost it carried]
+So I stopped. [new behaviour, 2-3 lines]
+{Metric} dropped N%. I expected worse.
+What surprised me: {counterintuitive gain}.
+[mirror question: "what did you stop doing that quietly improved your work?"]
+```
+**Why:** the confession earns attention; the numbers kill the hand-waving. This
+is the formula most aligned with HONESTY, so only use it with real numbers.
+**Pillar:** Broke, Understood.
+
+## F5: Meta-proof (self-verifying)
+
+```
+Most technical posts die in the first few minutes.
+Not because of {the common reason}. Because of {the real one}.
+So here is the test.
+Over the next 24h I will {specific, verifiable commitment}.
+You do two things:
+1. {simple action}
+2. {verification action}
+If the thesis is right, {expected result}. If it is wrong, I come back here and
+say so.
+```
+**Why:** the claim is validated by the reader's action. Only use it if you will
+actually keep the commitment. It fits HONESTY, and breaks it if it becomes an
+empty promise.
+**Pillar:** Built.
+
+## F6: Comment bait — **FORBIDDEN IN THIS PROJECT**
+
+Asks people to "comment X to get Y". `DO_NOT` already vetoes asking for
+engagement ("comment ABC", "tag a friend") because it burns credibility with a
+technical audience. Do not use it, not even in disguise.
+
+## F7: Odd-precision ledger
+
+```
+{An odd, specific number: "R$ 47,32", "3h42min"}
+[one line of context for what the number covers]
+Here is every line item, unrounded:
+- {item 1}: {value}
+- {item 2}: {value}
+...
+[what that total replaces or represents]
+[what surprised you: what broke, what worked]
+```
+**Why:** unrounded numbers signal a real record rather than an estimate. It gets
+screenshotted.
+**Pillar:** Built, Compared.
+
+## F8: Paid-becomes-free reversal
+
+```
+{Context: something that would normally cost a lot or take real effort}.
+Today I am giving it away.
+Below is the exact process I use before {decision}. I call it
+{FRAMEWORK-NAME}.
+[a suggested time box for anyone applying it]
+1. {step 1}: [actionable instruction with a number or ratio]
+...
+Run it today. Most people find 2-3 fixes in the first 20 minutes.
+```
+**Why:** a named framework signals original thinking rather than generic advice;
+a checklist earns more saves than likes.
+**Pillar:** Built, Understood.
+
+## F9: Curiosity-gap teaser
+
+```
+Yesterday, {system/code} did something.
+Something I did not expect.
+[a sensory anchor: where you were, what you were doing]
+[a specific reveal, not a cliché]
+[what it means, one paragraph]
+[philosophical close naming a feeling, ending in a question]
+```
+**Why:** an incomplete first line plus a second line that deepens the gap keeps
+the reader from scrolling. The sensory detail keeps it from sounding generated.
+**Pillar:** Broke, Understood.
+
+## F10: Contrarian with historical evidence
+
+```
+{Established idea} has been "dying" since {year}.
+{Month/year}: {event}. "{death prediction}."
+[6-9 dated entries, 1-2 lines each]
+Every quarter, the same obituary.
+Here is the counterargument.
+[a hard statistic, with a source]
+What actually died was not {X}. It was {a specific subset}.
+What is working: {the opposite subset, with detail}.
+If you are still {losing behaviour}, you already lost.
+If you are {winning behaviour}, you already won.
+[provocative question]
+```
+**Why:** the evidence list holds attention; the binary close forces people to
+take a position in the comments.
+**Pillar:** Compared, Read.
+
+## F11: In medias res emotional open
+
+```
+{One short line, dropped straight into the emotional peak of a real story: the
+moment of breaking, loss or maximum difficulty. No setup.}
+[narrative in scene, 3-6 short sensory lines]
+[the turn: what changed, what it cost]
+[one line of meaning, without turning into a moral]
+```
+**Why:** starting at the emotional peak skips the warm-up that scrolling
+punishes.
+**Warning:** only use it for a real story. Inventing drama for engagement
+violates HONESTY. Do not write the first line in ALL CAPS.
+**Pillar:** Broke.
+
+## F12: Permission slip
+
+```
+I do not know who needs to hear this today, but {a reassuring truth for an
+anonymous reader}.
+[2-4 specific, earned lines, not a motivational cliché]
+[one small concrete permission: "you are allowed to {X}"]
+[a soft close inviting the reader to see themselves in it]
+```
+**Why:** second-person reassurance makes readers tag themselves in the comments.
+**Warning:** this is the most engineered format on the list, and it collides with
+`DO_NOT` ("do not write self-help or motivational posts"). Use it rarely, and
+only for something you genuinely believe, never as a default move.
+**Pillar:** none. Avoid unless the situation is exceptional.
+
+## F13: Bad-news reversal
+
+```
+That is it. I am no longer {common practice or beloved habit}.
+I am also cutting {second thing}.
+[a pause for suspense: let the reader assume bad news]
+[the turn: it is actually an upgrade. What replaced it and why.]
+[what the change really represents]
+```
+**Why:** false bad news triggers loss aversion; the positive turn releases the
+tension.
+**Warning:** it only works if the turn is genuinely positive.
+**Pillar:** Understood, Compared.
+
+## F14: Named gratitude
+
+```
+To {Name}, {Name} and {Name}: thank you for {what each one did, specifically}.
+[2-4 lines naming what each person did. Specific, not generic praise]
+[why it mattered to you or to the work]
+[a close that honours them, not you]
+```
+**Why:** naming real people invites their network to repost.
+**Warning:** only name real people, for a real reason.
+**Pillar:** any, as an occasional post. It is not a technical content pillar.
+
+## F15: Explaining it plainly
+
+```
+{Technical term}, explained simply.
+{emoji} {TERM}: what does each part mean?
+{emoji} {part 1} = {plain-language explanation}
+{emoji} {part 2} = {plain-language explanation}
+[continue the glossary, scannable]
+[one-line close: "now you will not forget it again"]
+```
+**Why:** a correct simplification of something dense gets saved and shared as a
+reference.
+**Warning:** the simplification has to be right. Getting your own field wrong
+destroys credibility.
+**Pillar:** Understood.
+
+## F16: Status-stripping humility
+
+```
+Out there, they call me {title/label}.
+At home, none of that survives {the moment that disarms it}.
+[the scene that strips the status: a real detail, a quiet failure]
+[what the contrast taught, one or two lines]
+```
+**Why:** trading prestige for relatability converts authority into closeness.
+**Warning:** it must not become a humblebrag.
+**Pillar:** occasional use, outside the five technical pillars.
+
+## F17: Controlled A/B anecdote
+
+```
+{Action A} -> {result A}.
+{The same action, one variable changed} -> {opposite result B}.
+Same {constant 1}. Same {constant 2}. The only variable was {the one thing}.
+[what you thought it meant, one line]
+[the reframe: what the comparison actually reveals]
+[an operational question that makes the reader test their own variable]
+```
+**Why:** a controlled comparison reads as evidence, not opinion.
+**Warning:** the two situations have to differ in exactly one variable, for
+real, not constructed to look more impressive.
+**Pillar:** Broke, Compared. This is almost the definition of the "Compared"
+pillar.
+
+## F18: Dissolving a false binary
+
+```
+Everyone falls back on one of two answers to {problem}.
+{Option A}? {one line that kills it}.
+{Option B}? {one line that kills it}.
+Both fail for the same reason: {the shared flaw}.
+So I tried a third: {the synthesis}.
+[how it works, 2-3 concrete lines]
+[the principle that makes the third option obviously better]
+[question: how do you handle {problem} today, A, B, or something else?]
+```
+**Why:** naming and knocking down the two obvious options earns the right to the
+third.
+**Warning:** the two options have to be the ones the reader would actually
+consider. A straw binary reads as manipulation.
+**Pillar:** Compared, Understood.
+
+## F19: Anecdote-to-evidence bridge
+
+```
+[something small and personal you noticed: one or two concrete lines]
+I thought I had found something. Turns out it was already known:
+-> {evidence 1, with a number}
+-> {evidence 2, with a number}
+[the line that names the real pattern]
+[what you did about it: the decision, not the theory]
+[operational question]
+```
+**Why:** the personal observation wins attention; the stack of evidence wins
+credit.
+**Warning:** real numbers only. With no real source, use F4 instead.
+**Pillar:** Read, Understood.
+
+## F20: Diverging-curves close
+
+```
+[two things that look alike today]
+{Approach A}: {what it does over time: grows/decays/weighs}.
+{Approach B}: {the opposite over time}.
+[anchor it to a timeline: "month 1, X. month 6, Y."]
+{One-line maxim contrasting the two trajectories.}
+```
+**Why:** two opposite trajectories on a timeline make an idea feel inevitable;
+the maxim is the repost trigger.
+**Warning:** the curves have to genuinely diverge.
+**Pillar:** Compared. It usually works well as the close of a post that already
+used F17 or F18.
+
+---
+
+## Split by engagement goal
+
+| Goal | Won by | Formulas |
 |---|---|---|
-| **Comentário** | pergunta, posição contrária, vulnerabilidade, comparação controlada | F4, F10, F17, F18 |
-| **Repost** | máxima citável, distinção clara, curvas divergentes | F2, F18, F20 |
-| **Curtida** | história emocional real, contraste de status | F11, F16 |
-| **Salvar** | simplificação, passo a passo, pilha de evidência | F7, F8, F15, F19 |
+| **Comments** | a question, a contrary position, vulnerability, a controlled comparison | F4, F10, F17, F18 |
+| **Reposts** | a quotable maxim, a clear distinction, diverging curves | F2, F18, F20 |
+| **Likes** | a real emotional story, a status contrast | F11, F16 |
+| **Saves** | simplification, a step-by-step, a stack of evidence | F7, F8, F15, F19 |
 
-## Micro-regras de gancho
+## Hook micro-rules
 
-- **"Como eu fiz" bate "Como fazer".** Experiência em primeira pessoa supera
-  instrução genérica.
-- **Número específico na primeira frase** aumenta a taxa de "ver mais".
-  R$ 47,32 bate "um valor razoável". 40.000 bate "muitos".
-- **Falha real nas 3 primeiras linhas** bate enquadramento polido. Comece pelo
-  que quebrou.
+- **"How I did it" beats "How to".** First-person experience outperforms generic
+  instruction.
+- **A specific number in the first sentence** raises the "see more" rate.
+  R$ 47,32 beats "a reasonable amount". 40,000 beats "many".
+- **A real failure in the first 3 lines** beats a polished framing. Start with
+  what broke.
 
-## Nunca faça
+## Never
 
-- Misturar duas fórmulas no mesmo post (dilui as duas).
-- Usar F5 (meta-prova) se você não for cumprir o compromisso de verdade.
-- Usar F6 — proibida neste projeto.
-- Combinar F7 (ledger) com número inventado — quem lê percebe, e viola
-  HONESTIDADE.
-- Usar F1 para insinuar que o LinkedIn é inferior como plataforma.
+- Mix two formulas in the same post (it dilutes both).
+- Use F5 (meta-proof) if you will not actually keep the commitment.
+- Use F6. It is forbidden in this project.
+- Combine F7 (the ledger) with an invented number. Readers notice, and it
+  violates HONESTY.
+- Use F1 to imply that LinkedIn is an inferior platform.

@@ -1,48 +1,48 @@
-"""Os agentes especialistas do sistema.
+"""The system's specialist agents.
 
-Cada módulo expõe `construir()`, que devolve um `Agent` novo. A construção é
-preguiçosa de propósito: montar um agente lê o perfil do disco e instancia o
-cliente do modelo, e nada disso deve acontecer só porque alguém importou o
-pacote.
+Each module exposes `build()`, which returns a fresh `Agent`. Construction is
+lazy on purpose: assembling an agent reads the profile from disk and
+instantiates the model client, and none of that should happen just because
+somebody imported the package.
 """
 
 from __future__ import annotations
 
 from agno.agent import Agent
 
-from linkedin_growth.agentes import (
-    diagnostico,
+from linkedin_growth.agents import (
+    diagnosis,
     editor,
-    estrategista,
-    perfil_writer,
-    pesquisador,
-    planejador,
-    publicador,
-    redator,
+    planner,
+    profile_writer,
+    publisher,
+    researcher,
+    strategist,
+    writer,
 )
 
 __all__ = [
-    "diagnostico",
+    "diagnosis",
     "editor",
-    "estrategista",
-    "perfil_writer",
-    "pesquisador",
-    "planejador",
-    "publicador",
-    "redator",
-    "todos",
+    "planner",
+    "profile_writer",
+    "publisher",
+    "researcher",
+    "strategist",
+    "writer",
+    "all_agents",
 ]
 
 
-def todos() -> list[Agent]:
-    """Todos os agentes, na ordem em que aparecem no fluxo de trabalho."""
+def all_agents() -> list[Agent]:
+    """Every agent, in the order they appear in the workflow."""
     return [
-        diagnostico.construir(),
-        perfil_writer.construir(),
-        estrategista.construir(),
-        pesquisador.construir(),
-        planejador.construir(),
-        redator.construir(),
-        editor.construir(),
-        publicador.construir(),
+        diagnosis.build(),
+        profile_writer.build(),
+        strategist.build(),
+        researcher.build(),
+        planner.build(),
+        writer.build(),
+        editor.build(),
+        publisher.build(),
     ]

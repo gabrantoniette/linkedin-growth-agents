@@ -1,21 +1,21 @@
-"""Fluxos determinísticos de produção.
+"""Deterministic production flows.
 
-Quando a ordem dos passos é conhecida de antemão, um `Workflow` é melhor que um
-`Team`: ele não gasta tokens decidindo quem faz o quê, e o resultado é o mesmo
-toda vez.
+When the order of the steps is known in advance, a `Workflow` beats a `Team`:
+it spends no tokens deciding who does what, and the result is the same every
+time.
 
-Nota: a `agent_ui` deste repositório só conhece Agents e Teams — Workflows não
-aparecem no chat. Eles rodam pela CLI (`linkedin post`, `linkedin calendario`).
+Note: this repository's `agent_ui` only knows Agents and Teams, so Workflows do
+not appear in the chat. They run from the CLI (`linkedin post`,
+`linkedin calendar`).
 
-**Por que os passos são executores e não `Step(agent=...)`:** o Agno monta a
-mensagem de um passo de agente com `_prepare_message`, que *substitui* a
-entrada do workflow pelo conteúdo do passo anterior. Ou seja, do segundo passo
-em diante o pedido original desaparece. Na prática isso significava que
-`linkedin post --tema "X"` produzia um post sobre outro assunto (o redator via
-só a lista de notícias que o pesquisador tinha levantado) e que
-`linkedin calendario --semanas 4` era ignorado — o planejador nunca ficava
-sabendo quantas semanas planejar. Compondo a mensagem à mão, cada passo recebe
-as duas coisas: o pedido e o trabalho de quem veio antes.
+**Why the steps are executors and not `Step(agent=...)`:** Agno builds an agent
+step's message with `_prepare_message`, which *replaces* the workflow input with
+the previous step's content. From the second step onward the original request is
+gone. In practice that meant `linkedin post --topic "X"` produced a post about
+something else (the writer only saw the list of news the researcher had pulled)
+and `linkedin calendar --weeks 4` was ignored, because the planner never learned
+how many weeks to plan. By composing the message by hand, every step gets both
+things: the request, and the work of whoever came before.
 """
 
 from __future__ import annotations
@@ -29,20 +29,20 @@ from pathlib import Path
 from agno.agent import Agent
 from agno.workflow import Step, StepInput, StepOutput, Workflow
 
-from linkedin_growth.agentes import editor, pesquisador, planejador, redator
+from linkedin_growth.agents import editor, planner, researcher, writer
 from linkedin_growth.config import POSTS_DIR, db
 
-ID_POST = "fluxo-post"
-ID_SEMANA = "fluxo-semana"
+POST_ID = "post-flow"
+WEEK_ID = "week-flow"
 
-# Janela para considerar um arquivo "escrito por esta execução".
-SEGUNDOS_RECENTE = 300
+# Window for considering a file "written by this run".
+RECENT_SECONDS = 300
 
 
-def _slug(texto: str, limite: int = 5) -> str:
+def _slug(text: str, limit: int = 5) -> str:
     """'Por que meu RAG piorou' -> 'por-que-meu-rag-piorou'."""
-    sem_acento = (
-        texto.lower()
+    unaccented = (
+        text.lower()
         .replace("ã", "a").replace("á", "a").replace("â", "a").replace("à", "a")
         .replace("é", "e").replace("ê", "e")
         .replace("í", "i")
@@ -50,131 +50,132 @@ def _slug(texto: str, limite: int = 5) -> str:
         .replace("ú", "u").replace("ü", "u")
         .replace("ç", "c")
     )
-    palavras = re.findall(r"[a-z0-9]+", sem_acento)[:limite]
-    return "-".join(palavras) or "post"
+    words = re.findall(r"[a-z0-9]+", unaccented)[:limit]
+    return "-".join(words) or "post"
 
 
-def passo(
-    nome: str,
-    construir: Callable[[], Agent],
-    mensagem: Callable[[str, str], str],
+def step(
+    name: str,
+    build: Callable[[], Agent],
+    message: Callable[[str, str], str],
 ) -> Step:
-    """Um passo de agente que decide explicitamente o que o agente vai ler.
+    """An agent step that decides explicitly what the agent will read.
 
-    `mensagem` recebe o pedido original do usuário e a saída do passo anterior,
-    e devolve o texto que o agente vê. É o ponto em que o fluxo garante que o
-    tema pedido não se perde no meio da esteira.
+    `message` receives the user's original request and the previous step's
+    output, and returns the text the agent sees. This is the point where the
+    flow guarantees the requested topic does not get lost down the line.
     """
 
-    def executar(entrada: StepInput) -> StepOutput:
-        agente = construir()
-        saida = agente.run(
-            mensagem(
-                entrada.get_input_as_string() or "",
-                entrada.previous_step_content or "",
+    def run(step_input: StepInput) -> StepOutput:
+        agent = build()
+        output = agent.run(
+            message(
+                step_input.get_input_as_string() or "",
+                step_input.previous_step_content or "",
             )
         )
-        return StepOutput(content=str(saida.content or ""), step_name=nome)
+        return StepOutput(content=str(output.content or ""), step_name=name)
 
-    return Step(name=nome, executor=executar)
+    return Step(name=name, executor=run)
 
 
-def _mais_recente(pasta: Path) -> Path | None:
-    arquivos = [p for p in pasta.glob("*.md") if p.is_file()]
-    if not arquivos:
+def _most_recent(folder: Path) -> Path | None:
+    files = [p for p in folder.glob("*.md") if p.is_file()]
+    if not files:
         return None
-    return max(arquivos, key=lambda p: p.stat().st_mtime)
+    return max(files, key=lambda p: p.stat().st_mtime)
 
 
-def registrar_post(step_input: StepInput) -> StepOutput:
-    """Garante que o post virou arquivo e informa o caminho.
+def record_post(step_input: StepInput) -> StepOutput:
+    """Make sure the post became a file, and report where it is.
 
-    O Editor normalmente salva sozinho, pela ferramenta `salvar_artefato`. Este
-    passo confere: se nada foi gravado nos últimos minutos, ele mesmo grava. Um
-    fluxo que roda até o fim e não deixa arquivo é pior que um que falha.
+    The Editor normally saves on its own, through the `save_artifact` tool. This
+    step double-checks: if nothing was written in the last few minutes, it
+    writes the file itself. A flow that runs to completion and leaves no file is
+    worse than one that fails.
     """
-    conteudo = step_input.previous_step_content or ""
-    tema = step_input.get_input_as_string() or "post"
+    content = step_input.previous_step_content or ""
+    topic = step_input.get_input_as_string() or "post"
 
     POSTS_DIR.mkdir(parents=True, exist_ok=True)
-    recente = _mais_recente(POSTS_DIR)
+    recent = _most_recent(POSTS_DIR)
 
-    if recente and (time.time() - recente.stat().st_mtime) < SEGUNDOS_RECENTE:
-        caminho = recente
+    if recent and (time.time() - recent.stat().st_mtime) < RECENT_SECONDS:
+        path = recent
     else:
-        caminho = POSTS_DIR / f"{date.today().isoformat()}-{_slug(tema)}.md"
-        caminho.write_text(str(conteudo), encoding="utf-8")
+        path = POSTS_DIR / f"{date.today().isoformat()}-{_slug(topic)}.md"
+        path.write_text(str(content), encoding="utf-8")
 
     return StepOutput(
-        content=f"{conteudo}\n\n---\n\nArquivo: {caminho}",
-        step_name="registrar_post",
+        content=f"{content}\n\n---\n\nFile: {path}",
+        step_name="record_post",
     )
 
 
-def fluxo_post() -> Workflow:
-    """Pesquisa -> escreve (pt + en) -> edita -> grava o arquivo."""
+def post_flow() -> Workflow:
+    """Research -> write (pt + en) -> edit -> write the file."""
     return Workflow(
-        id=ID_POST,
-        name="Produção de Post",
-        description="Pesquisa o tema, escreve em português e inglês, revisa e salva.",
+        id=POST_ID,
+        name="Post Production",
+        description="Researches the topic, writes it in Portuguese and English, reviews and saves.",
         db=db(),
         steps=[
-            passo(
-                "pesquisa",
-                pesquisador.construir,
-                lambda tema, _: (
-                    f"TEMA JÁ DECIDIDO: {tema}\n\n"
-                    "Levante material de apoio para um post sobre ESTE tema. "
-                    "Não faça a curadoria da semana e não sugira outras pautas: "
-                    "a escolha já foi feita pelo usuário."
+            step(
+                "research",
+                researcher.build,
+                lambda topic, _: (
+                    f"TOPIC ALREADY DECIDED: {topic}\n\n"
+                    "Gather supporting material for a post on THIS topic. Do "
+                    "not curate the week and do not suggest other topics: the "
+                    "user has already chosen."
                 ),
             ),
-            passo(
-                "redacao",
-                redator.construir,
-                lambda tema, pesquisa: (
-                    f"TEMA DO POST: {tema}\n\n"
-                    "Escreva o post sobre esse tema, e só sobre ele.\n\n"
-                    f"Material que a pesquisa levantou:\n{pesquisa}"
+            step(
+                "writing",
+                writer.build,
+                lambda topic, research: (
+                    f"POST TOPIC: {topic}\n\n"
+                    "Write the post on that topic, and only on that topic.\n\n"
+                    f"Material the research turned up:\n{research}"
                 ),
             ),
-            passo(
-                "edicao",
-                editor.construir,
-                lambda tema, rascunho: (
-                    f"TEMA DO POST: {tema}\n\n"
-                    "Revise o rascunho abaixo. Se ele tiver escapado do tema, "
-                    "isso é um problema de conteúdo: aponte e corrija.\n\n"
-                    f"Rascunho:\n{rascunho}"
+            step(
+                "editing",
+                editor.build,
+                lambda topic, draft: (
+                    f"POST TOPIC: {topic}\n\n"
+                    "Review the draft below. If it has drifted off topic, that "
+                    "is a content problem: call it out and fix it.\n\n"
+                    f"Draft:\n{draft}"
                 ),
             ),
-            Step(name="registro", executor=registrar_post),
+            Step(name="record", executor=record_post),
         ],
     )
 
 
-def fluxo_semana() -> Workflow:
-    """Pesquisa a semana -> monta o calendário editorial."""
+def week_flow() -> Workflow:
+    """Research the week -> build the editorial calendar."""
     return Workflow(
-        id=ID_SEMANA,
-        name="Planejamento Semanal",
-        description="Levanta as pautas da semana e monta o calendário editorial.",
+        id=WEEK_ID,
+        name="Weekly Planning",
+        description="Pulls the week's topics and builds the editorial calendar.",
         db=db(),
         steps=[
-            passo("pesquisa", pesquisador.construir, lambda pedido, _: pedido),
-            passo(
-                "calendario",
-                planejador.construir,
-                lambda pedido, pautas: (
-                    f"PEDIDO DO USUÁRIO: {pedido}\n\n"
-                    "Monte o calendário exatamente com o número de semanas "
-                    "pedido acima.\n\n"
-                    f"Pautas que a pesquisa levantou:\n{pautas}"
+            step("research", researcher.build, lambda request, _: request),
+            step(
+                "calendar",
+                planner.build,
+                lambda request, topics: (
+                    f"USER REQUEST: {request}\n\n"
+                    "Build the calendar with exactly the number of weeks asked "
+                    "for above.\n\n"
+                    f"Topics the research turned up:\n{topics}"
                 ),
             ),
         ],
     )
 
 
-def todos() -> list[Workflow]:
-    return [fluxo_post(), fluxo_semana()]
+def all_flows() -> list[Workflow]:
+    return [post_flow(), week_flow()]

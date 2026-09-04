@@ -1,19 +1,19 @@
-"""Os fluxos determinísticos — e o que cada passo realmente lê.
+"""The deterministic flows, and what each step actually reads.
 
-O defeito que estes testes travam foi encontrado rodando o sistema de verdade:
-`linkedin post --tema "custo e latência de um pipeline com LLM"` produziu um
-post sobre vazamento de chave de API. E `linkedin calendario --semanas 4`
-ignorava o número de semanas.
+The defect these tests pin down was found by running the system for real:
+`linkedin post --topic "cost and latency of an LLM pipeline"` produced a post
+about a leaked API key. And `linkedin calendar --weeks 4` ignored the number of
+weeks.
 
-A causa era a mesma nos dois casos. O `Step(agent=...)` do Agno monta a
-mensagem com `_prepare_message`, que **substitui** a entrada do workflow pelo
-conteúdo do passo anterior. Do segundo passo em diante o pedido do usuário
-simplesmente não existe mais: o redator via só a lista de notícias que o
-pesquisador tinha levantado, e escrevia sobre a mais chamativa delas.
+The cause was the same in both cases. Agno's `Step(agent=...)` builds the
+message with `_prepare_message`, which **replaces** the workflow input with the
+previous step's content. From the second step onward the user's request simply
+does not exist any more: the writer only saw the list of news the researcher had
+pulled, and wrote about the most eye-catching one.
 
-Nada nisso aparece como erro. O fluxo termina, o arquivo é gravado, e o
-usuário recebe um post bem escrito sobre o assunto errado. Por isso os testes
-olham o texto que chega a cada agente, e não o resultado final.
+None of that surfaces as an error. The flow finishes, the file is written, and
+the user gets a well-written post about the wrong subject. So these tests look
+at the text that reaches each agent, not at the final result.
 """
 
 from __future__ import annotations
@@ -21,257 +21,250 @@ from __future__ import annotations
 import pytest
 from agno.workflow import StepInput
 
-from linkedin_growth import fluxos
+from linkedin_growth import flows
 
-from .conftest import ModeloEspiao
+from .conftest import SpyModel
 
-TEMA = "o que eu aprendi medindo custo e latência de um pipeline com LLM"
-PESQUISA = "1. LLMjacking: chave de API vazada vira mineração de tokens."
+TOPIC = "o que eu aprendi medindo custo e latência de um pipeline com LLM"
+RESEARCH = "1. LLMjacking: a leaked API key turns into token mining."
 
 
-def _espioes_usados(sem_api) -> list[ModeloEspiao]:
-    """Só os modelos que chegaram a ser chamados.
+def _used_spies(no_api) -> list[SpyModel]:
+    """Only the models that were actually called.
 
-    Construir um agente cria mais de um modelo: o dele e o do gerente de
-    memória, que roda no fim de uma conversa e nestes testes nunca é acionado.
+    Building an agent creates more than one model: the agent's own and the
+    memory manager's, which runs at the end of a conversation and is never
+    triggered in these tests.
     """
-    return [espiao for espiao in sem_api.criados if espiao.chamadas]
+    return [spy for spy in no_api.created if spy.calls]
 
 
-def mensagens_recebidas(sem_api) -> str:
-    """Tudo o que chegou a algum modelo durante o teste, prompt de sistema junto."""
-    return "\n".join(espiao.texto_da_chamada(0) for espiao in _espioes_usados(sem_api))
+def messages_received(no_api) -> str:
+    """Everything that reached a model during the test, system prompt included."""
+    return "\n".join(spy.call_text(0) for spy in _used_spies(no_api))
 
 
-def pedidos_recebidos(sem_api) -> str:
-    """Só o que o fluxo escreveu como pedido, sem as instruções fixas do agente.
+def requests_received(no_api) -> str:
+    """Only what the flow wrote as the request, without the agent's fixed instructions.
 
-    A distinção importa: as instruções do pesquisador *mencionam* os dois modos
-    de trabalho, então procurar 'TEMA JÁ DECIDIDO' no prompt inteiro acharia a
-    frase mesmo quando o fluxo não a mandou. O que decide o comportamento é a
-    mensagem do usuário.
+    The distinction matters: the researcher's instructions *mention* both working
+    modes, so searching the whole prompt for 'TOPIC ALREADY DECIDED' would find
+    the phrase even when the flow did not send it. What decides the behaviour is
+    the user message.
     """
-    partes = [
-        str(mensagem.content)
-        for espiao in _espioes_usados(sem_api)
-        for mensagem in espiao.chamadas[0]
-        if mensagem.role == "user"
+    parts = [
+        str(message.content)
+        for spy in _used_spies(no_api)
+        for message in spy.calls[0]
+        if message.role == "user"
     ]
-    return "\n".join(partes)
+    return "\n".join(parts)
 
 
 # ==============================================================================
-# O tema pedido tem que chegar em todos os passos
+# The requested topic has to reach every step
 # ==============================================================================
 
 
-@pytest.mark.parametrize("indice", [0, 1, 2])
-def test_o_tema_pedido_chega_ao_passo(indice, banco_temp, sem_api):
-    """Pesquisador, redator e editor precisam saber sobre o que é o post.
+@pytest.mark.parametrize("index", [0, 1, 2])
+def test_the_requested_topic_reaches_the_step(index, temp_db, no_api):
+    """Researcher, writer and editor all need to know what the post is about.
 
-    O passo de pesquisa recebia o tema por ser o primeiro; os outros dois viam
-    apenas o texto de quem veio antes, e era ali que o assunto se perdia.
+    The research step got the topic because it is first; the other two saw only
+    the text of whoever came before, and that is where the subject got lost.
     """
-    passo = fluxos.fluxo_post().steps[indice]
+    workflow_step = flows.post_flow().steps[index]
 
-    saida = passo.executor(StepInput(input=TEMA, previous_step_content=PESQUISA))
+    output = workflow_step.executor(
+        StepInput(input=TOPIC, previous_step_content=RESEARCH)
+    )
 
-    assert saida.content, f"o passo '{passo.name}' não produziu nada"
-    assert TEMA in pedidos_recebidos(sem_api), (
-        f"o passo '{passo.name}' não recebeu o tema pedido"
+    assert output.content, f"step '{workflow_step.name}' produced nothing"
+    assert TOPIC in requests_received(no_api), (
+        f"step '{workflow_step.name}' did not receive the requested topic"
     )
 
 
-def test_cada_passo_do_fluxo_de_post_le_o_tema_e_o_passo_anterior(
-    banco_temp, sem_api
-):
-    """A verificação de verdade: o que foi escrito na mensagem do agente.
+def test_every_post_step_reads_both_the_topic_and_the_previous_step(temp_db, no_api):
+    """The real check: what was written into the agent's message.
 
-    Monta a mensagem de cada passo com a mesma função que o fluxo usa e confere
-    que o tema aparece. Se algum passo voltar a receber só o conteúdo anterior,
-    este teste cai.
+    Builds each step's message with the same function the flow uses and confirms
+    the topic is there. If any step goes back to receiving only the previous
+    content, this fails.
     """
-    fluxo = fluxos.fluxo_post()
+    workflow = flows.post_flow()
 
-    for passo in fluxo.steps[:3]:
-        entrada = StepInput(input=TEMA, previous_step_content=PESQUISA)
-        saida = passo.executor(entrada)
-        assert saida.content
+    for workflow_step in workflow.steps[:3]:
+        step_input = StepInput(input=TOPIC, previous_step_content=RESEARCH)
+        output = workflow_step.executor(step_input)
+        assert output.content
 
-    mensagens = pedidos_recebidos(sem_api)
-    assert mensagens.count(TEMA) >= 3, (
-        "o tema pedido tem que chegar aos três agentes do fluxo"
+    messages = requests_received(no_api)
+    assert messages.count(TOPIC) >= 3, (
+        "the requested topic has to reach all three agents in the flow"
     )
-    assert PESQUISA in mensagens, (
-        "o trabalho do passo anterior também tem que continuar chegando"
+    assert RESEARCH in messages, (
+        "the previous step's work also has to keep arriving"
     )
 
 
-def test_o_pedido_de_semanas_chega_ao_planejador(banco_temp, sem_api):
-    """`--semanas 4` só funciona se o planejador souber que são quatro.
+def test_the_week_count_reaches_the_planner(temp_db, no_api):
+    """`--weeks 4` only works if the planner knows there are four.
 
-    Ele é o segundo passo do fluxo da semana, então recebia apenas as pautas do
-    pesquisador e planejava a quantidade que bem entendesse.
+    It is the second step of the week flow, so it used to receive only the
+    researcher's topics and planned whatever number it felt like.
     """
-    pedido = "Levante as pautas desta semana e monte o calendário das próximas 4 semanas."
-    fluxo = fluxos.fluxo_semana()
+    request = "Levante as pautas desta semana e monte o calendário das próximas 4 semanas."
+    workflow = flows.week_flow()
 
-    saida = fluxo.steps[1].executor(
-        StepInput(input=pedido, previous_step_content=PESQUISA)
+    output = workflow.steps[1].executor(
+        StepInput(input=request, previous_step_content=RESEARCH)
     )
 
-    assert saida.content
-    mensagem = pedidos_recebidos(sem_api)
-    assert "4 semanas" in mensagem
-    assert PESQUISA in mensagem
+    assert output.content
+    message = requests_received(no_api)
+    assert "4 semanas" in message
+    assert RESEARCH in message
 
 
 # ==============================================================================
-# O pesquisador tem dois modos, e o fluxo escolhe qual
+# The researcher has two modes, and the flow picks which
 # ==============================================================================
 
 
-def test_com_tema_decidido_o_pesquisador_nao_sugere_outras_pautas(
-    banco_temp, sem_api
-):
-    """O fluxo de post fecha o assunto antes de o pesquisador começar.
+def test_with_a_decided_topic_the_researcher_suggests_no_other_topics(temp_db, no_api):
+    """The post flow settles the subject before the researcher starts.
 
-    Sem isso o pesquisador faz o que ele faz por padrão — curadoria da semana —
-    e devolve 8 pautas, das quais o redator escolhe a mais chamativa em vez do
-    tema pedido.
+    Without that the researcher does what it does by default, weekly curation,
+    and returns 8 topics, of which the writer picks the flashiest instead of the
+    one that was asked for.
     """
-    fluxos.fluxo_post().steps[0].executor(StepInput(input=TEMA))
+    flows.post_flow().steps[0].executor(StepInput(input=TOPIC))
 
-    mensagem = pedidos_recebidos(sem_api)
-    assert "TEMA JÁ DECIDIDO" in mensagem
-    assert "não proponha pauta" in mensagem.lower() or "Não faça a curadoria" in mensagem
-
-
-def test_sem_tema_decidido_o_pesquisador_faz_a_curadoria_da_semana(
-    banco_temp, sem_api
-):
-    """O fluxo da semana não fecha assunto nenhum: ali a curadoria é o serviço."""
-    pedido = "Levante as pautas de engenharia de IA desta semana."
-
-    fluxos.fluxo_semana().steps[0].executor(StepInput(input=pedido))
-
-    mensagem = pedidos_recebidos(sem_api)
-    assert "TEMA JÁ DECIDIDO" not in mensagem
-    assert pedido in mensagem
+    message = requests_received(no_api)
+    assert "TOPIC ALREADY DECIDED" in message
+    assert "do not suggest other topics" in message.lower()
 
 
-def test_o_pesquisador_sabe_separar_os_dois_modos(banco_temp, sem_api):
-    """A instrução do agente precisa cobrir os dois casos, não só um."""
-    from linkedin_growth.agentes import pesquisador
+def test_without_a_decided_topic_the_researcher_curates_the_week(temp_db, no_api):
+    """The week flow settles nothing: there, curation is the service."""
+    request = "Levante as pautas de engenharia de IA desta semana."
 
-    instrucoes = " ".join(str(i) for i in (pesquisador.construir().instructions or []))
+    flows.week_flow().steps[0].executor(StepInput(input=request))
 
-    assert "TEMA JÁ DECIDIDO" in instrucoes
-    assert "curadoria" in instrucoes
+    message = requests_received(no_api)
+    assert "TOPIC ALREADY DECIDED" not in message
+    assert request in message
+
+
+def test_the_researcher_knows_how_to_tell_the_two_modes_apart(temp_db, no_api):
+    """The agent's instructions have to cover both cases, not just one."""
+    from linkedin_growth.agents import researcher
+
+    instructions = " ".join(str(i) for i in (researcher.build().instructions or []))
+
+    assert "TOPIC ALREADY DECIDED" in instructions
+    assert "curat" in instructions
 
 
 # ==============================================================================
-# O contrato entre o Editor e o comando `publicar`
+# The contract between the Editor and the `publish` command
 # ==============================================================================
-# O Editor grava o arquivo; o `publicar` recorta o corpo dele pelo cabeçalho da
-# versão. Enquanto cada lado definia o formato por conta própria, o Editor
-# gravou '# Versão final (pt-BR)' e o comando procurava '## Post (pt-BR)'.
-# Resultado: três agentes rodados, arquivo bonito no disco, e `publicar`
-# morrendo com "não encontrei a seção do idioma 'pt'".
+# The Editor writes the file; `publish` cuts the body out of it by the version
+# heading. While each side defined the format on its own, the Editor wrote
+# '# Versão final (pt-BR)' and the command looked for '## Post (pt-BR)'. Result:
+# three agents run, a nice file on disk, and `publish` dying with "could not
+# find the 'pt' section".
 
 
-def test_o_editor_recebe_os_cabecalhos_exatos_que_o_publicar_procura(
-    banco_temp, sem_api
-):
-    """A instrução do agente sai da mesma constante que o recortador usa."""
-    from linkedin_growth.agentes import editor
-    from linkedin_growth.agentes.principios import CABECALHO_POST
+def test_the_editor_gets_the_exact_headings_publish_looks_for(temp_db, no_api):
+    """The agent's instruction comes from the same constant the cutter uses."""
+    from linkedin_growth.agents import editor
+    from linkedin_growth.agents.principles import POST_HEADING
 
-    instrucoes = " ".join(str(i) for i in (editor.construir().instructions or []))
+    instructions = " ".join(str(i) for i in (editor.build().instructions or []))
 
-    for cabecalho in CABECALHO_POST.values():
-        assert cabecalho in instrucoes
+    for heading in POST_HEADING.values():
+        assert heading in instructions
 
 
-@pytest.mark.parametrize("idioma", ["pt", "en"])
-def test_o_publicar_recorta_o_arquivo_no_formato_documentado(idioma):
-    """Um arquivo escrito como o Editor é instruído a escrever tem que ser lido."""
-    from linkedin_growth.agentes.principios import CABECALHO_POST
-    from linkedin_growth.cli import _extrair_secao
+@pytest.mark.parametrize("language", ["pt", "en"])
+def test_publish_cuts_the_file_in_the_documented_format(language):
+    """A file written the way the Editor is told to write it has to be readable."""
+    from linkedin_growth.agents.principles import POST_HEADING
+    from linkedin_growth.cli import _extract_section
 
-    arquivo = (
-        "---\ndata: 2026-09-04\npilar: Entendi\n---\n\n"
-        f"{CABECALHO_POST['pt']}\n\nCorpo em português.\n\n"
-        f"{CABECALHO_POST['en']}\n\nBody in English.\n\n"
-        "## Avaliação\n\nnota 8/10\n"
+    document = (
+        "---\ndate: 2026-09-04\npillar: Understood\n---\n\n"
+        f"{POST_HEADING['pt']}\n\nCorpo em português.\n\n"
+        f"{POST_HEADING['en']}\n\nBody in English.\n\n"
+        "## Avaliação\n\nscore 8/10\n"
     )
 
-    corpo = _extrair_secao(arquivo, idioma)
+    body = _extract_section(document, language)
 
-    esperado = "Corpo em português." if idioma == "pt" else "Body in English."
-    assert corpo == esperado
-
-
-def test_o_publicar_nao_engole_a_avaliacao_junto_com_o_post():
-    """O recorte para no próximo título. Sem isso, a nota da rubrica ia junto."""
-    from linkedin_growth.agentes.principios import CABECALHO_POST
-    from linkedin_growth.cli import _extrair_secao
-
-    arquivo = f"{CABECALHO_POST['en']}\n\nBody.\n\n## Avaliação\n\nnota 8/10\n"
-
-    assert _extrair_secao(arquivo, "en") == "Body."
+    expected = "Corpo em português." if language == "pt" else "Body in English."
+    assert body == expected
 
 
-def test_o_publicar_avisa_quando_o_cabecalho_nao_existe():
-    """Se o Editor inventar outro título, o recorte devolve nada — e a CLI erra.
+def test_publish_does_not_swallow_the_evaluation_along_with_the_post():
+    """The cut stops at the next heading. Without that, the rubric score tagged along."""
+    from linkedin_growth.agents.principles import POST_HEADING
+    from linkedin_growth.cli import _extract_section
 
-    É o comportamento correto: melhor falhar dizendo o que faltou do que
-    publicar meio arquivo no LinkedIn.
+    document = f"{POST_HEADING['en']}\n\nBody.\n\n## Avaliação\n\nscore 8/10\n"
+
+    assert _extract_section(document, "en") == "Body."
+
+
+def test_publish_says_so_when_the_heading_is_missing():
+    """If the Editor invents another heading, the cut returns nothing and the CLI errors.
+
+    That is the right behaviour: better to fail saying what is missing than to
+    publish half a file to LinkedIn.
     """
-    from linkedin_growth.cli import _extrair_secao
+    from linkedin_growth.cli import _extract_section
 
-    assert _extrair_secao("# Versão final (pt-BR)\n\nCorpo.\n", "pt") is None
+    assert _extract_section("# Versão final (pt-BR)\n\nCorpo.\n", "pt") is None
 
 
-def test_post_reprovado_pelo_editor_nao_chega_ao_publicar(tmp_path, monkeypatch):
-    """Reprovado pelo Editor é reprovado, e o comando diz isso com essas palavras.
+def test_a_post_rejected_by_the_editor_never_reaches_publish(tmp_path, monkeypatch):
+    """Rejected by the Editor means rejected, and the command says so in those words.
 
-    Quando o Editor zera o critério VERDADE ele omite de propósito os títulos
-    publicáveis, para o recorte não achar texto. Sem uma checagem explícita, o
-    usuário recebia "não encontrei a seção do idioma 'pt'" e ia caçar um bug de
-    formato que não existe.
+    When the Editor zeroes the TRUTH criterion it deliberately omits the
+    publishable headings so the cut finds no text. Without an explicit check the
+    user got "could not find the 'pt' section" and went hunting for a format bug
+    that does not exist.
     """
     from typer.testing import CliRunner
 
     from linkedin_growth import cli
 
-    arquivo = tmp_path / "2026-09-04-tema.md"
-    arquivo.write_text(
-        "---\ndata: 2026-09-04\nstatus: reprovado\nnota: 4.7/10\n---\n\n"
-        "## Avaliação\n\nVerdade: 0. O post afirma medição que não houve.\n",
+    path = tmp_path / "2026-09-04-topic.md"
+    path.write_text(
+        "---\ndate: 2026-09-04\nstatus: rejected\nscore: 4.7/10\n---\n\n"
+        "## Evaluation\n\nTruth: 0. The post claims a measurement that never happened.\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(cli, "POSTS_DIR", tmp_path)
 
-    resultado = CliRunner().invoke(
-        cli.app, ["publicar", str(arquivo), "--dry-run"]
-    )
+    result = CliRunner().invoke(cli.app, ["publish", str(path), "--dry-run"])
 
-    assert resultado.exit_code == 1
-    assert "reprovado pelo Editor" in resultado.output
+    assert result.exit_code == 1
+    assert "rejected by the Editor" in result.output
 
 
-def test_post_aprovado_passa_pela_checagem_de_reprovacao(tmp_path, monkeypatch):
-    """A checagem não pode barrar um post normal: ela procura o status, não a palavra."""
-    from linkedin_growth.agentes.principios import CABECALHO_POST
-    from linkedin_growth.cli import _extrair_secao
-
-    arquivo = (
-        "---\ndata: 2026-09-04\nstatus: rascunho\nnota: 8.1/10\n---\n\n"
-        f"{CABECALHO_POST['pt']}\n\nCorpo aprovado.\n"
-    )
-
+def test_an_approved_post_passes_the_rejection_check(tmp_path):
+    """The check must not block a normal post: it looks for the status, not the word."""
     import re
 
-    assert not re.search(r"^status:\s*reprovado\s*$", arquivo, re.MULTILINE)
-    assert _extrair_secao(arquivo, "pt") == "Corpo aprovado."
+    from linkedin_growth.agents.principles import POST_HEADING
+    from linkedin_growth.cli import _extract_section
+
+    document = (
+        "---\ndate: 2026-09-04\nstatus: draft\nscore: 8.1/10\n---\n\n"
+        f"{POST_HEADING['pt']}\n\nCorpo aprovado.\n"
+    )
+
+    assert not re.search(r"^status:\s*rejected\s*$", document, re.MULTILINE)
+    assert _extract_section(document, "pt") == "Corpo aprovado."

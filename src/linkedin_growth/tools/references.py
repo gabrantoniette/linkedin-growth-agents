@@ -1,14 +1,14 @@
-"""Ferramentas de leitura: consulta a material de referência em `referencias/`.
+"""Read-only tools: lookups into the reference material in `references/`.
 
-Separado de `artefatos.py` de propósito. `conteudo/` é o que o sistema
-PRODUZ; `referencias/` é material de apoio que o sistema só CONSULTA — fórmulas
-de gancho, heurísticas do algoritmo, listas de vocabulário a evitar. Por isso
-não existe `salvar_referencia`: um agente não deveria poder reescrever a
-própria base de consulta.
+Deliberately separate from `artifacts.py`. `content/` is what the system
+PRODUCES; `references/` is supporting material the system only CONSULTS: hook
+formulas, algorithm heuristics, lists of vocabulary to avoid. That is why there
+is no `save_reference`: an agent should not be able to rewrite its own
+reference base.
 
-O objetivo é reproduzir, dentro do Agno, a divulgação progressiva das Claude
-Skills: o conteúdo só entra no contexto quando o agente decide chamar a
-ferramenta, em vez de ficar sempre presente nas instructions.
+The goal is to reproduce, inside Agno, the progressive disclosure of Claude
+Skills: the content enters the context only when the agent decides to call the
+tool, instead of sitting in the instructions all the time.
 """
 
 from __future__ import annotations
@@ -17,62 +17,61 @@ from pathlib import Path
 
 from agno.tools import tool
 
-from linkedin_growth.config import REFERENCIAS_DIR
+from linkedin_growth.config import REFERENCES_DIR
 
 
-def _resolver(caminho_relativo: str) -> Path | None:
-    """Resolve um caminho dentro de `referencias/`, ou None se tentar escapar."""
-    alvo = (REFERENCIAS_DIR / caminho_relativo).resolve()
-    raiz = REFERENCIAS_DIR.resolve()
-    if raiz not in alvo.parents and alvo != raiz:
+def _resolve(relative_path: str) -> Path | None:
+    """Resolve a path inside `references/`, or None if it tries to escape."""
+    target = (REFERENCES_DIR / relative_path).resolve()
+    root = REFERENCES_DIR.resolve()
+    if root not in target.parents and target != root:
         return None
-    return alvo
+    return target
 
 
 @tool
-def ler_referencia(caminho_relativo: str) -> str:
-    """Lê um arquivo de material de referência de dentro da pasta `referencias/`.
+def read_reference(relative_path: str) -> str:
+    """Read a reference file from inside the `references/` folder.
 
-    Use quando precisar de fórmulas de gancho, heurísticas do algoritmo do
-    LinkedIn, vocabulário a evitar ou fórmulas de headline — antes de escrever,
-    não depois. Chame `listar_referencias` primeiro se não souber o nome exato
-    do arquivo.
+    Use it when you need hook formulas, LinkedIn algorithm heuristics,
+    vocabulary to avoid or headline formulas, before writing rather than after.
+    Call `list_references` first if you do not know the exact file name.
 
     Args:
-        caminho_relativo: Caminho a partir de `referencias/`, com extensão.
-            Exemplos: 'ganchos.md', 'algoritmo-linkedin.md'.
+        relative_path: Path from `references/`, with extension.
+            Examples: 'hooks.md', 'linkedin-algorithm.md'.
 
     Returns:
-        O conteúdo do arquivo, ou a descrição do erro.
+        The file contents, or a description of the error.
     """
-    alvo = _resolver(caminho_relativo)
-    if alvo is None:
-        return f"ERRO: '{caminho_relativo}' sai da pasta referencias/."
-    if not alvo.exists():
-        return f"ERRO: referencias/{caminho_relativo} não existe."
+    target = _resolve(relative_path)
+    if target is None:
+        return f"ERROR: '{relative_path}' leaves the references/ folder."
+    if not target.exists():
+        return f"ERROR: references/{relative_path} does not exist."
     try:
-        return alvo.read_text(encoding="utf-8")
-    except OSError as erro:
-        return f"ERRO ao ler: {erro}"
+        return target.read_text(encoding="utf-8")
+    except OSError as error:
+        return f"ERROR while reading: {error}"
 
 
 @tool
-def listar_referencias() -> str:
-    """Lista os arquivos de referência disponíveis em `referencias/`.
+def list_references() -> str:
+    """List the reference files available in `references/`.
 
-    Use para descobrir o que existe antes de pedir um arquivo específico com
-    `ler_referencia`.
+    Use it to discover what exists before asking for a specific file with
+    `read_reference`.
 
     Returns:
-        Um caminho por linha, ou aviso de pasta vazia.
+        One path per line, or a note that the folder is empty.
     """
-    if not REFERENCIAS_DIR.exists():
-        return "Nenhuma referência ainda."
+    if not REFERENCES_DIR.exists():
+        return "No references yet."
 
-    raiz = REFERENCIAS_DIR.resolve()
-    encontrados = sorted(
-        str(p.resolve().relative_to(raiz)).replace("\\", "/")
-        for p in REFERENCIAS_DIR.rglob("*")
+    root = REFERENCES_DIR.resolve()
+    found = sorted(
+        str(p.resolve().relative_to(root)).replace("\\", "/")
+        for p in REFERENCES_DIR.rglob("*")
         if p.is_file()
     )
-    return "\n".join(encontrados) if encontrados else "Nenhuma referência ainda."
+    return "\n".join(found) if found else "No references yet."

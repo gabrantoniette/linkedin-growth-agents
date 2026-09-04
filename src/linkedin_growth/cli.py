@@ -1,11 +1,11 @@
-"""Interface de linha de comando.
+"""Command line interface.
 
-Cada comando é um passo do ciclo:
+Each command is one step of the cycle:
 
-    importar -> diagnosticar -> perfil -> estrategia -> calendario
-             -> post -> publicar -> metricas -> (volta para estrategia)
+    import -> diagnose -> profile -> strategy -> calendar
+           -> post -> publish -> metrics -> (back to strategy)
 
-Rode `uv run linkedin --help` para ver tudo.
+Run `uv run linkedin --help` to see everything.
 """
 
 from __future__ import annotations
@@ -24,382 +24,386 @@ from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
 from linkedin_growth.config import (
-    CONTEUDO_DIR,
+    CONTENT_DIR,
+    DEFAULT_SESSION,
     EXPORT_DIR,
     MAX_TOKENS,
-    METRICAS_CSV,
-    PERFIL_YAML,
+    METRICS_CSV,
     POSTS_DIR,
-    SESSAO_PADRAO,
-    ConfiguracaoAusente,
-    garantir_diretorios,
+    PROFILE_YAML,
+    MissingConfiguration,
+    ensure_directories,
 )
 
 app = typer.Typer(
     add_completion=False,
     no_args_is_help=True,
-    help="Sistema de relevância no LinkedIn para engenharia de IA.",
+    help="LinkedIn relevance system for AI engineering.",
 )
 console = Console()
 
 
 # ==============================================================================
-# Utilidades
+# Helpers
 # ==============================================================================
 
 
-def _erro(mensagem: str) -> None:
-    console.print(Panel(mensagem, title="Erro", border_style="red"))
+def _fail(message: str) -> None:
+    console.print(Panel(message, title="Error", border_style="red"))
     raise typer.Exit(code=1)
 
 
-def _avisar_se_truncou(saida) -> None:
-    """Avisa quando a resposta bateu no teto de `max_tokens`.
+def _warn_if_truncated(output) -> None:
+    """Warn when the response hit the `max_tokens` ceiling.
 
-    Isto já custou caro uma vez: o agente escreveu o relatório inteiro, a
-    resposta foi cortada exatamente no limite, a chamada de `salvar_artefato`
-    nunca aconteceu — e o texto na tela terminava com "salvei o relatório".
-    Nada indicava a falha. O teto foi aumentado em `config.MAX_TOKENS`, mas o
-    modo de falhar continua existindo, e ele é invisível por natureza: o
-    usuário só descobre quando vai procurar o arquivo.
+    This cost us once already: the agent wrote the entire report, the response
+    was cut exactly at the limit, the `save_artifact` call never happened, and
+    the text on screen ended with "report saved". Nothing signalled the failure.
+    The ceiling was raised in `config.MAX_TOKENS`, but the failure mode still
+    exists, and it is invisible by nature: the user only finds out when they go
+    looking for the file.
 
-    O Agno não expõe o `stop_reason` do provedor, então o sinal usado é o
-    consumo da última mensagem batendo no teto.
+    Agno does not expose the provider's `stop_reason`, so the signal used here
+    is the last message's spend hitting the ceiling.
     """
-    ultima = next(
+    last = next(
         (
-            mensagem
-            for mensagem in reversed(saida.messages or [])
-            if mensagem.role == "assistant"
+            message
+            for message in reversed(output.messages or [])
+            if message.role == "assistant"
         ),
         None,
     )
-    gastos = getattr(ultima, "metrics", None)
-    if not gastos or (gastos.output_tokens or 0) < MAX_TOKENS:
+    spend = getattr(last, "metrics", None)
+    if not spend or (spend.output_tokens or 0) < MAX_TOKENS:
         return
 
     console.print(
         Panel(
-            "A resposta foi cortada no limite de tokens, então o final se "
-            "perdeu — inclusive uma possível gravação de arquivo.\n\n"
-            "Confira se o artefato foi criado. Para dar mais espaço, aumente "
-            "no .env:\n"
+            "The response was cut at the token limit, so the ending was lost, "
+            "including any file write.\n\n"
+            "Check whether the artifact was created. To give it more room, "
+            "raise this in .env:\n"
             f"    MAX_TOKENS={MAX_TOKENS * 2}",
-            title="Resposta truncada",
+            title="Response truncated",
             border_style="yellow",
         )
     )
 
 
-def _executar_agente(construtor, pergunta: str, titulo: str) -> None:
-    """Roda um agente com saída em streaming e trata pausas de aprovação."""
-    garantir_diretorios()
+def _run_agent(build, question: str, title: str) -> None:
+    """Run an agent, handling approval pauses."""
+    ensure_directories()
     try:
-        agente = construtor()
-    except ConfiguracaoAusente as erro:
-        _erro(str(erro))
+        agent = build()
+    except MissingConfiguration as error:
+        _fail(str(error))
 
-    console.rule(f"[bold]{titulo}")
-    saida = agente.run(pergunta)
+    console.rule(f"[bold]{title}")
+    output = agent.run(question)
 
-    while saida.is_paused:
-        for ferramenta in saida.tools_requiring_confirmation:
+    while output.is_paused:
+        for pending in output.tools_requiring_confirmation:
             console.print(
                 Panel(
-                    f"[bold]{ferramenta.tool_name}[/bold]\n\n{ferramenta.tool_args}",
-                    title="Aprovação necessária",
+                    f"[bold]{pending.tool_name}[/bold]\n\n{pending.tool_args}",
+                    title="Approval required",
                     border_style="yellow",
                 )
             )
-            ferramenta.confirmed = Confirm.ask("Executar?", default=False)
-        saida = agente.continue_run(run_response=saida)
+            pending.confirmed = Confirm.ask("Run it?", default=False)
+        output = agent.continue_run(run_response=output)
 
-    if saida.content:
-        console.print(Markdown(str(saida.content)))
-    _avisar_se_truncou(saida)
+    if output.content:
+        console.print(Markdown(str(output.content)))
+    _warn_if_truncated(output)
 
 
-def _extrair_secao(texto: str, idioma: str) -> Optional[str]:
-    """Pega o corpo do post sob o cabeçalho da versão pedida.
+def _extract_section(text: str, language: str) -> Optional[str]:
+    """Pull the post body out from under the requested version's heading.
 
-    O cabeçalho vem de `principios.CABECALHO_POST`, que é a mesma constante que
-    o Editor recebe na instrução — as duas pontas do contrato saem da mesma
-    fonte, senão elas divergem em silêncio e o `publicar` quebra só na hora H.
+    The heading comes from `principles.POST_HEADING`, the same constant the
+    Editor receives in its instructions. Both ends of the contract come from one
+    source, otherwise they drift apart silently and `publish` breaks only at the
+    worst moment.
 
-    O regex é tolerante de propósito no que não importa: o arquivo é gerado por
-    um modelo, então aceitamos um a três '#', variação de espaço e o sufixo de
-    país opcional. A parada é no próximo cabeçalho de qualquer nível.
+    The regex is deliberately forgiving about what does not matter: the file is
+    generated by a model, so we accept one to three '#', spacing variation and
+    the optional country suffix. It stops at the next heading of any level.
     """
-    from linkedin_growth.agentes.principios import CABECALHO_POST
+    from linkedin_growth.agents.principles import POST_HEADING
 
-    cabecalho = CABECALHO_POST.get(idioma)
-    if not cabecalho:
+    heading = POST_HEADING.get(language)
+    if not heading:
         return None
 
-    rotulo = re.escape(cabecalho.lstrip("# ").strip())
-    # 'Post (pt-BR)' -> 'Post \( pt (-BR)? \)', para aceitar '(pt)' e '(pt-BR)'.
-    rotulo = rotulo.replace(r"\-BR", r"(?:\-BR)?").replace(r"\(en\)", r"\(en(?:\-US)?\)")
-    achado = re.search(
-        rf"^#{{1,3}}\s*{rotulo}\s*$\n(.*?)(?=^#{{1,3}}\s|\Z)",
-        texto,
+    label = re.escape(heading.lstrip("# ").strip())
+    # 'Post (pt-BR)' -> 'Post \( pt (-BR)? \)', so '(pt)' and '(pt-BR)' both hit.
+    label = label.replace(r"\-BR", r"(?:\-BR)?").replace(r"\(en\)", r"\(en(?:\-US)?\)")
+    found = re.search(
+        rf"^#{{1,3}}\s*{label}\s*$\n(.*?)(?=^#{{1,3}}\s|\Z)",
+        text,
         re.DOTALL | re.IGNORECASE | re.MULTILINE,
     )
-    return achado.group(1).strip() if achado else None
+    return found.group(1).strip() if found else None
 
 
 # ==============================================================================
-# Comandos
+# Commands
 # ==============================================================================
 
 
-@app.command()
-def importar() -> None:
-    """Lê o export de dados do LinkedIn e monta perfil/perfil.yaml."""
-    from linkedin_growth.perfil import importador
+@app.command("import")
+def import_data() -> None:
+    """Read the LinkedIn data export and build profile/profile.yaml."""
+    from linkedin_growth.profile import importer
 
-    garantir_diretorios()
-    console.rule("[bold]Importando o export do LinkedIn")
-    console.print(f"Lendo de: [cyan]{EXPORT_DIR}[/cyan]\n")
+    ensure_directories()
+    console.rule("[bold]Importing the LinkedIn export")
+    console.print(f"Reading from: [cyan]{EXPORT_DIR}[/cyan]\n")
 
-    perfil, relatorio = importador.importar()
+    profile, report = importer.import_profile()
 
-    if relatorio.arquivos_encontrados:
-        tabela = Table("Arquivo reconhecido", "Itens")
-        for arquivo in relatorio.arquivos_encontrados:
-            rotulo = arquivo.split("(")[-1].rstrip(")")
-            tabela.add_row(arquivo, str(relatorio.contagens.get(rotulo, "-")))
-        console.print(tabela)
+    if report.files_found:
+        table = Table("File recognized", "Items")
+        for entry in report.files_found:
+            label = entry.split("(")[-1].rstrip(")")
+            table.add_row(entry, str(report.counts.get(label, "-")))
+        console.print(table)
 
-    if relatorio.arquivos_ignorados:
+    if report.files_ignored:
         console.print(
-            f"\n[dim]Ignorados ({len(relatorio.arquivos_ignorados)}): "
-            f"{', '.join(relatorio.arquivos_ignorados[:12])}"
-            f"{' ...' if len(relatorio.arquivos_ignorados) > 12 else ''}[/dim]"
+            f"\n[dim]Ignored ({len(report.files_ignored)}): "
+            f"{', '.join(report.files_ignored[:12])}"
+            f"{' ...' if len(report.files_ignored) > 12 else ''}[/dim]"
         )
 
-    for aviso in relatorio.avisos:
-        console.print(f"\n[yellow]Atenção:[/yellow] {aviso}")
+    for warning in report.warnings:
+        console.print(f"\n[yellow]Heads up:[/yellow] {warning}")
 
-    if not relatorio.arquivos_encontrados:
+    if not report.files_found:
         console.print(
             Panel(
-                "Nenhum CSV conhecido foi encontrado.\n\n"
-                "1. No LinkedIn: Configurações > Privacidade de dados > "
-                "Obter uma cópia dos seus dados\n"
-                "2. Peça o arquivo completo e aguarde o e-mail\n"
-                f"3. Descompacte o .zip dentro de:\n   {EXPORT_DIR}\n"
-                "4. Rode este comando de novo",
-                title="Como obter o export",
+                "No known CSV was found.\n\n"
+                "1. On LinkedIn: Settings > Data privacy > Get a copy of your "
+                "data\n"
+                "2. Request the complete archive and wait for the email\n"
+                f"3. Unzip it into:\n   {EXPORT_DIR}\n"
+                "4. Run this command again",
+                title="How to get the export",
                 border_style="yellow",
             )
         )
         raise typer.Exit(code=1)
 
-    caminho = importador.salvar(perfil)
-    voz = importador.salvar_voz(perfil)
+    path = importer.save(profile)
+    voice = importer.save_voice(profile)
 
-    console.print(f"\n[green]Perfil gravado em[/green] {caminho}")
-    if voz:
+    console.print(f"\n[green]Profile written to[/green] {path}")
+    if voice:
         console.print(
-            f"[green]Amostras de escrita em[/green] {voz} "
-            f"({len(perfil.posts_antigos)} posts)"
+            f"[green]Writing samples in[/green] {voice} "
+            f"({len(profile.past_posts)} posts)"
         )
     console.print(
-        "\n[bold]Agora abra o perfil.yaml e revise.[/bold] Corrija o que o "
-        "importador não pegou e preencha 'objetivo' com as suas palavras — "
-        "é o que todos os agentes vão ler."
+        "\n[bold]Now open profile.yaml and review it.[/bold] Fix what the "
+        "importer missed and fill in 'goal' in your own words. That is what "
+        "every agent reads."
     )
 
 
 @app.command()
-def diagnosticar() -> None:
-    """Audita seu perfil contra vagas reais de engenharia de IA."""
-    from linkedin_growth.agentes import diagnostico
+def diagnose() -> None:
+    """Audit your profile against real AI engineering job posts."""
+    from linkedin_growth.agents import diagnosis
 
-    _executar_agente(
-        diagnostico.construir,
+    _run_agent(
+        diagnosis.build,
         "Faça o diagnóstico completo do meu perfil do LinkedIn para uma "
         "transição para engenharia de IA. Pesquise vagas reais primeiro.",
-        "Diagnóstico de perfil",
+        "Profile diagnosis",
     )
 
 
 @app.command()
-def perfil() -> None:
-    """Gera headline, Sobre, experiências e projetos prontos para colar."""
-    from linkedin_growth.agentes import perfil_writer
+def profile() -> None:
+    """Generate headline, About, experiences and projects, ready to paste."""
+    from linkedin_growth.agents import profile_writer
 
-    _executar_agente(
-        perfil_writer.construir,
+    _run_agent(
+        profile_writer.build,
         "Escreva a versão otimizada do meu perfil do LinkedIn: headline, "
         "Sobre, experiências, projetos e skills. Português e inglês.",
-        "Textos do perfil",
+        "Profile copy",
     )
 
 
 @app.command()
-def estrategia() -> None:
-    """Define posicionamento, pilares de conteúdo e cadência."""
-    from linkedin_growth.agentes import estrategista
+def strategy() -> None:
+    """Define positioning, content pillars and cadence."""
+    from linkedin_growth.agents import strategist
 
-    _executar_agente(
-        estrategista.construir,
+    _run_agent(
+        strategist.build,
         "Monte a minha estratégia de conteúdo no LinkedIn para os próximos "
         "seis meses, com foco em ser notado por recrutadores de engenharia "
         "de IA.",
-        "Estratégia de conteúdo",
+        "Content strategy",
     )
 
 
 @app.command()
-def calendario(
-    semanas: Annotated[int, typer.Option(help="Quantas semanas planejar.")] = 2,
+def calendar(
+    weeks: Annotated[int, typer.Option(help="How many weeks to plan.")] = 2,
 ) -> None:
-    """Monta o calendário editorial das próximas semanas."""
-    from linkedin_growth import fluxos
+    """Build the editorial calendar for the coming weeks."""
+    from linkedin_growth import flows
 
-    garantir_diretorios()
-    console.rule("[bold]Calendário editorial")
+    ensure_directories()
+    console.rule("[bold]Editorial calendar")
     try:
-        fluxo = fluxos.fluxo_semana()
-    except ConfiguracaoAusente as erro:
-        _erro(str(erro))
+        flow = flows.week_flow()
+    except MissingConfiguration as error:
+        _fail(str(error))
 
-    saida = fluxo.run(
+    output = flow.run(
         f"Levante as pautas de engenharia de IA desta semana e monte o "
-        f"calendário editorial das próximas {semanas} semanas."
+        f"calendário editorial das próximas {weeks} semanas."
     )
-    console.print(Markdown(str(saida.content or "")))
+    console.print(Markdown(str(output.content or "")))
 
 
 @app.command()
 def post(
-    tema: Annotated[str, typer.Option(help="Tema do post.")],
+    topic: Annotated[str, typer.Option(help="Topic of the post.")],
 ) -> None:
-    """Pesquisa, escreve (pt + en), revisa e salva um post."""
-    from linkedin_growth import fluxos
+    """Research, write (pt + en), review and save a post."""
+    from linkedin_growth import flows
 
-    garantir_diretorios()
-    console.rule(f"[bold]Produzindo post: {tema}")
+    ensure_directories()
+    console.rule(f"[bold]Producing post: {topic}")
     try:
-        fluxo = fluxos.fluxo_post()
-    except ConfiguracaoAusente as erro:
-        _erro(str(erro))
+        flow = flows.post_flow()
+    except MissingConfiguration as error:
+        _fail(str(error))
 
-    saida = fluxo.run(tema)
-    console.print(Markdown(str(saida.content or "")))
+    output = flow.run(topic)
+    console.print(Markdown(str(output.content or "")))
 
 
 @app.command()
-def publicar(
-    arquivo: Annotated[Path, typer.Argument(help="Arquivo do post em conteudo/posts/.")],
-    idioma: Annotated[str, typer.Option(help="Qual versão publicar: pt ou en.")] = "pt",
+def publish(
+    file: Annotated[Path, typer.Argument(help="Post file in content/posts/.")],
+    language: Annotated[
+        str, typer.Option(help="Which version to publish: pt or en.")
+    ] = "pt",
     dry_run: Annotated[
-        bool, typer.Option("--dry-run", help="Mostra o que seria enviado, sem enviar.")
+        bool, typer.Option("--dry-run", help="Show what would be sent, without sending.")
     ] = False,
 ) -> None:
-    """Publica um post no LinkedIn pela API oficial."""
-    from linkedin_growth.ferramentas import linkedin as li
+    """Publish a post to LinkedIn through the official API."""
+    from linkedin_growth.tools import linkedin as li
 
-    caminho = arquivo if arquivo.is_absolute() else (Path.cwd() / arquivo)
-    if not caminho.exists():
-        caminho = POSTS_DIR / arquivo.name
-    if not caminho.exists():
-        _erro(f"Arquivo não encontrado: {arquivo}")
+    path = file if file.is_absolute() else (Path.cwd() / file)
+    if not path.exists():
+        path = POSTS_DIR / file.name
+    if not path.exists():
+        _fail(f"File not found: {file}")
 
-    texto_bruto = caminho.read_text(encoding="utf-8")
+    raw = path.read_text(encoding="utf-8")
 
-    # O Editor reprova um post que afirme experiência que o usuário não teve, e
-    # quando faz isso ele omite de propósito os títulos publicáveis, para o
-    # recorte não achar texto. Sem esta checagem o usuário receberia "não
-    # encontrei a seção do idioma 'pt'" e iria caçar um bug de formato que não
-    # existe — a resposta certa é que o post foi reprovado, e por quê.
-    if re.search(r"^status:\s*reprovado\s*$", texto_bruto, re.MULTILINE):
-        _erro(
-            f"{caminho.name} foi reprovado pelo Editor e não pode ser publicado.\n\n"
-            "O motivo está no próprio arquivo, na seção 'Avaliação' — em geral "
-            "o post afirma algo que os seus dados reais não sustentam.\n\n"
-            "Resolva as pendências listadas lá e gere de novo com\n"
-            '    uv run linkedin post --tema "..."'
+    # The Editor rejects a post that claims experience the user does not have,
+    # and when it does that it deliberately omits the publishable headings so
+    # the cut finds no text. Without this check the user would get "could not
+    # find the 'pt' section" and go hunting for a format bug that does not
+    # exist. The right answer is that the post was rejected, and why.
+    if re.search(r"^status:\s*rejected\s*$", raw, re.MULTILINE):
+        _fail(
+            f"{path.name} was rejected by the Editor and cannot be published.\n\n"
+            "The reason is in the file itself, under the evaluation section. "
+            "Usually the post claims something your real data does not "
+            "support.\n\n"
+            "Resolve the open items listed there and regenerate with\n"
+            '    uv run linkedin post --topic "..."'
         )
 
-    corpo = _extrair_secao(texto_bruto, idioma)
-    if not corpo:
-        from linkedin_growth.agentes.principios import CABECALHO_POST
+    body = _extract_section(raw, language)
+    if not body:
+        from linkedin_growth.agents.principles import POST_HEADING
 
-        _erro(
-            f"Não encontrei a seção do idioma '{idioma}' em {caminho.name}.\n"
-            f"O arquivo precisa ter um cabeçalho '{CABECALHO_POST['pt']}' ou "
-            f"'{CABECALHO_POST['en']}'.\n"
-            "Se o post foi gerado por uma versão antiga, rode "
-            "`uv run linkedin post --tema \"...\"` de novo."
+        _fail(
+            f"Could not find the '{language}' section in {path.name}.\n"
+            f"The file needs a '{POST_HEADING['pt']}' or "
+            f"'{POST_HEADING['en']}' heading.\n"
+            "If the post came from an older version, run "
+            '`uv run linkedin post --topic "..."` again.'
         )
 
-    if "[PREENCHER" in corpo:
-        _erro(
-            "O post ainda tem marcadores [PREENCHER]. Complete o texto antes "
-            "de publicar."
+    if "[PREENCHER" in body:
+        _fail(
+            "The post still has [PREENCHER] markers. Complete the text before "
+            "publishing."
         )
 
     console.print(
-        Panel(corpo, title=f"{caminho.name} — {idioma} ({len(corpo)} caracteres)")
+        Panel(body, title=f"{path.name} - {language} ({len(body)} characters)")
     )
 
     if dry_run:
-        console.rule("[bold]Simulação (nada foi enviado)")
+        console.rule("[bold]Dry run (nothing was sent)")
         try:
-            console.print(li.previa(corpo))
-        except ConfiguracaoAusente as erro:
-            _erro(str(erro))
+            console.print(li.preview(body))
+        except MissingConfiguration as error:
+            _fail(str(error))
         return
 
     if not Confirm.ask(
-        "\n[bold red]Publicar isto no seu LinkedIn agora?[/bold red]", default=False
+        "\n[bold red]Publish this to your LinkedIn now?[/bold red]", default=False
     ):
-        console.print("Cancelado.")
+        console.print("Cancelled.")
         return
 
     try:
-        resultado = li.publicar(corpo)
-    except ConfiguracaoAusente as erro:
-        _erro(str(erro))
-    except Exception as erro:  # noqa: BLE001 — a falha precisa chegar ao usuário
-        _erro(f"Falha ao publicar: {erro}")
+        result = li.publish(body)
+    except MissingConfiguration as error:
+        _fail(str(error))
+    except Exception as error:  # noqa: BLE001 - the failure has to reach the user
+        _fail(f"Failed to publish: {error}")
 
-    if resultado.get("ok"):
-        console.print(f"\n[green]Publicado.[/green] {resultado['url']}")
-        console.print(f"[dim]via {resultado['endpoint']}[/dim]")
+    if result.get("ok"):
+        console.print(f"\n[green]Published.[/green] {result['url']}")
+        console.print(f"[dim]via {result['endpoint']}[/dim]")
         console.print(
-            "\nDaqui a alguns dias, anote as métricas com "
-            "[cyan]uv run linkedin metricas[/cyan]."
+            "\nIn a few days, record the metrics with "
+            "[cyan]uv run linkedin metrics[/cyan]."
         )
     else:
-        _erro(
-            f"O LinkedIn recusou (HTTP {resultado.get('status')}):\n"
-            f"{resultado.get('erro')}"
+        _fail(
+            f"LinkedIn refused (HTTP {result.get('status')}):\n"
+            f"{result.get('error')}"
         )
 
 
 @app.command()
-def conexao() -> None:
-    """Confere se o token do LinkedIn está válido."""
-    from linkedin_growth.ferramentas import linkedin as li
+def connection() -> None:
+    """Check whether the LinkedIn token is still valid."""
+    from linkedin_growth.tools import linkedin as li
 
     try:
-        dados = li.perfil_do_token()
-    except ConfiguracaoAusente as erro:
-        _erro(str(erro))
-    except Exception as erro:  # noqa: BLE001
-        _erro(
-            f"Não consegui falar com o LinkedIn: {erro}\n\n"
-            "Tokens duram 60 dias. Gere outro em\n"
+        data = li.token_profile()
+    except MissingConfiguration as error:
+        _fail(str(error))
+    except Exception as error:  # noqa: BLE001
+        _fail(
+            f"Could not reach LinkedIn: {error}\n\n"
+            "Tokens last 60 days. Generate another at\n"
             "https://www.linkedin.com/developers/tools/oauth/token-generator"
         )
 
     console.print(
         Panel(
-            f"Conectado como [bold]{dados.get('name')}[/bold]\n"
-            f"urn:li:person:{dados.get('sub')}",
+            f"Connected as [bold]{data.get('name')}[/bold]\n"
+            f"urn:li:person:{data.get('sub')}",
             title="LinkedIn",
             border_style="green",
         )
@@ -407,244 +411,239 @@ def conexao() -> None:
 
 
 @app.command()
-def metricas() -> None:
-    """Registra as métricas de um post publicado.
+def metrics() -> None:
+    """Record the metrics of a published post.
 
-    O LinkedIn não libera métricas de post por API self-serve, então este
-    número entra à mão. É o que fecha o ciclo: o estrategista lê este arquivo
-    para saber que tipo de post funciona para você.
+    LinkedIn does not expose post metrics through the self-serve API, so these
+    numbers go in by hand. This is what closes the loop: the strategist reads
+    this file to learn which kind of post works for you.
     """
-    garantir_diretorios()
-    colunas = [
-        "data",
-        "arquivo",
-        "pilar",
-        "impressoes",
-        "reacoes",
-        "comentarios",
-        "visualizacoes_perfil",
-        "contatos_recrutador",
-        "observacao",
+    ensure_directories()
+    columns = [
+        "date",
+        "file",
+        "pillar",
+        "impressions",
+        "reactions",
+        "comments",
+        "profile_views",
+        "recruiter_contacts",
+        "note",
     ]
 
-    novo = not METRICAS_CSV.exists()
-    console.rule("[bold]Registrar métricas de um post")
+    is_new = not METRICS_CSV.exists()
+    console.rule("[bold]Record the metrics of a post")
 
-    linha = {
-        "data": Prompt.ask("Data do post", default=date.today().isoformat()),
-        "arquivo": Prompt.ask("Arquivo do post", default=""),
-        "pilar": Prompt.ask("Pilar (construi/quebrou/entendi/li/comparei)", default=""),
-        "impressoes": Prompt.ask("Impressões", default="0"),
-        "reacoes": Prompt.ask("Reações", default="0"),
-        "comentarios": Prompt.ask("Comentários", default="0"),
-        "visualizacoes_perfil": Prompt.ask("Visualizações de perfil na semana", default="0"),
-        "contatos_recrutador": Prompt.ask("Contatos de recrutador", default="0"),
-        "observacao": Prompt.ask("Observação", default=""),
+    row = {
+        "date": Prompt.ask("Post date", default=date.today().isoformat()),
+        "file": Prompt.ask("Post file", default=""),
+        "pillar": Prompt.ask("Pillar (built/broke/understood/read/compared)", default=""),
+        "impressions": Prompt.ask("Impressions", default="0"),
+        "reactions": Prompt.ask("Reactions", default="0"),
+        "comments": Prompt.ask("Comments", default="0"),
+        "profile_views": Prompt.ask("Profile views this week", default="0"),
+        "recruiter_contacts": Prompt.ask("Recruiter contacts", default="0"),
+        "note": Prompt.ask("Note", default=""),
     }
 
-    with METRICAS_CSV.open("a", encoding="utf-8", newline="") as arquivo:
-        escritor = csv.DictWriter(arquivo, fieldnames=colunas)
-        if novo:
-            escritor.writeheader()
-        escritor.writerow(linha)
+    with METRICS_CSV.open("a", encoding="utf-8", newline="") as handle:
+        csv_writer = csv.DictWriter(handle, fieldnames=columns)
+        if is_new:
+            csv_writer.writeheader()
+        csv_writer.writerow(row)
 
-    console.print(f"\n[green]Registrado em[/green] {METRICAS_CSV}")
+    console.print(f"\n[green]Recorded in[/green] {METRICS_CSV}")
 
 
 @app.command()
 def chat(
-    sessao: Annotated[
+    session: Annotated[
         str,
-        typer.Option(help="Qual conversa continuar. Sessões diferentes não se misturam."),
-    ] = SESSAO_PADRAO,
+        typer.Option(help="Which conversation to continue. Sessions do not mix."),
+    ] = DEFAULT_SESSION,
 ) -> None:
-    """Conversa com o time no terminal, continuando de onde parou."""
-    from linkedin_growth import times
+    """Talk to the team in the terminal, picking up where you left off."""
+    from linkedin_growth import team
 
-    garantir_diretorios()
+    ensure_directories()
     try:
-        time = times.construir(sessao)
-    except ConfiguracaoAusente as erro:
-        _erro(str(erro))
+        crew = team.build(session)
+    except MissingConfiguration as error:
+        _fail(str(error))
 
-    console.rule("[bold]Time de Presença no LinkedIn")
+    console.rule("[bold]LinkedIn Presence Team")
     console.print(
-        f"[dim]Conversa '[cyan]{sessao}[/cyan]'. Digite 'sair' para encerrar.[/dim]\n"
+        f"[dim]Conversation '[cyan]{session}[/cyan]'. Type 'exit' to quit.[/dim]\n"
     )
 
     while True:
         try:
-            pergunta = Prompt.ask("[bold cyan]você[/bold cyan]")
+            question = Prompt.ask("[bold cyan]you[/bold cyan]")
         except (KeyboardInterrupt, EOFError):
             break
-        if pergunta.strip().lower() in {"sair", "exit", "quit"}:
+        if question.strip().lower() in {"sair", "exit", "quit"}:
             break
-        if not pergunta.strip():
+        if not question.strip():
             continue
 
-        saida = time.run(pergunta)
+        output = crew.run(question)
 
-        # Publicação e outras ações sensíveis pausam a execução esperando o ok.
-        while saida.is_paused:
-            for requisito in saida.active_requirements:
-                if not requisito.needs_confirmation:
+        # Publishing and other sensitive actions pause the run waiting for a yes.
+        while output.is_paused:
+            for requirement in output.active_requirements:
+                if not requirement.needs_confirmation:
                     continue
-                execucao = requisito.tool_execution
+                execution = requirement.tool_execution
                 console.print(
                     Panel(
-                        f"[bold]{execucao.tool_name}[/bold]\n\n{execucao.tool_args}",
-                        title="Aprovação necessária",
+                        f"[bold]{execution.tool_name}[/bold]\n\n{execution.tool_args}",
+                        title="Approval required",
                         border_style="yellow",
                     )
                 )
-                if Confirm.ask("Executar?", default=False):
-                    requisito.confirm()
+                if Confirm.ask("Run it?", default=False):
+                    requirement.confirm()
                 else:
-                    requisito.reject("O usuário recusou.")
-            saida = time.continue_run(run_response=saida)
+                    requirement.reject("The user declined.")
+            output = crew.continue_run(run_response=output)
 
-        console.print(Markdown(str(saida.content or "")))
+        console.print(Markdown(str(output.content or "")))
         console.print()
 
 
 @app.command()
-def memoria(
-    esquecer: Annotated[
+def memory(
+    forget: Annotated[
         Optional[str],
-        typer.Option(help="Apaga uma memória pelo id mostrado na listagem."),
+        typer.Option(help="Delete one memory by the id shown in the listing."),
     ] = None,
-    limpar: Annotated[
-        bool, typer.Option("--limpar", help="Apaga tudo o que o sistema lembra.")
+    clear: Annotated[
+        bool, typer.Option("--clear", help="Delete everything the system remembers.")
     ] = False,
 ) -> None:
-    """Mostra o que o sistema aprendeu sobre você nas conversas.
+    """Show what the system learned about you in conversation.
 
-    Memória que não dá para inspecionar não dá para confiar: se um agente
-    passar a repetir uma bobagem, é aqui que se descobre de onde veio, e é aqui
-    que se apaga.
+    Memory you cannot inspect is memory you cannot trust: if an agent starts
+    repeating nonsense, this is where you find out where it came from, and this
+    is where you delete it.
     """
-    from linkedin_growth.config import USUARIO_ID, memoria as gerente_de_memoria
+    from linkedin_growth.config import USER_ID, memory as memory_manager
 
-    garantir_diretorios()
+    ensure_directories()
     try:
-        gerente = gerente_de_memoria()
-    except ConfiguracaoAusente as erro:
-        _erro(str(erro))
+        manager = memory_manager()
+    except MissingConfiguration as error:
+        _fail(str(error))
 
-    if limpar:
+    if clear:
         if not Confirm.ask(
-            "\n[bold red]Apagar TUDO o que o sistema lembra de você?[/bold red]",
+            "\n[bold red]Delete EVERYTHING the system remembers about you?[/bold red]",
             default=False,
         ):
-            console.print("Cancelado.")
+            console.print("Cancelled.")
             return
-        gerente.clear_user_memories(user_id=USUARIO_ID)
-        console.print("[green]Memória apagada.[/green]")
+        manager.clear_user_memories(user_id=USER_ID)
+        console.print("[green]Memory cleared.[/green]")
         return
 
-    lembrancas = gerente.get_user_memories(user_id=USUARIO_ID) or []
+    memories = manager.get_user_memories(user_id=USER_ID) or []
 
-    if esquecer:
-        # A tabela mostra o id abreviado, então o comando aceita o prefixo.
-        achados = [
-            lembranca
-            for lembranca in lembrancas
-            if (lembranca.memory_id or "").startswith(esquecer)
+    if forget:
+        # The table shows the id abbreviated, so the command accepts a prefix.
+        matches = [
+            entry for entry in memories if (entry.memory_id or "").startswith(forget)
         ]
-        if not achados:
-            _erro(f"Não existe memória começando por '{esquecer}'.")
-        if len(achados) > 1:
-            _erro(
-                f"'{esquecer}' casa com {len(achados)} memórias. "
-                "Use mais caracteres do id."
+        if not matches:
+            _fail(f"No memory starts with '{forget}'.")
+        if len(matches) > 1:
+            _fail(
+                f"'{forget}' matches {len(matches)} memories. Use more "
+                "characters of the id."
             )
-        gerente.delete_user_memory(
-            memory_id=achados[0].memory_id, user_id=USUARIO_ID
-        )
-        console.print(f"[green]Esquecido:[/green] {achados[0].memory}")
+        manager.delete_user_memory(memory_id=matches[0].memory_id, user_id=USER_ID)
+        console.print(f"[green]Forgotten:[/green] {matches[0].memory}")
         return
 
-    if not lembrancas:
+    if not memories:
         console.print(
             Panel(
-                "O sistema ainda não lembra de nada.\n\n"
-                "A memória é escrita durante a conversa com o time:\n"
+                "The system does not remember anything yet.\n\n"
+                "Memory is written while talking to the team:\n"
                 "  [cyan]uv run linkedin chat[/cyan]\n\n"
-                "Conte o que você prefere, o que construiu e o que funcionou. "
-                "O que valer a pena guardar aparece aqui.",
-                title="Memória vazia",
+                "Tell it what you prefer, what you built and what worked. "
+                "Whatever is worth keeping shows up here.",
+                title="Memory is empty",
                 border_style="yellow",
             )
         )
         return
 
-    tabela = Table("id", "o que o sistema lembra", "temas", "quando")
-    for lembranca in lembrancas:
-        quando = lembranca.updated_at or lembranca.created_at
-        tabela.add_row(
-            (lembranca.memory_id or "")[:8],
-            lembranca.memory,
-            ", ".join(lembranca.topics or []),
-            date.fromtimestamp(quando).isoformat() if quando else "",
+    table = Table("id", "what the system remembers", "topics", "when")
+    for entry in memories:
+        when = entry.updated_at or entry.created_at
+        table.add_row(
+            (entry.memory_id or "")[:8],
+            entry.memory,
+            ", ".join(entry.topics or []),
+            date.fromtimestamp(when).isoformat() if when else "",
         )
-    console.print(tabela)
+    console.print(table)
     console.print(
-        "\n[dim]Para apagar uma: "
-        "uv run linkedin memoria --esquecer <id>[/dim]"
+        "\n[dim]To delete one: uv run linkedin memory --forget <id>[/dim]"
     )
 
 
 @app.command()
 def serve(
-    porta: Annotated[int, typer.Option(help="Porta do servidor.")] = 7777,
-    host: Annotated[str, typer.Option(help="Host do servidor.")] = "localhost",
+    port: Annotated[int, typer.Option(help="Server port.")] = 7777,
+    host: Annotated[str, typer.Option(help="Server host.")] = "localhost",
 ) -> None:
-    """Sobe o AgentOS para a interface web em agent_ui/."""
+    """Start AgentOS for the web interface in agent_ui/."""
     try:
         from linkedin_growth.agentos import agent_os, app as fastapi_app
-    except ConfiguracaoAusente as erro:
-        _erro(str(erro))
+    except MissingConfiguration as error:
+        _fail(str(error))
 
     console.print(
         Panel(
-            f"Servidor em [cyan]http://{host}:{porta}[/cyan]\n\n"
-            "Em outro terminal, suba a interface:\n"
+            f"Server at [cyan]http://{host}:{port}[/cyan]\n\n"
+            "In another terminal, start the interface:\n"
             "  [cyan]cd agent_ui && pnpm dev[/cyan]\n"
-            "e abra [cyan]http://localhost:3000[/cyan] no modo [bold]Team[/bold].",
+            "and open [cyan]http://localhost:3000[/cyan] in [bold]Team[/bold] mode.",
             title="LinkedIn Growth OS",
             border_style="green",
         )
     )
-    agent_os.serve(app=fastapi_app, host=host, port=porta)
+    agent_os.serve(app=fastapi_app, host=host, port=port)
 
 
 @app.command()
 def status() -> None:
-    """Mostra o que já existe e qual é o próximo passo."""
-    garantir_diretorios()
+    """Show what already exists and what the next step is."""
+    ensure_directories()
 
-    etapas = [
-        ("perfil importado", PERFIL_YAML, "linkedin importar"),
-        ("diagnóstico", CONTEUDO_DIR / "diagnostico.md", "linkedin diagnosticar"),
-        ("textos do perfil", CONTEUDO_DIR / "perfil_otimizado.md", "linkedin perfil"),
-        ("estratégia", CONTEUDO_DIR / "estrategia.md", "linkedin estrategia"),
+    stages = [
+        ("profile imported", PROFILE_YAML, "linkedin import"),
+        ("diagnosis", CONTENT_DIR / "diagnosis.md", "linkedin diagnose"),
+        ("profile copy", CONTENT_DIR / "optimized_profile.md", "linkedin profile"),
+        ("strategy", CONTENT_DIR / "strategy.md", "linkedin strategy"),
     ]
 
-    tabela = Table("Etapa", "Status", "Comando")
-    for nome, caminho, comando in etapas:
-        existe = caminho.exists()
-        tabela.add_row(
-            nome,
-            "[green]pronto[/green]" if existe else "[yellow]pendente[/yellow]",
-            "" if existe else f"uv run {comando}",
+    table = Table("Stage", "Status", "Command")
+    for label, path, command in stages:
+        exists = path.exists()
+        table.add_row(
+            label,
+            "[green]done[/green]" if exists else "[yellow]pending[/yellow]",
+            "" if exists else f"uv run {command}",
         )
 
     posts = list(POSTS_DIR.glob("*.md"))
-    calendarios = list((CONTEUDO_DIR / "calendario").glob("*.md"))
-    tabela.add_row("calendários", f"{len(calendarios)}", "uv run linkedin calendario")
-    tabela.add_row("posts escritos", f"{len(posts)}", 'uv run linkedin post --tema "..."')
+    calendars = list((CONTENT_DIR / "calendar").glob("*.md"))
+    table.add_row("calendars", f"{len(calendars)}", "uv run linkedin calendar")
+    table.add_row("posts written", f"{len(posts)}", 'uv run linkedin post --topic "..."')
 
-    console.print(tabela)
+    console.print(table)
 
 
 if __name__ == "__main__":
