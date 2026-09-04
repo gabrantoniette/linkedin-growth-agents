@@ -11,6 +11,10 @@ tem experiência na área.** A estratégia inteira parte disso. Sem histórico p
 alegar, o que funciona é evidência — projetos, código, notas de estudo — bem
 apresentada. O sistema é instruído a nunca inventar experiência.
 
+**Visão do projeto em diagramas:** [docs/roadmap.md](docs/roadmap.md) descreve
+o ciclo de ponta a ponta, etapa por etapa. [docs/mindmap.md](docs/mindmap.md)
+mapeia as peças e como elas se ligam.
+
 ---
 
 ## Começando
@@ -183,6 +187,10 @@ src/linkedin_growth/
   fluxos.py                   os workflows determinísticos
   cli.py                      os comandos
   agentos.py                  o servidor da interface web
+
+docs/
+  roadmap.md                  o ciclo de ponta a ponta, etapa por etapa
+  mindmap.md                  o mapa das peças e como elas se ligam
 ```
 
 ### Os oito agentes
