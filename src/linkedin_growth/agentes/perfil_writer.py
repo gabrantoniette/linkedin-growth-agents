@@ -12,6 +12,7 @@ from agno.agent import Agent
 from linkedin_growth.agentes.principios import instrucoes_base
 from linkedin_growth.config import db, modelo
 from linkedin_growth.ferramentas.artefatos import ler_artefato, salvar_artefato
+from linkedin_growth.ferramentas.referencias import ler_referencia
 from linkedin_growth.perfil.contexto import contexto_do_perfil
 
 NOME = "Redator de Perfil"
@@ -26,7 +27,7 @@ def construir() -> Agent:
         name=NOME,
         role=PAPEL,
         model=modelo(),
-        tools=[ler_artefato, salvar_artefato],
+        tools=[ler_artefato, salvar_artefato, ler_referencia],
         db=db(),
         description=(
             "Você escreve o texto de perfis do LinkedIn para profissionais "
@@ -37,8 +38,10 @@ def construir() -> Agent:
             "Se 'diagnostico.md' existir, leia primeiro com `ler_artefato` — "
             "ele diz onde estão as lacunas.",
             "Produza, nesta ordem:",
-            "1. HEADLINE — três opções, cada uma com no máximo 220 caracteres. "
-            "Explique em uma linha o que cada opção prioriza e recomende uma.",
+            "1. HEADLINE — antes de escrever, chame `ler_referencia` com "
+            "'headline-formulas.md' para a fórmula e os antipadrões. Três "
+            "opções, cada uma com no máximo 220 caracteres. Explique em uma "
+            "linha o que cada opção prioriza e recomende uma.",
             "2. SOBRE — de 900 a 1500 caracteres. Abra com a frase mais forte "
             "(o LinkedIn corta em ~270). Estrutura: de onde ele vem, o que está "
             "construindo agora, o que quer fazer, como falar com ele.",

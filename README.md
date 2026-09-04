@@ -177,10 +177,16 @@ conteudo/                     o que o sistema produz
   posts/AAAA-MM-DD-tema.md    posts em pt-BR e inglês
   metricas.csv                preenchido por você
 
+referencias/                  material de apoio, só consulta (não gera nada)
+  ganchos.md                  fórmulas de gancho, uma por pilar
+  algoritmo-linkedin.md       heurísticas de formato e timing do LinkedIn
+  vocabulario-ia.md           vocabulário e tiques que denunciam texto de IA
+  headline-formulas.md        fórmula de headline para o Redator de Perfil
+
 src/linkedin_growth/
   config.py                   segredos, caminhos, modelos, banco
   perfil/                     esquema, importador e contexto
-  ferramentas/                artefatos, busca web, API do LinkedIn
+  ferramentas/                artefatos, referências, busca web, API do LinkedIn
   agentes/                    os oito especialistas
     principios.py             a estratégia codificada — comece por aqui
   times.py                    o time coordenador (chat)
@@ -212,6 +218,25 @@ docs/
 honestidade, o posicionamento, os pilares de conteúdo, as regras de escrita e a
 rubrica do editor. Mudar o comportamento do sistema é mudar esse arquivo — não
 sete arquivos de agente.
+
+### Adicionando material de referência ("skills")
+
+Este projeto usa agentes [Agno](https://github.com/agno-agi/agno), não Claude
+Skills — não existe um mecanismo para simplesmente "instalar" uma skill do
+formato `SKILL.md`. O padrão adotado aqui para portar conhecimento externo
+(por exemplo, de [sergebulaev/linkedin-skills](https://github.com/sergebulaev/linkedin-skills))
+é:
+
+1. Curar o conteúdo relevante — traduzido e adaptado ao contexto deste
+   projeto, não colado — como um `.md` novo em `referencias/`.
+2. Dar ao agente que precisa dele a ferramenta `ler_referencia`
+   (`ferramentas/referencias.py`) e uma instrução dizendo quando chamá-la.
+
+Isso imita a divulgação progressiva das Claude Skills: o conteúdo só entra no
+contexto do agente quando ele decide que precisa, em vez de inflar o prompt
+de toda chamada. Regra curta e universal (uma linha, vale para todo post) vai
+direto em `principios.py`; conteúdo longo ou consultado só às vezes vai em
+`referencias/`.
 
 ---
 

@@ -32,6 +32,8 @@ CALENDARIO_DIR = CONTEUDO_DIR / "calendario"
 POSTS_DIR = CONTEUDO_DIR / "posts"
 METRICAS_CSV = CONTEUDO_DIR / "metricas.csv"
 
+REFERENCIAS_DIR = RAIZ / "referencias"
+
 TMP_DIR = RAIZ / "tmp"
 DB_FILE = TMP_DIR / "linkedin_growth.db"
 
@@ -44,6 +46,7 @@ def garantir_diretorios() -> None:
         CONTEUDO_DIR,
         CALENDARIO_DIR,
         POSTS_DIR,
+        REFERENCIAS_DIR,
         TMP_DIR,
     ):
         diretorio.mkdir(parents=True, exist_ok=True)

@@ -73,7 +73,15 @@ REGRAS_DE_ESCRITA = [
     "emojis, e só se ajudarem a escanear.",
     "Entre 120 e 250 palavras. Post curto demais não diz nada; longo demais "
     "não é lido.",
-    "De 3 a 5 hashtags no fim, específicas da área. Nada de #sucesso #motivação.",
+    "De 0 a 3 hashtags no fim, específicas da área. Nada de #sucesso "
+    "#motivação. Cinco ou mais hashtags é sinal de conta spam, não de "
+    "alcance — ver referencias/algoritmo-linkedin.md.",
+    "NUNCA use travessão longo (—) nem meia risca (–), nem '--' como "
+    "substituto. É o tique mais reconhecível de texto gerado por IA. Troque "
+    "por ponto ou vírgula.",
+    "Se o post citar uma fonte ou link externo, NÃO coloque o link no corpo — "
+    "avise 'fonte no primeiro comentário' e deixe o link separado. Link no "
+    "corpo derruba o alcance.",
     "Termine com uma pergunta concreta e respondível, não com 'e você, o que "
     "acha?'. Uma boa pergunta é 'quem aqui já rodou isso em produção — o "
     "custo compensou?'.",
