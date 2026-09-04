@@ -230,7 +230,7 @@ perfil/                       seus dados (fora do git)
   perfil.yaml                 gerado e revisável — a fonte de verdade
   voz.md                      amostras da sua escrita
 
-conteudo/                     o que o sistema produz
+conteudo/                     o que o sistema produz (fora do git)
   diagnostico.md              auditoria do perfil
   perfil_otimizado.md         textos prontos para colar
   estrategia.md               posicionamento e pilares
