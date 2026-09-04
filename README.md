@@ -197,6 +197,15 @@ src/linkedin_growth/
 docs/
   roadmap.md                  o ciclo de ponta a ponta, etapa por etapa
   mindmap.md                  o mapa das peças e como elas se ligam
+
+tests/                        a suíte — nenhum teste chama API paga
+  conftest.py                 fixtures e o helper que chama ferramentas @tool
+  test_artefatos.py           confinamento a conteudo/, gravar e ler
+  test_referencias.py         consulta somente leitura a referencias/
+  test_linkedin_formato.py    little text format e montagem de payload
+  test_importador.py          leitura dos CSVs do export do LinkedIn
+  test_esquema.py             o contrato de dados do perfil
+  test_principios.py          invariantes da estratégia codificada
 ```
 
 ### Os oito agentes
@@ -237,6 +246,34 @@ contexto do agente quando ele decide que precisa, em vez de inflar o prompt
 de toda chamada. Regra curta e universal (uma linha, vale para todo post) vai
 direto em `principios.py`; conteúdo longo ou consultado só às vezes vai em
 `referencias/`.
+
+---
+
+## Testes
+
+```bash
+uv run pytest              # a suíte inteira, ~0.5s
+uv run pytest -k linkedin  # só um assunto
+```
+
+No Windows, se o `linkedin serve` estiver rodando em outro terminal, o `uv run`
+falha ao tentar sincronizar o ambiente (não consegue substituir `linkedin.exe`,
+que está em uso). Use `uv run --no-sync pytest` sem parar o servidor.
+
+**Nenhum teste chama a API da Anthropic nem a do LinkedIn.** A suíte cobre a
+lógica pura e o I/O em disco: o confinamento das ferramentas de arquivo (um
+agente não pode escrever fora de `conteudo/`), o *little text format* do
+LinkedIn (escape e hashtags), a leitura dos CSVs do export — que vêm com
+preâmbulo e nomes de coluna variáveis — e os invariantes de `principios.py`.
+
+Esse último grupo é o menos óbvio e o mais útil: como a estratégia é o produto,
+os testes fixam que certas regras continuam chegando a todo agente (a
+honestidade é eliminatória, a rubrica tem os sete critérios) e travam
+regressões de regras decididas com motivo, como o limite de hashtags.
+
+O que a suíte **não** cobre: a qualidade do texto que os agentes geram. Isso
+não é teste unitário, é avaliação — e hoje quem faz esse papel é o agente
+Editor, com a rubrica.
 
 ---
 

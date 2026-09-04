@@ -25,6 +25,17 @@ dependencies = [
 [project.scripts]
 linkedin = "linkedin_growth.cli:app"
 
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
 [build-system]
 requires = ["uv_build>=0.12.6,<0.13.0"]
 build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Os testes não chamam a API da Anthropic nem a do LinkedIn. Se algum teste
+# tentar, é bug do teste — o `-q` mantém a saída curta o suficiente para ler.
+addopts = "-q"
