@@ -22,7 +22,7 @@ def construir() -> Agent:
         name=NOME,
         role=PAPEL,
         # Modelo rápido: aqui o trabalho é volume de busca e triagem, não
-        # julgamento fino. Opus seria dinheiro jogado fora.
+        # julgamento fino.
         model=modelo(MODELO_RAPIDO),
         tools=[busca_recente(), data_de_hoje],
         db=db(),

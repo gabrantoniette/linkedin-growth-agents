@@ -27,3 +27,11 @@ Thumbs.db
 
 # Claude Code — configuracao local de maquina
 .claude/settings.local.json
+
+# Skills instaladas via `npx skills add`
+# O instalador grava três cópias idênticas da mesma skill. Versionamos só a que
+# o Claude Code lê (.claude/skills/) mais o skills-lock.json, que é o que
+# permite reinstalar e atualizar. As outras duas são para outros agentes
+# (Codex, Cursor) e se recriam com `npx skills add`.
+/skills/
+.agents/

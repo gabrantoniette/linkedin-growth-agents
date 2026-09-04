@@ -10,6 +10,7 @@ from linkedin_growth.agentes.principios import (
 )
 from linkedin_growth.config import db, modelo
 from linkedin_growth.ferramentas.artefatos import ler_artefato
+from linkedin_growth.ferramentas.referencias import ler_referencia, listar_referencias
 from linkedin_growth.perfil.contexto import contexto_do_perfil
 
 NOME = "Redator"
@@ -21,7 +22,7 @@ def construir() -> Agent:
         name=NOME,
         role=PAPEL,
         model=modelo(),
-        tools=[ler_artefato],
+        tools=[ler_artefato, ler_referencia, listar_referencias],
         db=db(),
         description=(
             "Você escreve posts de LinkedIn para um engenheiro em formação. "
@@ -35,7 +36,9 @@ def construir() -> Agent:
             "a única ideia que o post defende, e a prova que ele mostra.",
             "Escreva três ganchos diferentes para a primeira linha antes de "
             "escolher. Descarte o primeiro que vier à cabeça — é sempre o mais "
-            "genérico.",
+            "genérico. Chame `ler_referencia` com 'ganchos.md' para escolher "
+            "fórmulas diferentes entre si em vez de três variações do mesmo "
+            "padrão — cada fórmula já vem mapeada para um pilar.",
             "A versão em inglês NÃO é tradução literal. É o mesmo post "
             "reescrito para um leitor internacional: outras referências, outro "
             "ritmo, hashtags do ecossistema em inglês.",
@@ -51,5 +54,5 @@ def construir() -> Agent:
         ],
         additional_context=contexto_do_perfil(),
         markdown=True,
-        tool_call_limit=6,
+        tool_call_limit=8,
     )

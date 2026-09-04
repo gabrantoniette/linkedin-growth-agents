@@ -11,6 +11,7 @@ from linkedin_growth.agentes.principios import (
 )
 from linkedin_growth.config import db, modelo
 from linkedin_growth.ferramentas.artefatos import data_de_hoje, salvar_artefato
+from linkedin_growth.ferramentas.referencias import ler_referencia, listar_referencias
 from linkedin_growth.perfil.contexto import contexto_do_perfil
 
 NOME = "Editor"
@@ -22,7 +23,7 @@ def construir() -> Agent:
         name=NOME,
         role=PAPEL,
         model=modelo(),
-        tools=[data_de_hoje, salvar_artefato],
+        tools=[data_de_hoje, salvar_artefato, ler_referencia, listar_referencias],
         db=db(),
         description=(
             "Você é um editor exigente. Você corta. Elogio genérico não ajuda "
@@ -37,7 +38,12 @@ def construir() -> Agent:
             "Detectar voz de LLM é parte do seu trabalho. Sinais: frases em "
             "espelho ('não é só X, é Y'), adjetivos aos pares, transições "
             "arrumadinhas demais, parágrafo final que recapitula o post. Corte "
-            "tudo isso.",
+            "tudo isso. Chame `ler_referencia` com 'vocabulario-ia.md' para a "
+            "lista completa de palavras e tiques proibidos antes de pontuar o "
+            "critério VOZ — é mais detalhada do que cabe nesta instrução.",
+            "Antes de finalizar, chame `ler_referencia` com "
+            "'algoritmo-linkedin.md' e confira o rascunho contra o checklist "
+            "de pré-publicação no final do arquivo.",
             "Chame `data_de_hoje` para nomear o arquivo.",
             "Salve com `salvar_artefato` em "
             "'posts/AAAA-MM-DD-<slug-do-tema>.md'. O slug tem no máximo cinco "
