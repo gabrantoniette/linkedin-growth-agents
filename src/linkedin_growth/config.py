@@ -54,7 +54,7 @@ def garantir_diretorios() -> None:
 # ==============================================================================
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 LINKEDIN_ACCESS_TOKEN = os.getenv("LINKEDIN_ACCESS_TOKEN")
-LINKEDIN_VERSION = os.getenv("LINKEDIN_VERSION", "202608")
+LINKEDIN_VERSION = os.getenv("LINKEDIN_VERSION", "202609")
 
 
 class ConfiguracaoAusente(RuntimeError):
@@ -98,12 +98,11 @@ MODELO_PRINCIPAL = os.getenv("MODELO_PRINCIPAL", "claude-opus-5")
 MODELO_RAPIDO = os.getenv("MODELO_RAPIDO", "claude-sonnet-5")
 
 
-def modelo(id_modelo: str | None = None, max_tokens: int = 8000) -> Claude:
+def modelo(id_modelo: str | None = None) -> Claude:
     """Instancia o modelo Claude usado pelos agentes."""
     return Claude(
         id=id_modelo or MODELO_PRINCIPAL,
-        api_key=exigir_anthropic(),
-        max_tokens=max_tokens,
+        api_key=exigir_anthropic()
     )
 
 
