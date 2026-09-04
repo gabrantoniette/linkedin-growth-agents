@@ -5,13 +5,15 @@ from __future__ import annotations
 from agno.agent import Agent
 
 from linkedin_growth.agentes.principios import (
+    instrucao_de_entrega,
     instrucoes_base,
     instrucoes_de_conteudo,
 )
-from linkedin_growth.config import db, modelo
+from linkedin_growth.config import modelo, parametros_de_memoria
 from linkedin_growth.ferramentas.artefatos import ler_artefato, salvar_artefato
 from linkedin_growth.perfil.contexto import contexto_do_perfil
 
+ID = "estrategista"
 NOME = "Estrategista de Conteúdo"
 PAPEL = (
     "Define posicionamento, pilares de conteúdo, público-alvo, tom e as "
@@ -25,7 +27,7 @@ def construir() -> Agent:
         role=PAPEL,
         model=modelo(),
         tools=[ler_artefato, salvar_artefato],
-        db=db(),
+        **parametros_de_memoria(ID),
         description=(
             "Você desenha estratégias de presença no LinkedIn para pessoas "
             "técnicas em transição de carreira. Você prefere um plano pequeno "
@@ -54,8 +56,16 @@ def construir() -> Agent:
             "7. MÉTRICAS — o que olhar por mês e qual número seria sinal de que "
             "está funcionando.",
             "8. PRIMEIROS 30 DIAS — o que fazer nas quatro primeiras semanas.",
-            "Ao final, chame `salvar_artefato` com caminho 'estrategia.md'.",
+            *instrucao_de_entrega("estrategia.md"),
         ],
+        # A estratégia evolui; ela não se refaz do zero toda vez.
+        add_history_to_context=True,
+        num_history_runs=2,
+        # E é o único agente que vasculha conversas antigas: o que o
+        # usuário contou no chat sobre o que funcionou vale mais que
+        # qualquer suposição do modelo sobre o algoritmo.
+        search_past_sessions=True,
+        num_past_sessions_to_search=3,
         additional_context=contexto_do_perfil(),
         markdown=True,
         tool_call_limit=10,

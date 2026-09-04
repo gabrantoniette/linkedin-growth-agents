@@ -9,12 +9,17 @@ from __future__ import annotations
 
 from agno.agent import Agent
 
-from linkedin_growth.agentes.principios import instrucoes_base
-from linkedin_growth.config import db, modelo
+from linkedin_growth.agentes.principios import (
+    instrucao_de_entrega,
+    instrucoes_base,
+    instrucoes_de_voz,
+)
+from linkedin_growth.config import modelo, parametros_de_memoria
 from linkedin_growth.ferramentas.artefatos import ler_artefato, salvar_artefato
 from linkedin_growth.ferramentas.referencias import ler_referencia
 from linkedin_growth.perfil.contexto import contexto_do_perfil
 
+ID = "perfil-writer"
 NOME = "Redator de Perfil"
 PAPEL = (
     "Escreve headline, seção Sobre, descrições de experiência e de projetos "
@@ -28,13 +33,14 @@ def construir() -> Agent:
         role=PAPEL,
         model=modelo(),
         tools=[ler_artefato, salvar_artefato, ler_referencia],
-        db=db(),
+        **parametros_de_memoria(ID),
         description=(
             "Você escreve o texto de perfis do LinkedIn para profissionais "
             "técnicos. Você escreve como gente, não como consultoria."
         ),
         instructions=[
             *instrucoes_base(),
+            *instrucoes_de_voz(),
             "Se 'diagnostico.md' existir, leia primeiro com `ler_artefato` — "
             "ele diz onde estão as lacunas.",
             "Produza, nesta ordem:",
@@ -58,7 +64,7 @@ def construir() -> Agent:
             "'>> Cole em: Perfil > Sobre > Editar'.",
             "Escreva os textos em português. Depois de cada um, dê a versão em "
             "inglês — recrutador internacional lê o perfil em inglês.",
-            "Ao final, chame `salvar_artefato` com caminho 'perfil_otimizado.md'.",
+            *instrucao_de_entrega("perfil_otimizado.md"),
         ],
         additional_context=contexto_do_perfil(),
         markdown=True,

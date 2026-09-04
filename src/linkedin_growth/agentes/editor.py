@@ -5,15 +5,17 @@ from __future__ import annotations
 from agno.agent import Agent
 
 from linkedin_growth.agentes.principios import (
+    CABECALHO_POST,
     RUBRICA,
     instrucoes_base,
     instrucoes_de_conteudo,
 )
-from linkedin_growth.config import db, modelo
+from linkedin_growth.config import modelo, parametros_de_memoria
 from linkedin_growth.ferramentas.artefatos import data_de_hoje, salvar_artefato
 from linkedin_growth.ferramentas.referencias import ler_referencia, listar_referencias
 from linkedin_growth.perfil.contexto import contexto_do_perfil
 
+ID = "editor"
 NOME = "Editor"
 PAPEL = "Critica o rascunho contra uma rubrica e entrega a versão final revisada"
 
@@ -24,7 +26,7 @@ def construir() -> Agent:
         role=PAPEL,
         model=modelo(),
         tools=[data_de_hoje, salvar_artefato, ler_referencia, listar_referencias],
-        db=db(),
+        **parametros_de_memoria(ID),
         description=(
             "Você é um editor exigente. Você corta. Elogio genérico não ajuda "
             "ninguém a escrever melhor, então você não dá."
@@ -45,13 +47,23 @@ def construir() -> Agent:
             "'algoritmo-linkedin.md' e confira o rascunho contra o checklist "
             "de pré-publicação no final do arquivo.",
             "Chame `data_de_hoje` para nomear o arquivo.",
-            "Salve com `salvar_artefato` em "
-            "'posts/AAAA-MM-DD-<slug-do-tema>.md'. O slug tem no máximo cinco "
-            "palavras, minúsculas, separadas por hífen, sem acento.",
-            "O arquivo salvo começa com este cabeçalho e depois traz as duas "
-            "versões finais e a avaliação:",
+            "ENTREGA: salve com `salvar_artefato` em "
+            "'posts/AAAA-MM-DD-<slug-do-tema>.md' ANTES de escrever as versões "
+            "finais na resposta. O slug tem no máximo cinco palavras, "
+            "minúsculas, separadas por hífen, sem acento.",
+            "ENTREGA: depois de salvar, a resposta traz só as notas da rubrica, "
+            "os três cortes de maior impacto e o caminho do arquivo. As versões "
+            "finais completas ficam no arquivo — repetir tudo na resposta gasta "
+            "o limite de tokens duas vezes.",
+            "O arquivo salvo começa com este cabeçalho:",
             "---\ndata: AAAA-MM-DD\npilar: <pilar>\ntema: <tema>\n"
             "status: rascunho\nnota: <média>/10\n---",
+            "FORMATO OBRIGATÓRIO do arquivo: as duas versões finais vêm sob "
+            f"estes títulos, exatamente assim, sem inventar variação — "
+            f"'{CABECALHO_POST['pt']}' e '{CABECALHO_POST['en']}'. É por eles "
+            "que o comando `publicar` acha o texto; com outro título ele não "
+            "acha nada e a publicação falha. A avaliação vem depois, sob outro "
+            "título qualquer.",
             "Se a nota de VERDADE for 0, salve mesmo assim com "
             "'status: reprovado' e explique o que precisa sair.",
         ],

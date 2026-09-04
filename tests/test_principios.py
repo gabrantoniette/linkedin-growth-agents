@@ -13,7 +13,9 @@ from linkedin_growth.agentes.principios import (
     O_QUE_NAO_FAZER,
     PILARES,
     REGRAS_DE_ESCRITA,
+    REGRAS_DE_VOZ,
     RUBRICA,
+    instrucao_de_entrega,
     instrucoes_base,
     instrucoes_de_conteudo,
 )
@@ -76,9 +78,33 @@ def test_regra_de_hashtag_permite_no_maximo_tres():
 
 def test_existe_proibicao_explicita_de_travessao_longo():
     """É o tique mais reconhecível de texto gerado por IA."""
-    escrita = "\n".join(REGRAS_DE_ESCRITA)
+    voz = "\n".join(REGRAS_DE_VOZ)
 
-    assert "—" in escrita and "NUNCA use travessão" in escrita
+    assert "—" in voz and "NUNCA use travessão" in voz
+
+
+def test_quem_escreve_texto_de_perfil_recebe_as_regras_de_voz(banco_temp, sem_api):
+    """O 'Sobre' e a headline são publicados com o nome dele igual a um post.
+
+    Enquanto as regras de voz moravam só dentro de `instrucoes_de_conteudo`, o
+    Redator de Perfil não as recebia. Uma rodada real com o export do usuário
+    saiu com 84 travessões no texto pronto para colar no LinkedIn — o tique que
+    este projeto proíbe antes de qualquer outro.
+    """
+    from linkedin_growth.agentes import perfil_writer, redator
+
+    for modulo in (perfil_writer, redator):
+        agente = modulo.construir()
+        instrucoes = " ".join(str(i) for i in (agente.instructions or []))
+        assert "NUNCA use travessão" in instrucoes, agente.name
+
+
+def test_separar_voz_de_post_nao_tirou_nada_de_quem_escreve_post():
+    """Quem escrevia posts continua recebendo as regras de voz, agora por dentro."""
+    conteudo = "\n".join(instrucoes_de_conteudo())
+
+    for regra in REGRAS_DE_VOZ:
+        assert regra in conteudo
 
 
 def test_existe_regra_de_link_no_primeiro_comentario():
@@ -116,3 +142,44 @@ def test_rubrica_reprova_o_post_inteiro_quando_verdade_e_zero():
     """A honestidade é eliminatória, não um critério que se compensa com nota alta."""
     assert "isto reprova o post inteiro" in RUBRICA
     assert "Se VERDADE for 0, não entregue versão final" in RUBRICA
+
+
+# ==============================================================================
+# Entrega — a ordem que decide se o arquivo existe
+# ==============================================================================
+
+
+def test_instrucao_de_entrega_manda_gravar_antes_de_escrever():
+    """A ordem é o conteúdo da regra, não um detalhe de redação.
+
+    Escrever o documento na resposta e só depois gravar significa emitir o
+    texto duas vezes; o teto de tokens chega no meio e o que se perde é a
+    chamada da ferramenta. O arquivo então não existe — sem erro nenhum.
+    """
+    entrega = " ".join(instrucao_de_entrega("estrategia.md"))
+
+    assert "estrategia.md" in entrega
+    assert "ANTES" in entrega, "a ordem tem que estar explícita"
+    assert "NÃO repita o documento" in entrega
+
+
+def test_todo_agente_que_grava_arquivo_recebe_a_regra_de_entrega(banco_temp, sem_api):
+    """Cinco agentes produzem documento. Nenhum pode ficar de fora.
+
+    Este teste lê as instruções montadas de cada agente, não o código-fonte:
+    o que importa é o que chega ao modelo. As fixtures existem só para
+    construir os agentes sem chave da API nem o banco real.
+    """
+    from linkedin_growth.agentes import (
+        diagnostico,
+        editor,
+        estrategista,
+        perfil_writer,
+        planejador,
+    )
+
+    for modulo in (diagnostico, estrategista, perfil_writer, planejador, editor):
+        agente = modulo.construir()
+        instrucoes = " ".join(str(i) for i in (agente.instructions or []))
+        assert "ENTREGA:" in instrucoes, f"{agente.name} não recebeu a regra"
+        assert "salvar_artefato" in instrucoes, agente.name
