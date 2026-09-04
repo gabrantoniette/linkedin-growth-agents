@@ -14,6 +14,7 @@ from pathlib import Path
 import pytest
 
 from linkedin_growth.perfil.importador import (
+    _limpar_comentario,
     _linhas_do_csv,
     _mapear_arquivos,
     _normalizar,
@@ -157,3 +158,86 @@ def test_mapear_arquivos_encontra_csv_em_subpasta(tmp_path: Path):
     reconhecidos, _ = _mapear_arquivos(tmp_path)
 
     assert "experiencias" in reconhecidos
+
+
+# ==============================================================================
+# Os dois defeitos que só apareceram com um export de verdade
+# ==============================================================================
+# Ambos falhavam em silêncio: o import terminava com "sucesso", a tabela de
+# arquivos reconhecidos parecia certa, e o estrago só aparecia no texto que os
+# agentes leem. É o tipo de bug que teste sintético não pega — este bloco existe
+# para que não volte.
+
+
+def test_arquivo_com_id_do_membro_no_nome_e_reconhecido(tmp_path: Path):
+    """`Shares_1109184680.csv` é o nome real; `Shares.csv` não existe no export.
+
+    O LinkedIn sufixa parte dos arquivos com o id numérico da conta. Sem cortar
+    o sufixo, os posts antigos são ignorados, o `voz.md` não é gerado, e todo
+    agente que escreve passa a usar tom genérico de LLM — sem nenhum aviso de
+    que a amostra de voz do usuário ficou de fora.
+    """
+    (tmp_path / "Shares_1109184680.csv").write_text(
+        "Date,ShareCommentary\n2026-01-01,texto\n", encoding="utf-8"
+    )
+
+    reconhecidos, ignorados = _mapear_arquivos(tmp_path)
+
+    assert "posts" in reconhecidos
+    assert reconhecidos["posts"].name == "Shares_1109184680.csv"
+    assert ignorados == []
+
+
+def test_sufixo_numerico_nao_transforma_arquivo_desconhecido_em_conhecido(
+    tmp_path: Path,
+):
+    """Cortar o sufixo não pode virar um casamento frouxo.
+
+    `Comments_1109184680.csv` continua ignorado — o corte remove o id, não
+    aproxima nomes diferentes.
+    """
+    (tmp_path / "Comments_1109184680.csv").write_text("a,b\n1,2\n", encoding="utf-8")
+
+    reconhecidos, ignorados = _mapear_arquivos(tmp_path)
+
+    assert reconhecidos == {}
+    assert [caminho.name for caminho in ignorados] == ["Comments_1109184680.csv"]
+
+
+def test_campo_multilinha_entre_aspas_chega_inteiro(tmp_path: Path):
+    """O 'Sobre', a descrição de cada cargo e o texto dos posts são multilinha.
+
+    Quebrar o arquivo com `splitlines()` antes do `csv.reader` corta dentro do
+    campo: cada parágrafo vira uma linha nova do CSV e o texto chega
+    embaralhado. O leitor precisa receber o arquivo inteiro.
+    """
+    (tmp_path / "Positions.csv").write_text(
+        'Company Name,Title,Description\n'
+        'Acme,Dev,"Primeira linha.\n\nSegunda linha.\n\nTerceira."\n',
+        encoding="utf-8",
+    )
+
+    linhas = _linhas_do_csv(tmp_path / "Positions.csv", ["Company Name", "Title"])
+
+    assert len(linhas) == 1, "o campo multilinha não pode virar três registros"
+    assert linhas[0]["Description"] == "Primeira linha.\n\nSegunda linha.\n\nTerceira."
+
+
+def test_quebra_de_paragrafo_do_export_vira_paragrafo_de_verdade():
+    """No `Shares.csv` cada quebra de parágrafo do post vem como aspas-newline-aspas.
+
+    Sem desfazer, o `voz.md` fica uma parede de aspas — justamente o arquivo
+    que deveria ensinar os agentes a escrever como o usuário.
+    """
+    bruto = 'Três planilhas. Uma pergunta:"\n""Quantos ainda temos?""\n""\n"E ninguém sabe.'
+
+    assert _limpar_comentario(bruto) == (
+        "Três planilhas. Uma pergunta:\n\n"
+        '"Quantos ainda temos?"\n\n'
+        "E ninguém sabe."
+    )
+
+
+def test_aspas_de_verdade_no_meio_da_frase_sobrevivem():
+    """O padrão exige a quebra de linha entre as aspas — citação inline fica de pé."""
+    assert _limpar_comentario('Ele disse "não" e saiu.') == 'Ele disse "não" e saiu.'
