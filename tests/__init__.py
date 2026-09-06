@@ -1,1 +1,1 @@
-"""Suíte de testes do projeto."""
+"""Project test suite."""

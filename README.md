@@ -1,31 +1,36 @@
-# LinkedIn Growth — sistema multiagente para engenharia de IA
+# LinkedIn Growth: a multi-agent system for AI engineering
 
-Um time de oito agentes [Agno](https://github.com/agno-agi/agno) que trabalha o
-seu perfil do LinkedIn para você ser encontrado por recrutadores de engenharia
-de IA: audita o perfil, reescreve os textos, define a estratégia de conteúdo,
-planeja o calendário, escreve os posts em português e inglês, revisa contra uma
-rubrica e publica pela API oficial.
+A team of eight [Agno](https://github.com/agno-agi/agno) agents that works on
+your LinkedIn profile so AI engineering recruiters can find you: it audits the
+profile, rewrites the copy, defines the content strategy, plans the calendar,
+writes the posts in Portuguese and English, reviews them against a rubric and
+publishes through the official API.
 
-Foi construído para um caso específico: **quem está migrando para IA e ainda não
-tem experiência na área.** A estratégia inteira parte disso. Sem histórico para
-alegar, o que funciona é evidência — projetos, código, notas de estudo — bem
-apresentada. O sistema é instruído a nunca inventar experiência.
+It was built for a specific case: **someone moving into AI with no experience in
+the field yet.** The whole strategy follows from that. With no track record to
+claim, what works is evidence (projects, code, study notes) presented well. The
+system is instructed never to invent experience.
 
-**Visão do projeto em diagramas:** [docs/roadmap.md](docs/roadmap.md) descreve
-o ciclo de ponta a ponta, etapa por etapa. [docs/mindmap.md](docs/mindmap.md)
-mapeia as peças e como elas se ligam.
+**A note on language.** The codebase, docs and tests are in English. The posts
+the agents produce are in Brazilian Portuguese, because that is the audience
+they are written for, so the prompt text that shapes those posts, and the
+reference files behind it, stay in Portuguese on purpose.
+
+**The project in diagrams:** [docs/roadmap.md](docs/roadmap.md) walks the
+end-to-end cycle stage by stage. [docs/mindmap.md](docs/mindmap.md) maps the
+pieces and how they connect.
 
 ---
 
 
 
-## Começando
+## Getting started
 
 
 
-### 1. Dependências
+### 1. Dependencies
 
-Requer Python 3.13+ e [uv](https://docs.astral.sh/uv/).
+Requires Python 3.13+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync
@@ -33,342 +38,349 @@ uv sync
 
 
 
-### 2. Chave da Anthropic
+### 2. Anthropic key
 
 ```bash
 cp .env.example .env
 ```
 
-Preencha `ANTHROPIC_API_KEY` com a sua chave do
-[console da Anthropic](https://console.anthropic.com/settings/keys).
+Fill in `ANTHROPIC_API_KEY` with your key from the
+[Anthropic console](https://console.anthropic.com/settings/keys).
 
-### 3. Seus dados reais
+### 3. Your real data
 
-O LinkedIn **não** permite ler o seu perfil por API. O caminho oficial é o
-export de dados:
+LinkedIn does **not** let you read your own profile through an API. The official
+route is the data export:
 
-1. LinkedIn → **Configurações e privacidade** → **Privacidade de dados** →
-  **Obter uma cópia dos seus dados**
-2. Escolha o arquivo completo e peça o arquivo. O e-mail chega em minutos ou
-  até 24 horas.
-3. Descompacte o `.zip` dentro de `perfil/linkedin_export/`
-4. Rode:
-
-```bash
-uv run linkedin importar
-```
-
-Isso gera `perfil/perfil.yaml`. **Abra e revise.** É a fonte de verdade de todos
-os agentes — o que estiver errado ali sai errado em tudo. Preencha em especial o
-campo `objetivo` com as suas palavras. Reimportar não apaga o que você escreveu
-ali.
-
-Se você tem posts antigos, o importador também gera `perfil/voz.md`, que os
-agentes usam para escrever com o seu tom em vez do tom genérico de LLM.
-
-### 4. Rode o ciclo
+1. LinkedIn -> **Settings & Privacy** -> **Data privacy** -> **Get a copy of
+   your data**
+2. Choose the complete archive and request it. The email arrives in minutes, or
+   up to 24 hours.
+3. Unzip it into `profile/linkedin_export/`
+4. Run:
 
 ```bash
-uv run linkedin status          # o que já existe e qual o próximo passo
-uv run linkedin diagnosticar    # audita o perfil contra vagas reais de IA
-uv run linkedin perfil          # textos prontos para colar no LinkedIn
-uv run linkedin estrategia      # posicionamento, pilares e cadência
-uv run linkedin calendario --semanas 2
-uv run linkedin post --tema "como voce tem mantido a qualidade do seu sistema RAG?"
+uv run linkedin import
 ```
 
-Tudo vai para `conteudo/`.
+That generates `profile/profile.yaml`. **Open it and review it.** It is every
+agent's source of truth: whatever is wrong there comes out wrong everywhere.
+Fill in the `goal` field in your own words in particular. Re-importing does not
+erase what you wrote there.
+
+If you have past posts, the importer also generates `profile/voice.md`, which
+the agents use to write in your tone instead of generic LLM tone.
+
+### 4. Run the cycle
+
+```bash
+uv run linkedin status          # what exists and what the next step is
+uv run linkedin diagnose        # audits the profile against real AI job posts
+uv run linkedin profile         # copy ready to paste into LinkedIn
+uv run linkedin strategy        # positioning, pillars and cadence
+uv run linkedin calendar --weeks 2
+uv run linkedin post --topic "how have you kept your RAG system's quality up?"
+```
+
+Everything lands in `content/`.
 
 ---
 
 
 
-## Conectar o LinkedIn (para publicar)
+## Connecting LinkedIn (to publish)
 
-Só é preciso para o comando `publicar`. Todo o resto funciona sem.
+Only needed for the `publish` command. Everything else works without it.
 
-1. **Crie uma LinkedIn Page** se você não administra nenhuma
-  ([criar](https://www.linkedin.com/company/setup/new/)). Todo app precisa
-   estar associado a uma Page — pode ser uma página sua, sem conteúdo.
-2. **Crie o app** em [https://www.linkedin.com/developers/apps](https://www.linkedin.com/developers/apps) e associe à Page.
-  Confirme a verificação (você mesmo aprova, como admin da Page).
-3. Na aba **Products**, adicione:
-  - **Share on LinkedIn** → dá o escopo `w_member_social`
-  - **Sign In with LinkedIn using OpenID Connect** → dá `openid` e `profile`
-   Os dois são liberados na hora, sem aprovação de parceiro.
-4. **Gere o token** em
-  [https://www.linkedin.com/developers/tools/oauth/token-generator](https://www.linkedin.com/developers/tools/oauth/token-generator),
-   marcando `openid`, `profile` e `w_member_social`.
-5. Cole em `LINKEDIN_ACCESS_TOKEN` no `.env` e confira:
+1. **Create a LinkedIn Page** if you do not administer one
+   ([create one](https://www.linkedin.com/company/setup/new/)). Every app has to
+   be associated with a Page; it can be your own, with no content.
+2. **Create the app** at [https://www.linkedin.com/developers/apps](https://www.linkedin.com/developers/apps)
+   and associate it with the Page. Confirm the verification (you approve it
+   yourself, as the Page admin).
+3. On the **Products** tab, add:
+   - **Share on LinkedIn** -> grants the `w_member_social` scope
+   - **Sign In with LinkedIn using OpenID Connect** -> grants `openid` and
+     `profile`
 
-```bash
-uv run linkedin conexao
-```
-
-**O token dura 60 dias.** Refresh automático só existe para parceiros
-aprovados, então quando expirar é só gerar outro no mesmo lugar.
-
-### Publicar
+   Both are granted immediately, with no partner approval.
+4. **Generate the token** at
+   [https://www.linkedin.com/developers/tools/oauth/token-generator](https://www.linkedin.com/developers/tools/oauth/token-generator),
+   ticking `openid`, `profile` and `w_member_social`.
+5. Paste it into `LINKEDIN_ACCESS_TOKEN` in `.env` and check it:
 
 ```bash
-uv run linkedin publicar conteudo/posts/2026-09-02-tema.md --dry-run   # vê o JSON
-uv run linkedin publicar conteudo/posts/2026-09-02-tema.md             # publica
-uv run linkedin publicar conteudo/posts/2026-09-02-tema.md --idioma en # versão em inglês
+uv run linkedin connection
 ```
 
-Sempre pede confirmação antes de enviar. Um post publicado é público e imediato.
+**The token lasts 60 days.** Automatic refresh only exists for approved
+partners, so when it expires you just generate another one in the same place.
+
+### Publishing
+
+```bash
+uv run linkedin publish content/posts/2026-09-02-topic.md --dry-run     # see the JSON
+uv run linkedin publish content/posts/2026-09-02-topic.md               # publish
+uv run linkedin publish content/posts/2026-09-02-topic.md --language en # English version
+```
+
+It always asks for confirmation before sending. A published post is public and
+immediate.
 
 ---
 
 
 
-## Interface web
+## Web interface
 
-O repositório já traz a [Agno Agent UI](https://github.com/agno-agi/agent-ui)
-em `agent_ui/`. Em dois terminais:
+The repository ships the [Agno Agent UI](https://github.com/agno-agi/agent-ui)
+in `agent_ui/`. In two terminals:
 
 ```bash
-uv run linkedin serve          # backend em :7777
+uv run linkedin serve          # backend on :7777
 ```
 
 ```bash
-cd agent_ui && pnpm dev        # interface em :3000
+cd agent_ui && pnpm dev        # interface on :3000
 ```
 
-Abra [http://localhost:3000](http://localhost:3000), escolha o modo **Team** e converse com o time.
+Open [http://localhost:3000](http://localhost:3000), pick **Team** mode and talk
+to the team.
 
-A UI só conhece Agents e Teams — os fluxos (`post`, `calendario`) rodam pela CLI.
+The UI only knows Agents and Teams. The flows (`post`, `calendar`) run from the
+CLI.
 
 ---
 
 
 
-## O que dá e o que não dá para automatizar
+## What can and cannot be automated
 
-O LinkedIn é restritivo, e o sistema é honesto sobre isso.
-
-
-|                                                |                                                                                         |
-| ---------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Publicar post (texto, imagem, PDF)             | **Automatizado**, pela API oficial                                                      |
-| Ler o próprio perfil                           | **Não existe API.** Por isso o export de dados                                          |
-| Editar headline, Sobre, experiências, projetos | **Não existe API, em nenhum nível.** O sistema entrega o texto pronto e diz onde colar  |
-| Ler métricas dos próprios posts                | **Bloqueado** pelo LinkedIn (acesso restrito). Você anota à mão com `linkedin metricas` |
-| Listar posts já publicados                     | **Bloqueado** (`r_member_social` está fechado)                                          |
+LinkedIn is restrictive, and the system is honest about it.
 
 
-O sistema usa **apenas** a API oficial com o seu consentimento. Não faz scraping,
-não usa cookie de sessão, não dirige navegador, não automatiza conexão nem
-mensagem — tudo isso é proibido pelos Termos de Uso do LinkedIn e derruba conta.
+|                                                 |                                                                                       |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Publish a post (text, image, PDF)               | **Automated**, through the official API                                                |
+| Read your own profile                           | **No API exists.** Hence the data export                                               |
+| Edit headline, About, experiences, projects     | **No API exists, at any tier.** The system hands you the text and says where to paste  |
+| Read your own posts' metrics                    | **Blocked** by LinkedIn (restricted access). You record them by hand with `linkedin metrics` |
+| List already-published posts                    | **Blocked** (`r_member_social` is closed)                                              |
 
-### O ciclo de aprendizado
 
-Como as métricas não vêm por API, elas entram à mão:
+The system uses **only** the official API, with your consent. No scraping, no
+session cookie, no browser driving, no automated connections or messages. All of
+that is forbidden by LinkedIn's Terms of Use and gets accounts banned.
+
+### The learning loop
+
+Since the metrics do not come through an API, they go in by hand:
 
 ```bash
-uv run linkedin metricas
+uv run linkedin metrics
 ```
 
-Isso alimenta `conteudo/metricas.csv`, que o estrategista lê para ajustar os
-pilares. Sem isso, o sistema nunca aprende o que funciona para você.
+That feeds `content/metrics.csv`, which the strategist reads to adjust the
+pillars. Without it, the system never learns what works for you.
 
 ---
 
 
 
-## Memória
+## Memory
 
-O sistema lembra de uma conversa para a outra. São três camadas, e vale saber
-qual é qual — elas falham de jeitos diferentes.
+The system remembers from one conversation to the next. There are three layers,
+and it is worth knowing which is which, because they fail in different ways.
 
-| Camada | O que guarda | Onde vive | Quem lê |
+| Layer | What it keeps | Where it lives | Who reads it |
 | --- | --- | --- | --- |
-| Perfil | Seus dados reais e verificáveis | `perfil/perfil.yaml` | todo agente, em toda execução |
-| Conversa | Os últimos turnos, na íntegra | sessão no SQLite | o time e os agentes com histórico |
-| Memória | Frases destiladas sobre você | `agno_memories`, presas ao seu usuário | todo agente, em toda execução |
+| Profile | Your real, verifiable data | `profile/profile.yaml` | every agent, every run |
+| Conversation | The last turns, verbatim | a session in SQLite | the team and the agents with history |
+| Memory | Distilled sentences about you | `agno_memories`, tied to your user | every agent, every run |
 
-**Quem escreve memória é o time, na conversa.** É ali que você conta o que
-prefere, o que construiu e o que deu resultado. Os comandos da CLI recebem
-sempre o mesmo pedido enlatado, então não aprendem nada novo — mas leem tudo.
-Na prática: você comenta no chat que um post rendeu contato de recrutador, e o
-`linkedin post` da semana seguinte já sabe disso.
+**The team is what writes memory, in conversation.** That is where you say what
+you prefer, what you built and what got results. The CLI commands always receive
+the same canned request, so they learn nothing new, but they read everything. In
+practice: you mention in chat that a post earned a recruiter contact, and next
+week's `linkedin post` already knows.
 
-O que vale a pena guardar (e o que não vale) está escrito em
-`agentes/principios.py`, na função `instrucoes_de_memoria`.
+What is worth keeping (and what is not) is written in `agents/principles.py`, in
+the `memory_instructions` function.
 
-### Ver e apagar
-
-```bash
-uv run linkedin memoria                      # o que o sistema aprendeu sobre você
-uv run linkedin memoria --esquecer a1b2c3d4  # apaga uma
-uv run linkedin memoria --limpar             # apaga tudo (pede confirmação)
-```
-
-Memória que não dá para inspecionar não dá para confiar. Se um agente começar a
-repetir uma bobagem, é aqui que se descobre de onde veio.
-
-### Conversas separadas
+### Seeing and deleting
 
 ```bash
-uv run linkedin chat                       # continua a conversa "principal"
-uv run linkedin chat --sessao experimento  # uma linha paralela, que não se mistura
+uv run linkedin memory                    # what the system learned about you
+uv run linkedin memory --forget a1b2c3d4  # delete one
+uv run linkedin memory --clear            # delete everything (asks first)
 ```
 
-O histórico é por sessão; a memória é por usuário. Ou seja: o que você disse na
-conversa `experimento` não aparece na `principal`, mas o que virou memória vale
-para as duas.
+Memory you cannot inspect is memory you cannot trust. If an agent starts
+repeating nonsense, this is where you find out where it came from.
+
+### Separate conversations
+
+```bash
+uv run linkedin chat                        # continues the "main" conversation
+uv run linkedin chat --session experiment   # a parallel line that does not mix
+```
+
+History is per session; memory is per user. So what you said in the `experiment`
+conversation does not show up in `main`, but whatever became memory applies to
+both.
 
 ---
 
 
 
-## Como está organizado
+## How it is organized
 
 ```
-perfil/                       seus dados (fora do git)
-  linkedin_export/            o export do LinkedIn, descompactado
-  perfil.yaml                 gerado e revisável — a fonte de verdade
-  voz.md                      amostras da sua escrita
+profile/                      your data (out of git)
+  linkedin_export/            the LinkedIn export, unzipped
+  profile.yaml                generated and reviewable, the source of truth
+  voice.md                    samples of your writing
 
-conteudo/                     o que o sistema produz (fora do git)
-  diagnostico.md              auditoria do perfil
-  perfil_otimizado.md         textos prontos para colar
-  estrategia.md               posicionamento e pilares
-  calendario/AAAA-Wxx.md      calendário editorial
-  posts/AAAA-MM-DD-tema.md    posts em pt-BR e inglês
-  metricas.csv                preenchido por você
+content/                      what the system produces (out of git)
+  diagnosis.md                profile audit
+  optimized_profile.md        copy ready to paste
+  strategy.md                 positioning and pillars
+  calendar/YYYY-Wxx.md        editorial calendar
+  posts/YYYY-MM-DD-topic.md   posts in pt-BR and English
+  metrics.csv                 filled in by you
 
-referencias/                  material de apoio, só consulta (não gera nada)
-  ganchos.md                  fórmulas de gancho, uma por pilar
-  algoritmo-linkedin.md       heurísticas de formato e timing do LinkedIn
-  vocabulario-ia.md           vocabulário e tiques que denunciam texto de IA
-  headline-formulas.md        fórmula de headline para o Redator de Perfil
+references/                   supporting material, read-only (produces nothing)
+  hooks.md                    hook formulas, one per pillar
+  linkedin-algorithm.md       LinkedIn format and timing heuristics
+  ai-vocabulary.md            vocabulary and tics that give away AI text
+  headline-formulas.md        headline formula for the Profile Writer
 
 src/linkedin_growth/
-  config.py                   segredos, caminhos, modelos, banco, memória
-  perfil/                     esquema, importador e contexto
-  ferramentas/                artefatos, referências, busca web, API do LinkedIn
-  agentes/                    os oito especialistas
-    principios.py             a estratégia codificada — comece por aqui
-  times.py                    o time coordenador (chat)
-  fluxos.py                   os workflows determinísticos
-  cli.py                      os comandos
-  agentos.py                  o servidor da interface web
+  config.py                   secrets, paths, models, database, memory
+  profile/                    schema, importer and context
+  tools/                      artifacts, references, web search, LinkedIn API
+  agents/                     the eight specialists
+    principles.py             the codified strategy, start here
+  team.py                     the coordinating team (chat)
+  flows.py                    the deterministic workflows
+  cli.py                      the commands
+  agentos.py                  the web interface server
 
 docs/
-  roadmap.md                  o ciclo de ponta a ponta, etapa por etapa
-  mindmap.md                  o mapa das peças e como elas se ligam
+  roadmap.md                  the end-to-end cycle, stage by stage
+  mindmap.md                  the map of the pieces and how they connect
 
-tests/                        a suíte — nenhum teste chama API paga
-  conftest.py                 fixtures, o helper de ferramentas @tool e o ModeloEspiao
-  test_artefatos.py           confinamento a conteudo/, gravar e ler
-  test_referencias.py         consulta somente leitura a referencias/
-  test_linkedin_formato.py    little text format e montagem de payload
-  test_importador.py          leitura dos CSVs do export do LinkedIn
-  test_esquema.py             o contrato de dados do perfil
-  test_principios.py          invariantes da estratégia codificada
-  test_memoria_dos_agentes.py o que o sistema lembra, e o que não pode vazar
-  test_cli_memoria.py         o comando que mostra e apaga memória
-  test_agentos.py             o que a interface web precisa receber do servidor
+tests/                        the suite, no test calls a paid API
+  conftest.py                 fixtures, the @tool helper and the SpyModel
+  test_artifacts.py           confinement to content/, writing and reading
+  test_references.py          read-only lookups into references/
+  test_linkedin_format.py     little text format and payload assembly
+  test_importer.py            reading the LinkedIn export CSVs
+  test_schema.py              the profile data contract
+  test_principles.py          invariants of the codified strategy
+  test_agent_memory.py        what the system remembers, and what must not leak
+  test_cli_memory.py          the command that shows and deletes memory
+  test_flows.py               what each workflow step actually reads
+  test_agentos.py             what the web interface needs from the server
 ```
 
 
 
-### Os oito agentes
+### The eight agents
 
 
-| Agente                   | Faz                                                       |
-| ------------------------ | --------------------------------------------------------- |
-| Diagnóstico de Perfil    | Busca vagas reais de IA e nota cada seção do seu perfil   |
-| Redator de Perfil        | Headline, Sobre, experiências, projetos e skills, pt e en |
-| Estrategista de Conteúdo | Posicionamento, pilares, público, cadência, métricas      |
-| Pesquisador              | O que aconteceu em IA nesta semana, com ângulo para você  |
-| Planejador Editorial     | Calendário com tema específico e ativo de prova por post  |
-| Redator                  | Escreve o post em português e inglês                      |
-| Editor                   | Critica contra uma rubrica de sete critérios e finaliza   |
-| Publicador               | Publica pela API, sempre com aprovação                    |
+| Agent              | Does                                                          |
+| ------------------ | ------------------------------------------------------------- |
+| Profile Diagnosis  | Searches real AI job posts and scores each profile section    |
+| Profile Writer     | Headline, About, experiences, projects and skills, pt and en  |
+| Content Strategist | Positioning, pillars, audience, cadence, metrics              |
+| Researcher         | What happened in AI this week, with an angle for you          |
+| Editorial Planner  | A calendar with a specific topic and proof asset per post     |
+| Writer             | Writes the post in Portuguese and English                     |
+| Editor             | Scores against a seven-criteria rubric and finalizes          |
+| Publisher          | Publishes through the API, always with approval               |
 
 
 
 
-### Onde mexer primeiro
+### Where to change things first
 
-`src/linkedin_growth/agentes/principios.py` concentra a estratégia: as regras de
-honestidade, o posicionamento, os pilares de conteúdo, as regras de escrita e a
-rubrica do editor. Mudar o comportamento do sistema é mudar esse arquivo — não
-sete arquivos de agente.
+`src/linkedin_growth/agents/principles.py` concentrates the strategy: the
+honesty rules, the positioning, the content pillars, the writing rules and the
+editor's rubric. Changing how the system behaves means changing that file, not
+seven agent files.
 
-### Adicionando material de referência ("skills")
+### Adding reference material
 
-Este projeto usa agentes [Agno](https://github.com/agno-agi/agno), não Claude
-Skills — não existe um mecanismo para simplesmente "instalar" uma skill do
-formato `SKILL.md`. O padrão adotado aqui para portar conhecimento externo
-(por exemplo, de [sergebulaev/linkedin-skills](https://github.com/sergebulaev/linkedin-skills))
-é:
+This project uses [Agno](https://github.com/agno-agi/agno) agents, not Claude
+Skills, so there is no mechanism to simply "install" a `SKILL.md`. The pattern
+adopted here for porting external knowledge (for example from
+[sergebulaev/linkedin-skills](https://github.com/sergebulaev/linkedin-skills))
+is:
 
-1. Curar o conteúdo relevante — traduzido e adaptado ao contexto deste
-  projeto, não colado — como um `.md` novo em `referencias/`.
-2. Dar ao agente que precisa dele a ferramenta `ler_referencia`
-  (`ferramentas/referencias.py`) e uma instrução dizendo quando chamá-la.
+1. Curate the relevant content, adapted to this project's context rather than
+   pasted, as a new `.md` in `references/`.
+2. Give the agent that needs it the `read_reference` tool
+   (`tools/references.py`) and an instruction saying when to call it.
 
-Isso imita a divulgação progressiva das Claude Skills: o conteúdo só entra no
-contexto do agente quando ele decide que precisa, em vez de inflar o prompt
-de toda chamada. Regra curta e universal (uma linha, vale para todo post) vai
-direto em `principios.py`; conteúdo longo ou consultado só às vezes vai em
-`referencias/`.
+That mirrors the progressive disclosure of Claude Skills: the content only
+enters the agent's context when it decides it needs it, instead of inflating
+every prompt. A short universal rule (one line, true of every post) goes
+straight into `principles.py`; long content, or content consulted only
+occasionally, goes into `references/`.
 
 ---
 
 
 
-## Testes
+## Tests
 
 ```bash
-uv run pytest              # a suíte inteira, ~10s
-uv run pytest -k linkedin  # só um assunto
+uv run pytest              # the whole suite, ~10s
+uv run pytest -k linkedin  # one subject only
 ```
 
-No Windows, se o `linkedin serve` estiver rodando em outro terminal, o `uv run`
-falha ao tentar sincronizar o ambiente (não consegue substituir `linkedin.exe`,
-que está em uso). Use `uv run --no-sync pytest` sem parar o servidor.
+On Windows, if `linkedin serve` is running in another terminal, `uv run` fails
+while syncing the environment (it cannot replace `linkedin.exe`, which is in
+use). Use `uv run --no-sync pytest` without stopping the server.
 
-**Nenhum teste chama a API da Anthropic nem a do LinkedIn.** A suíte cobre a
-lógica pura e o I/O em disco: o confinamento das ferramentas de arquivo (um
-agente não pode escrever fora de `conteudo/`), o *little text format* do
-LinkedIn (escape e hashtags), a leitura dos CSVs do export — que vêm com
-preâmbulo e nomes de coluna variáveis — e os invariantes de `principios.py`.
+**No test calls the Anthropic API or the LinkedIn API.** The suite covers pure
+logic and disk I/O: the confinement of the file tools (an agent cannot write
+outside `content/`), LinkedIn's *little text format* (escaping and hashtags),
+reading the export CSVs (which arrive with a preamble and varying column names)
+and the invariants of `principles.py`.
 
-Esse último grupo é o menos óbvio e o mais útil: como a estratégia é o produto,
-os testes fixam que certas regras continuam chegando a todo agente (a
-honestidade é eliminatória, a rubrica tem os sete critérios) e travam
-regressões de regras decididas com motivo, como o limite de hashtags.
+That last group is the least obvious and the most useful: since the strategy is
+the product, the tests pin down that certain rules keep reaching every agent
+(honesty is disqualifying, the rubric has its seven criteria) and lock in rules
+that were decided for a reason, like the hashtag limit.
 
-Os testes de memória (`test_memoria_dos_agentes.py`) rodam agentes de verdade,
-com um `ModeloEspiao` no lugar do `Claude`. É a única forma de responder "o
-agente lembra?": a resposta está nas mensagens que chegam ao modelo, e só
-executando dá para vê-las. O espião grava cada chamada, então o teste consegue
-afirmar que a memória chegou ao prompt — e, nos testes de isolamento, que **não**
-chegou onde não devia.
+The memory tests (`test_agent_memory.py`) run real agents, with a `SpyModel` in
+place of `Claude`. It is the only way to answer "does the agent remember?": the
+answer is in the messages that reach the model, and only running them lets you
+see it. The spy records every call, so the test can assert that memory reached
+the prompt and, in the isolation tests, that it did **not** reach where it
+should not have.
 
-Os de `test_agentos.py` batem no servidor via `TestClient`, sem abrir porta.
-Existem porque uma classe inteira de bug só aparece ali: um campo que só é lido
-na hora de montar a resposta HTTP e em nenhum outro lugar do sistema. Foi assim
-que o time sumiu da interface web sem que nada no terminal indicasse erro.
+The ones in `test_agentos.py` hit the server through `TestClient`, with no open
+port. They exist because a whole class of bug only shows up there: a field that
+is read when the HTTP response is assembled and nowhere else in the system. That
+is how the team disappeared from the web interface with nothing in the terminal
+indicating an error.
 
-O que a suíte **não** cobre: a qualidade do texto que os agentes geram. Isso
-não é teste unitário, é avaliação — e hoje quem faz esse papel é o agente
-Editor, com a rubrica.
+What the suite does **not** cover: the quality of the text the agents generate.
+That is not unit testing, it is evaluation, and today the Editor agent plays
+that role, with the rubric.
 
 ---
 
 
 
-## Custo
+## Cost
 
-Por padrão os agentes de julgamento usam `claude-opus-5` e os de volume usam
-`claude-sonnet-5`. Para gastar menos, no `.env`:
+By default the judgement agents use `claude-opus-5` and the high-volume ones use
+`claude-sonnet-5`. To spend less, in `.env`:
 
 ```
-MODELO_PRINCIPAL=claude-sonnet-5
+MAIN_MODEL=claude-sonnet-5
 ```
-

@@ -9,19 +9,19 @@ __pycache__/
 .env
 .env.local
 
-# Dados pessoais — o export do LinkedIn e o perfil derivado dele
-perfil/linkedin_export/
-perfil/perfil.yaml
-perfil/voz.md
+# Personal data: the LinkedIn export and the profile derived from it
+profile/linkedin_export/
+profile/profile.yaml
+profile/voice.md
 
-# O que os agentes produzem a partir desses dados. Fica de fora pelo mesmo
-# motivo que o perfil: diagnóstico, textos de perfil e estratégia são a análise
-# da carreira de uma pessoa específica, não código do projeto. E é saída
-# gerada, que muda a cada execução — versionar isso só produziria ruído no
-# histórico. A estrutura de pastas é recriada por `garantir_diretorios()`.
-conteudo/
+# What the agents produce from that data. It stays out for the same reason the
+# profile does: the diagnosis, the profile copy and the strategy are one
+# specific person's career analysis, not project code. It is also generated
+# output that changes on every run, so versioning it would only add noise to
+# the history. The folder tree is recreated by `ensure_directories()`.
+content/
 
-# Banco de sessões dos agentes
+# The agents' session database
 tmp/
 
 # IDE
@@ -32,13 +32,5 @@ tmp/
 .DS_Store
 Thumbs.db
 
-# Claude Code — configuracao local de maquina
+# Claude Code: machine-local configuration
 .claude/settings.local.json
-
-# Skills instaladas via `npx skills add`
-# O instalador grava três cópias idênticas da mesma skill. Versionamos só a que
-# o Claude Code lê (.claude/skills/) mais o skills-lock.json, que é o que
-# permite reinstalar e atualizar. As outras duas são para outros agentes
-# (Codex, Cursor) e se recriam com `npx skills add`.
-/skills/
-.agents/

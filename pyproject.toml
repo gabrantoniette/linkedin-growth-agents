@@ -1,7 +1,7 @@
 [project]
 name = "linkedin-growth"
 version = "0.1.0"
-description = "Sistema multiagente (Agno) para construir relevância no LinkedIn em engenharia de IA"
+description = "Multi-agent system (Agno) for building LinkedIn relevance in AI engineering"
 readme = "README.md"
 authors = [
     { name = "Gabriel Antoniette", email = "gabeantoniette@gmail.com" }
@@ -36,6 +36,6 @@ build-backend = "uv_build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# Os testes não chamam a API da Anthropic nem a do LinkedIn. Se algum teste
-# tentar, é bug do teste — o `-q` mantém a saída curta o suficiente para ler.
+# No test calls the Anthropic API or the LinkedIn API. If one tries, that is a
+# bug in the test. `-q` keeps the output short enough to actually read.
 addopts = "-q"
