@@ -24,6 +24,11 @@ content/
 # The agents' session database
 tmp/
 
+# The application dossiers the agents build for a specific job posting: the
+# tailored CV, the job breakdown and the gap analysis. Same reason as
+# `content/`: one person's career data, regenerated on every run.
+applications/
+
 # IDE
 .vscode/
 .idea/
