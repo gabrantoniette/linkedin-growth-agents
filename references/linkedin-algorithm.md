@@ -10,6 +10,13 @@ This is a reference on **format and mechanics**, not on content. The rules on
 honesty, positioning and voice stay in `principles.py` and outrank any algorithm
 heuristic here.
 
+**Precedence.** Where this file overlaps with `kb-linkedin-publicacao.md`
+(distribution mechanics, timing, weekly frequency, content format), **that file
+wins**. It names the sample, period, metric and declared bias of every source it
+uses (its §10), while the numbers here are second-hand and directional, as the
+paragraph above admits. Use this file for what it is good at, which is the
+per-post format checklist: length, hook cutoff, hashtags, link placement.
+
 ## Length
 
 - Sweet spot: 900-1,300 characters (about 150-220 words), which lines up with
@@ -35,13 +42,31 @@ heuristic here.
 - If the post cites an external source, write "fonte no primeiro comentário" and
   leave the link there, not in the post.
 
-## The first 60-90 minutes (the "momentum window")
+## After publishing: the window is days, not minutes
 
-- That window decides roughly 80% of a post's total reach.
-- Replying to every comment within the first 90 minutes is what determines
-  whether the post reaches its ceiling.
-- Three or more substantive comments in the first 30 minutes give a second
-  distribution push.
+An earlier version of this file claimed the first 60-90 minutes decided about
+80% of a post's reach, that replying inside 90 minutes set the ceiling, and that
+three comments in the first 30 minutes triggered a second push. **Those claims
+are withdrawn.** LinkedIn never confirmed a 60 or 90 minute window, and
+distribution moved from recency to relevance, so a post can re-enter
+distribution days later. See `kb-linkedin-publicacao.md` §6.1 and §6.2.
+
+What the better-sampled data actually says (AuthoredUp, 3M+ posts, via
+`kb-linkedin-publicacao.md` §6.3):
+
+- Posts that earn **saves and substantive comments between 24 and 72 hours**
+  after publishing perform **4 to 6 times better** in suggested feeds than posts
+  that only got fast, shallow engagement at the start.
+- So the pattern to aim for is a long half-life, not a sprint. Replying to
+  comments is still worth doing, and worth doing substantively, but the relevant
+  window is the first few days.
+- A comment now earns impressions of its own, which makes it a micro-post that
+  reaches outside your network (§6.4). In a low-capacity week, 2-3 posts plus
+  10-15 daily minutes of real commenting is worth more than forcing a higher
+  cadence.
+
+**Never state as fact** that the algorithm judges a post in its first 60
+minutes. That claim is on the forbidden list in `kb-linkedin-publicacao.md` §9.
 
 ## Quality signals (not officially confirmed, but reported)
 

@@ -12,6 +12,7 @@ from linkedin_growth.agents.principles import (
 from linkedin_growth.config import memory_params, model
 from linkedin_growth.profile.context import profile_context
 from linkedin_growth.tools.artifacts import read_artifact, save_artifact
+from linkedin_growth.tools.references import list_references, read_reference
 
 ID = "strategist"
 NAME = "Content Strategist"
@@ -26,7 +27,7 @@ def build() -> Agent:
         name=NAME,
         role=ROLE,
         model=model(),
-        tools=[read_artifact, save_artifact],
+        tools=[read_artifact, save_artifact, read_reference, list_references],
         **memory_params(ID),
         description=(
             "Você desenha estratégias de presença no LinkedIn para pessoas "
@@ -40,6 +41,21 @@ def build() -> Agent:
             "Read 'diagnosis.md' and 'metrics.csv' with `read_artifact` if they "
             "exist. If 'metrics.csv' has data, use it: the pillars that earned "
             "comments from people in the field should get more room.",
+            "Before deciding cadence or format, call `read_reference` with "
+            "'kb-linkedin-publicacao.md'. It carries the numbers on days, "
+            "frequency and format from six primary studies. Read its section 0 "
+            "('Instruções de uso') and section 9 ('Anti-padrões') too: they say "
+            "what the data does NOT license you to claim, and they bind you.",
+            "Two rules from that document that change what you write: the "
+            "decision hierarchy is consistency > format > frequency > timing "
+            "(section 11), so do not spend the strategy on clock times; and "
+            "engagement is counted PER WEEK, not per post (section 4.1). A "
+            "falling per-post average while the weekly total rises is success, "
+            "not failure, and telling the user to post less there is the most "
+            "common mistake in this field.",
+            "If the user's own metrics.csv disagrees with that document, the "
+            "user's data wins. It is one person's real audience against a global "
+            "average that has no Brazil cut at all.",
             "Produce a strategy document with these sections:",
             "1. POSITIONING: the single sentence that captures how the user "
             "wants to be perceived in six months. One sentence, not a paragraph.",
@@ -49,7 +65,11 @@ def build() -> Agent:
             "share of the week and one real example topic for each.",
             "4. CADENCE: how many posts a week and on which days, given that "
             "they have a job and are studying. Be realistic: two posts that "
-            "actually ship beat five that are planned.",
+            "actually ship beat five that are planned. Two a week is the floor "
+            "worth defending, three to five the target once the habit holds. If "
+            "you name times of day, say in the same sentence that the studies "
+            "diverge by about seven hours and that none of them covers Brazil, "
+            "so those slots are a hypothesis to measure, not a finding.",
             "5. TONE: how they write, with an example sentence that sounds like "
             "them and one that does NOT.",
             "6. WHAT NOT TO POST: an explicit list for this specific case.",

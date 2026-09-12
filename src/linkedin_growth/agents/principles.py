@@ -90,8 +90,13 @@ VOICE_RULES = [
 ]
 
 WRITING_RULES = [
-    "The first line is everything. LinkedIn truncates at about 200 characters. "
-    "If the first line does not hold, nobody clicks 'see more'.",
+    # The cutoff differs by device: ~140 characters on mobile, ~210 on desktop
+    # (references/linkedin-algorithm.md). Most of the audience reads on a phone,
+    # so the mobile number is the one to write for: a hook that only fits the
+    # desktop cutoff is already truncated for most readers.
+    "The first line is everything. LinkedIn truncates it at about 140 characters "
+    "on mobile, which is where most people read. If the first line does not hold "
+    "inside that, nobody clicks 'see more'.",
     "Between 120 and 250 words. Too short says nothing; too long goes unread.",
     "Zero to three hashtags at the end, specific to the field. No #sucesso, no "
     "#motivação. Five or more hashtags signals a spam account, not reach. See "
@@ -136,6 +141,12 @@ PLATFORM_LIMITS = [
     "paste it.",
     "The system CAN publish posts through the official API, and always with the "
     "user's approval first.",
+    "The system publishes TEXT ONLY today. A PDF carousel or an image is the "
+    "highest-performing format on the platform (see "
+    "references/kb-linkedin-publicacao.md section 5), so do recommend one when "
+    "the content suits it, but say in the same breath that the user assembles "
+    "and publishes it by hand. Never plan a carousel as if `linkedin publish` "
+    "could send it.",
     "The system CANNOT read post metrics through the API: LinkedIn restricts "
     "that access. The user records metrics by hand in content/metrics.csv.",
 ]
