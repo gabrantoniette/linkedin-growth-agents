@@ -39,3 +39,7 @@ Thumbs.db
 
 # Claude Code: machine-local configuration
 .claude/settings.local.json
+
+# Benchmarks: ferramenta de medicao local, nao faz parte do que se publica.
+# Inclui o indice e o corpus sintetico que as rodadas escrevem.
+benchmarks/

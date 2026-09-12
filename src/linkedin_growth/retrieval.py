@@ -49,20 +49,37 @@ if TYPE_CHECKING:
 # all, and the vector db's own ranking decides what comes back. One number for
 # the floor, RRF for the order.
 #
-# Measured on this corpus with `paraphrase-multilingual-MiniLM-L12-v2`, best
-# candidate per query:
+# The value was 0.32, chosen from a two-post corpus where relevant queries scored
+# 0.41-0.57 and irrelevant ones 0.15-0.25 and the gap looked clean. It is 0.26
+# now, and the reason is worth keeping because it is not what the first
+# measurement predicted.
 #
-#   relevant queries      0.406 to 0.569
-#   irrelevant queries    0.147 to 0.252  (pao de queijo, futebol, bolo)
+# On a 46-post archive the gap closes: answerable queries span 0.275-0.842 and
+# unanswerable ones 0.155-0.746, with 18 of 20 answerable scoring below the worst
+# unanswerable. **No threshold separates them.** Raising the gate to cut phantom
+# hits cuts real ones at the same rate, so tuning this number for precision is
+# not a trade worth making - it is not even a trade, just loss.
 #
-# 0.32 sits in that gap with room on both sides. Calibrated on two posts, so
-# treat it as a starting value: it is the kind of constant that should be
-# re-measured once the corpus is twenty posts rather than two.
+# What made 0.26 the answer was measuring the decision the gate actually feeds,
+# with the model in the loop: the Planner reads the hits and judges, and it is
+# much better at rejecting a lookalike than a cosine threshold is. Retrieval
+# alone returned the near-duplicate trap in 87.5% of cases; the Planner rejected
+# 7 of those 8 as new topics. So the gate should be tuned for RECALL and the
+# judgement left to the model. Measured end to end over 34 queries:
+#
+#                    finds a written topic    rejects an unwritten one
+#   0.32                     85.0%                    85.7%
+#   0.26                     90.0%                    92.9%
+#
+# 0.26 wins on both, which is the part worth remembering: a tighter gate was
+# hiding the context the model needed to judge with, so it lost recall AND made
+# the false-duplicate rate worse.
 #
 # The number belongs to the embedder, not to the project. Changing
-# `EMBEDDER_MODEL` invalidates it, and the replacement has to be measured the
-# same way.
-MIN_SIMILARITY = float(os.getenv("MIN_SIMILARITY", "0.32"))
+# `EMBEDDER_MODEL` invalidates it. `benchmarks/recalibrate.py` sweeps it offline
+# for free; `benchmarks/judge.py` measures the end-to-end decision and costs
+# about $0.45 a run.
+MIN_SIMILARITY = float(os.getenv("MIN_SIMILARITY", "0.26"))
 
 # How many chunks to pull before grouping. Grouping collapses several chunks into
 # one result, so asking for exactly `num_documents` would routinely return fewer
