@@ -26,12 +26,14 @@ from rich.table import Table
 from linkedin_growth.config import (
     CONTENT_DIR,
     DEFAULT_SESSION,
+    EMBEDDER_MODEL,
     EXPORT_DIR,
     MAX_TOKENS,
     METRICS_CSV,
     POSTS_DIR,
     PROFILE_YAML,
     MissingConfiguration,
+    VOICE_MD,
     ensure_directories,
 )
 
@@ -117,6 +119,32 @@ def _run_agent(build, question: str, title: str) -> None:
     if output.content:
         console.print(Markdown(str(output.content)))
     _warn_if_truncated(output)
+
+
+def _indexed_counts() -> Optional[int]:
+    """How many files the knowledge bases have indexed, or None if never built.
+
+    Reads `contents_db`, not the vector tables: it is the same SQLite file the
+    CLI already opens, so `status` stays fast and never loads the embedder.
+    """
+    from linkedin_growth.config import (
+        POSTS_KNOWLEDGE_NAME,
+        VOICE_KNOWLEDGE_NAME,
+        db,
+    )
+
+    try:
+        total = 0
+        found = False
+        for name in (POSTS_KNOWLEDGE_NAME, VOICE_KNOWLEDGE_NAME):
+            _, count = db().get_knowledge_contents(linked_to=name)
+            total += count
+            found = True
+        return total if found else None
+    except Exception:
+        # The table only exists after the first index. A missing table is a
+        # legitimate "not built yet", not an error worth showing.
+        return None
 
 
 def _extract_section(text: str, language: str) -> Optional[str]:
@@ -209,6 +237,68 @@ def import_data() -> None:
         "\n[bold]Now open profile.yaml and review it.[/bold] Fix what the "
         "importer missed and fill in 'goal' in your own words. That is what "
         "every agent reads."
+    )
+
+
+@app.command("index")
+def index_knowledge(
+    recreate: Annotated[
+        bool,
+        typer.Option(
+            "--recreate",
+            help="Drop the tables and rebuild. Required after changing the embedder.",
+        ),
+    ] = False,
+) -> None:
+    """Index the posts and the writing samples so the agents can search them."""
+    from linkedin_growth.indexing import index_all
+
+    ensure_directories()
+    console.rule("[bold]Indexing the knowledge bases")
+
+    if recreate:
+        console.print("[yellow]--recreate:[/yellow] dropping the tables first.")
+
+    console.print(f"Embedder: [cyan]{EMBEDDER_MODEL}[/cyan]")
+    console.print(
+        "[dim]Runs locally, no API key. The model downloads on the first run "
+        "(about 220MB), so this one takes a few minutes.[/dim]"
+    )
+    console.print("")
+
+    report = index_all(recreate=recreate)
+
+    table = Table("Base", "Source", "Indexed")
+    table.add_row("posts", "content/posts/*.md", str(report.posts))
+    table.add_row("voice", "profile/voice.md", str(report.voice))
+    console.print(table)
+
+    for problem in report.skipped:
+        console.print(f"[yellow]Skipped:[/yellow] {problem}")
+
+    if report.total == 0:
+        console.print(
+            Panel(
+                "Nothing was indexed, so the agents have nothing to search."
+                "\n\nThere has to be at least one file in content/posts/ or a"
+                "\nprofile/voice.md. To get them:"
+                "\n  uv run linkedin import   (writes voice.md from the export)"
+                '\n  uv run linkedin post --topic "..."   (writes a post)',
+                title="Empty index",
+                border_style="yellow",
+            )
+        )
+        raise typer.Exit(code=1)
+
+    console.print("")
+    console.print(
+        "[green]Done.[/green] The Planner now checks a topic against what you "
+        "have already written, and the Writer pulls the closest past posts as a "
+        "tone sample."
+    )
+    console.print(
+        "[dim]Run this again after writing or editing posts. It re-embeds every "
+        "file each time, which is cheap because the embedder is local.[/dim]"
     )
 
 
@@ -642,6 +732,20 @@ def status() -> None:
     calendars = list((CONTENT_DIR / "calendar").glob("*.md"))
     table.add_row("calendars", f"{len(calendars)}", "uv run linkedin calendar")
     table.add_row("posts written", f"{len(posts)}", 'uv run linkedin post --topic "..."')
+
+    # The index is not a stage, it is a state that goes stale: every new post
+    # makes it one file out of date, and nothing tells the user but this line.
+    indexed = _indexed_counts()
+    if indexed is None:
+        table.add_row("knowledge index", "[yellow]not built[/yellow]", "uv run linkedin index")
+    else:
+        expected = len(posts) + (1 if VOICE_MD.exists() else 0)
+        stale = indexed < expected
+        table.add_row(
+            "knowledge index",
+            f"{indexed} of {expected}" + (" [yellow](stale)[/yellow]" if stale else ""),
+            "uv run linkedin index" if stale else "",
+        )
 
     console.print(table)
 

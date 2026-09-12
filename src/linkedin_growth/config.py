@@ -9,10 +9,17 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from typing import TYPE_CHECKING
+
 from agno.db.sqlite import SqliteDb
 from agno.memory import MemoryManager
 from agno.models.anthropic import Claude
 from dotenv import load_dotenv
+
+if TYPE_CHECKING:
+    from agno.knowledge.embedder.fastembed import FastEmbedEmbedder
+    from agno.knowledge.knowledge import Knowledge
+    from agno.vectordb.lancedb import LanceDb
 
 load_dotenv()
 
@@ -126,6 +133,13 @@ def model(model_id: str | None = None) -> Claude:
 # ==============================================================================
 # Shared database (agent sessions, history and memory)
 # ==============================================================================
+# This is the `BaseDb` half of storage: sessions, run history, user memories.
+# It is NOT interchangeable with the vector database below. `SqliteDb` and
+# `LanceDb` implement disjoint interfaces (`agno.db.base.BaseDb` versus
+# `agno.vectordb.base.VectorDb`) and answer different questions: this one keeps
+# *what happened in the conversation*, the other one keeps *documents to search
+# by similarity*. Agents, teams, workflows, AgentOS and the memory manager all
+# want this one.
 _db: SqliteDb | None = None
 
 
@@ -136,6 +150,154 @@ def db() -> SqliteDb:
         TMP_DIR.mkdir(parents=True, exist_ok=True)
         _db = SqliteDb(db_file=str(DB_FILE))
     return _db
+
+
+# ==============================================================================
+# Embedder
+# ==============================================================================
+# Anthropic has no embeddings API, so the embedder has to come from somewhere
+# else. FastEmbed runs locally on ONNX: no second API key, no daemon, and it
+# keeps the project's "one key and `uv sync`" promise.
+#
+# The model is multilingual on purpose. The corpus is bilingual: `content/` and
+# `voice.md` are pt-BR while `references/` is English, and the user asks in
+# Portuguese. FastEmbed's default (`BAAI/bge-small-en-v1.5`) is English-first
+# and would degrade badly on all of it. This one covers ~50 languages at the
+# same 384 dimensions and 220MB on disk.
+#
+# The model file downloads on first use, not at install. Expect the first
+# `linkedin index` to take a couple of minutes; every run after that is local
+# and free.
+EMBEDDER_MODEL = os.getenv(
+    "EMBEDDER_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+)
+EMBEDDER_DIMENSIONS = int(os.getenv("EMBEDDER_DIMENSIONS", "384"))
+
+_embedder: FastEmbedEmbedder | None = None
+
+
+def embedder() -> FastEmbedEmbedder:
+    """The embedder shared by every knowledge base.
+
+    Both tables must use the same one: an embedding is only comparable to
+    another produced by the same model, so mixing them silently returns
+    nonsense rather than an error.
+    """
+    from agno.knowledge.embedder.fastembed import FastEmbedEmbedder
+
+    global _embedder
+    if _embedder is None:
+        _embedder = FastEmbedEmbedder(
+            id=EMBEDDER_MODEL, dimensions=EMBEDDER_DIMENSIONS
+        )
+    return _embedder
+
+
+# ==============================================================================
+# Vector databases (knowledge retrieval)
+# ==============================================================================
+# The `VectorDb` half: embedded documents, searched by similarity.
+#
+# There are two tables, not one, because the two use cases want different
+# search types and `search_type` is fixed per instance, not per query:
+#
+#   posts -> hybrid. "Have I written about this already?" needs both halves.
+#            Vector alone collapses "Opus 5" and "Sonnet 5" into the same point
+#            and reports a duplicate that isn't one; keyword alone misses the
+#            paraphrase ("why my API bill tripled" vs "inference cost").
+#   voice -> vector. Here the question is which past posts *sound* like this
+#            topic. BM25 would promote whatever repeats the topic's words, which
+#            is unrelated to whether it reads like the user.
+LANCEDB_URI = TMP_DIR / "lancedb"
+
+_posts_vector_db: LanceDb | None = None
+_voice_vector_db: LanceDb | None = None
+
+
+def posts_vector_db() -> LanceDb:
+    """Published and drafted posts, searched hybrid, for topic deduplication."""
+    from agno.vectordb.lancedb import LanceDb, SearchType
+
+    global _posts_vector_db
+    if _posts_vector_db is None:
+        TMP_DIR.mkdir(parents=True, exist_ok=True)
+        _posts_vector_db = LanceDb(
+            table_name="posts",
+            uri=str(LANCEDB_URI),
+            search_type=SearchType.hybrid,
+            embedder=embedder(),
+        )
+    return _posts_vector_db
+
+
+def voice_vector_db() -> LanceDb:
+    """The user's past writing, searched by similarity, for tone matching."""
+    from agno.vectordb.lancedb import LanceDb, SearchType
+
+    global _voice_vector_db
+    if _voice_vector_db is None:
+        TMP_DIR.mkdir(parents=True, exist_ok=True)
+        _voice_vector_db = LanceDb(
+            table_name="voice",
+            uri=str(LANCEDB_URI),
+            search_type=SearchType.vector,
+            embedder=embedder(),
+        )
+    return _voice_vector_db
+
+
+# ==============================================================================
+# Knowledge bases
+# ==============================================================================
+# `Knowledge` is the layer the agents actually touch: it owns chunking, reading
+# files and the `search_knowledge_base` tool. It wraps a vector db for the
+# embeddings and `contents_db` for tracking what was already indexed, which is
+# what makes re-running `linkedin index` cheap instead of re-embedding
+# everything.
+#
+# `name` is not decoration: Agno scopes the `contents_db` rows by it
+# (`linked_to`), so the two bases share one SQLite file without mixing.
+#
+# Both are built lazily. Constructing a `Knowledge` calls `vector_db.create()`
+# in `__post_init__`, so doing this at module level would create tables just by
+# importing this file.
+_posts_knowledge: Knowledge | None = None
+_voice_knowledge: Knowledge | None = None
+
+POSTS_KNOWLEDGE_NAME = "posts"
+VOICE_KNOWLEDGE_NAME = "voice"
+
+
+def posts_knowledge() -> Knowledge:
+    """What has already been written, so the Planner does not repeat a topic."""
+    from agno.knowledge.knowledge import Knowledge
+
+    global _posts_knowledge
+    if _posts_knowledge is None:
+        _posts_knowledge = Knowledge(
+            name=POSTS_KNOWLEDGE_NAME,
+            description="Posts already drafted or published, for deduplication.",
+            vector_db=posts_vector_db(),
+            contents_db=db(),
+            max_results=5,
+        )
+    return _posts_knowledge
+
+
+def voice_knowledge() -> Knowledge:
+    """How the user writes, retrieved by topic instead of truncated blindly."""
+    from agno.knowledge.knowledge import Knowledge
+
+    global _voice_knowledge
+    if _voice_knowledge is None:
+        _voice_knowledge = Knowledge(
+            name=VOICE_KNOWLEDGE_NAME,
+            description="The user's past LinkedIn posts, as a tone sample.",
+            vector_db=voice_vector_db(),
+            contents_db=db(),
+            max_results=5,
+        )
+    return _voice_knowledge
 
 
 # ==============================================================================

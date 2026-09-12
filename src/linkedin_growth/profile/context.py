@@ -1,10 +1,15 @@
 """Turns the `Profile` into text to inject into the agents' context.
 
-Design decision: **no vector store and no RAG here.** One person's profile fits
-in a few thousand tokens, and Agno's default embedder would need an OpenAI key
-this project does not have. Injecting the whole profile through
-`additional_context` is simpler, cheaper to maintain and more reliable: the
-agent never "fails to find" a fact that is right there.
+Design decision: **no retrieval for the profile.** One person's profile fits in
+a few thousand tokens, so injecting the whole thing through `additional_context`
+is simpler, cheaper to maintain and more reliable: the agent never "fails to
+find" a fact that is right there.
+
+This is a decision about the profile only, not about the system. The posts you
+have already written and your past writing DO go through a vector store, because
+"have I covered this topic?" is a similarity question that no file listing
+answers well. See `config.py` and `indexing.py`. The embedder runs locally
+through FastEmbed, so none of that needs a second API key.
 
 The rendered block is in Portuguese on purpose. It is prompt content read by a
 model that writes Portuguese posts, and the section titles line up with the

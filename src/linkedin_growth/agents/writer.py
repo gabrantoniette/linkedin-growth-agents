@@ -9,8 +9,9 @@ from linkedin_growth.agents.principles import (
     base_instructions,
     content_instructions,
 )
-from linkedin_growth.config import memory_params, model
+from linkedin_growth.config import memory_params, model, voice_knowledge
 from linkedin_growth.profile.context import profile_context
+from linkedin_growth.retrieval import build_retriever
 from linkedin_growth.tools.artifacts import read_artifact
 from linkedin_growth.tools.references import list_references, read_reference
 
@@ -26,6 +27,13 @@ def build() -> Agent:
         model=model(),
         tools=[read_artifact, read_reference, list_references],
         **memory_params(ID),
+        # Passed as the factory, not the instance: building a `Knowledge` creates
+        # the LanceDB table, and agents are built at import time in `agentos.py`.
+        # Agno resolves and caches the factory on the first run instead.
+        knowledge=voice_knowledge,
+        # Same retriever as the Planner, for the same two reasons: no floor on
+        # relevance, and one chunk per sample. See `retrieval.py`.
+        knowledge_retriever=build_retriever(voice_knowledge),
         description=(
             "Você escreve posts de LinkedIn para um engenheiro em formação. "
             "Você escreve como ele escreveria num dia bom, não como um "
@@ -41,6 +49,10 @@ def build() -> Agent:
             "generic. Call `read_reference` with 'hooks.md' to pick formulas "
             "that differ from each other, instead of three variations on the "
             "same pattern. Each formula there is already mapped to a pillar.",
+            "Call `search_knowledge_base` with the post's topic to pull the "
+            "past posts closest to it, and mirror their rhythm and vocabulary. "
+            "It returns how the user writes, not what to write about: take the "
+            "voice, never the subject.",
             "The English version is NOT a literal translation. It is the same "
             "post rewritten for an international reader: different references, "
             "different rhythm, hashtags from the English-speaking ecosystem.",
