@@ -80,9 +80,16 @@ uv run linkedin profile         # copy ready to paste into LinkedIn
 uv run linkedin strategy        # positioning, pillars and cadence
 uv run linkedin calendar --weeks 2
 uv run linkedin post --topic "how have you kept your RAG system's quality up?"
+uv run linkedin index           # after writing posts, so the agents can search them
 ```
 
 Everything lands in `content/`.
+
+`linkedin index` is the one to re-run as you go. It embeds what you have written
+so the Planner can tell whether a topic is already covered, and the Writer can
+pull your closest past posts as a tone sample. The embedder runs locally, with no
+extra API key; the model file downloads on the first run. `linkedin status` says
+when the index has fallen behind.
 
 ---
 
@@ -250,13 +257,15 @@ content/                      what the system produces (out of git)
   metrics.csv                 filled in by you
 
 references/                   supporting material, read-only (produces nothing)
+  kb-linkedin-publicacao.md   days, frequency and format, from six studies
   hooks.md                    hook formulas, one per pillar
-  linkedin-algorithm.md       LinkedIn format and timing heuristics
+  linkedin-algorithm.md       per-post format checklist
   ai-vocabulary.md            vocabulary and tics that give away AI text
   headline-formulas.md        headline formula for the Profile Writer
 
 src/linkedin_growth/
-  config.py                   secrets, paths, models, database, memory
+  config.py                   secrets, paths, models, databases, memory
+  indexing.py                 feeds the knowledge bases from disk
   profile/                    schema, importer and context
   tools/                      artifacts, references, web search, LinkedIn API
   agents/                     the eight specialists

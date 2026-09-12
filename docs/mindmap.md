@@ -32,9 +32,12 @@ mindmap
         Sonnet 5 for volume
         Shared SQLite
       context.py
-        Whole profile in the prompt
-        No RAG, by decision
+        Whole profile in the prompt, by decision
         Cached per run
+      indexing.py
+        LanceDB, local embedder
+        posts: hybrid, for dedup
+        voice: vector, for tone
     Agents
       Profile Diagnosis
       Profile Writer
