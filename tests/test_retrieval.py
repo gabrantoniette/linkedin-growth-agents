@@ -391,11 +391,17 @@ def test_retriever_tolerates_the_extra_kwargs_agno_injects(fixed_query_embedding
     assert [hit["name"] for hit in results] == ["post-a"]
 
 
-def test_the_two_agents_use_the_retriever():
+def test_the_two_agents_use_the_retriever(no_api):
     """A retriever nothing is wired to is dead code.
 
     The Planner and the Writer are the two that search: the Planner to avoid
     repeating a topic, the Writer to match the user's voice.
+
+    `no_api` is what makes this runnable without a key. Building an agent calls
+    `config.model()`, which calls `require_anthropic()`, so without the fixture
+    this test passes only on a machine that has a real key in `.env` - and fails
+    in CI, which has neither the file nor the secret. The fixture swaps in the
+    spy model, which is also what keeps the test from ever reaching the network.
     """
     from linkedin_growth import agents
 
