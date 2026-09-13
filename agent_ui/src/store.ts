@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 
 import {
   AgentDetails,
+  type PendingApproval,
   SessionEntry,
   TeamDetails,
   type ChatMessage
@@ -54,6 +55,17 @@ interface Store {
   ) => void
   isSessionsLoading: boolean
   setIsSessionsLoading: (isSessionsLoading: boolean) => void
+  /**
+   * The tool the server is holding until the user answers.
+   *
+   * Deliberately NOT persisted: an approval is only answerable while the run is
+   * paused on the server, so a stale one restored from localStorage after a
+   * reload would offer to publish something whose run no longer exists.
+   */
+  pendingApproval: PendingApproval | null
+  setPendingApproval: (pendingApproval: PendingApproval | null) => void
+  isResolvingApproval: boolean
+  setIsResolvingApproval: (isResolvingApproval: boolean) => void
 }
 
 export const useStore = create<Store>()(
@@ -104,7 +116,12 @@ export const useStore = create<Store>()(
         })),
       isSessionsLoading: false,
       setIsSessionsLoading: (isSessionsLoading) =>
-        set(() => ({ isSessionsLoading }))
+        set(() => ({ isSessionsLoading })),
+      pendingApproval: null,
+      setPendingApproval: (pendingApproval) => set(() => ({ pendingApproval })),
+      isResolvingApproval: false,
+      setIsResolvingApproval: (isResolvingApproval) =>
+        set(() => ({ isResolvingApproval }))
     }),
     {
       name: 'endpoint-storage',

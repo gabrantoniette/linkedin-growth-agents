@@ -112,7 +112,45 @@ export enum RunEvent {
   TeamReasoningStep = 'TeamReasoningStep',
   TeamReasoningCompleted = 'TeamReasoningCompleted',
   TeamMemoryUpdateStarted = 'TeamMemoryUpdateStarted',
-  TeamMemoryUpdateCompleted = 'TeamMemoryUpdateCompleted'
+  TeamMemoryUpdateCompleted = 'TeamMemoryUpdateCompleted',
+  // A team run stops here when a tool is declared `requires_confirmation=True`.
+  // Without these two the event falls through the handler's if/else chain, the
+  // stream ends, and the run sits paused on the server with nothing on screen
+  // saying so. That is what `publish_post` used to do from this UI.
+  TeamRunPaused = 'TeamRunPaused',
+  TeamRunContinued = 'TeamRunContinued'
+}
+
+/** A tool call the server is holding until someone approves it. */
+export interface ToolExecution {
+  tool_call_id?: string
+  tool_name?: string
+  tool_args?: Record<string, unknown>
+  requires_confirmation?: boolean
+  confirmed?: boolean
+}
+
+/**
+ * One thing the server needs before it can finish the run.
+ *
+ * Send it back on the `/continue` call with `confirmation` set. The rest of the
+ * object has to survive the round trip untouched: the server rebuilds the
+ * requirement from it, so dropping a field loses the tool call it points at.
+ */
+export interface RunRequirement {
+  id?: string
+  tool_execution?: ToolExecution
+  confirmation?: boolean | null
+  confirmation_note?: string | null
+  member_agent_name?: string | null
+  [key: string]: unknown
+}
+
+/** What the approval panel needs to render and to answer. */
+export interface PendingApproval {
+  runId: string
+  sessionId: string
+  requirements: RunRequirement[]
 }
 
 export interface ResponseAudio {
@@ -141,6 +179,7 @@ export interface RunResponseContent {
   session_id?: string
   tool?: ToolCall
   tools?: Array<ToolCall>
+  requirements?: RunRequirement[]
   created_at: number
   extra_data?: AgentExtraData
   images?: ImageData[]
@@ -163,6 +202,7 @@ export interface RunResponse {
   session_id?: string
   tool?: ToolCall
   tools?: Array<ToolCall>
+  requirements?: RunRequirement[]
   created_at: number
   extra_data?: AgentExtraData
   images?: ImageData[]

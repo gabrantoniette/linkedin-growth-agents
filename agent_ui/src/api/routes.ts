@@ -15,5 +15,12 @@ export const APIRoutes = {
   // This UI was written for Agno 2.x, which served under /v1. In AgentOS 3.0 the
   // session route is the same for an agent and a team, with no version prefix.
   DeleteTeamSession: (agentOSUrl: string, _teamId: string, sessionId: string) =>
-    `${agentOSUrl}/sessions/${sessionId}`
+    `${agentOSUrl}/sessions/${sessionId}`,
+
+  // Resumes a run that paused for approval. The reply is another SSE stream, so
+  // the caller feeds it through the same chunk handler as the original run.
+  TeamContinueRun: (agentOSUrl: string, teamId: string, runId: string) =>
+    `${agentOSUrl}/teams/${teamId}/runs/${runId}/continue`,
+  AgentContinueRun: (agentOSUrl: string, agentId: string, runId: string) =>
+    `${agentOSUrl}/agents/${agentId}/runs/${runId}/continue`
 }
