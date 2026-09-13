@@ -1,0 +1,38 @@
+# Line endings, declared once so every machine agrees instead of each one
+# deciding on checkout.
+#
+# The problem this fixes: `core.autocrlf=true` is the default on Windows, so a
+# checkout there rewrites LF to CRLF in the working copy. Prettier expects LF,
+# and `prettier --check` is a gate in `pnpm run validate`, which CI runs on every
+# push. On Linux CI the files are LF and pass; on a Windows machine the same
+# files are CRLF and 67 of them fail. The code is identical in both places.
+#
+# The repository already stores LF. This does not rewrite history or committed
+# content: it stops the checkout from converting, so the working copy matches
+# what is stored. Expect no content diff from adding it.
+#
+# After changing this file, the working copy has to be refreshed for the new
+# attributes to take effect - git will not see already-checked-out files as
+# modified. Removing and restoring the tracked files does it:
+#
+#     git ls-files -z | xargs -0 rm -f
+#     git checkout -- .
+#
+# LF everywhere is the right default here: Python, TypeScript and Markdown all
+# take it, and no tracked file needs CRLF (a .bat or .cmd would, and there are
+# none). `text=auto` still lets git detect binary files and leave them alone.
+* text=auto eol=lf
+
+# Belt and braces for the one tracked binary, and for formats likely to arrive
+# later. A misdetected binary gets corrupted by line-ending conversion, and the
+# corruption is silent.
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.zip binary
+*.woff binary
+*.woff2 binary
+*.lance binary
