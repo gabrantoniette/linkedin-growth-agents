@@ -9,15 +9,39 @@ ran; locally they take about half a minute.
 
 from __future__ import annotations
 
+import html
+import zipfile
+from pathlib import Path
+
 import pypdfium2 as pdfium
 import pytest
 from PIL import Image as PILImage
 
 from linkedin_growth.studio.browser import browser_available
 from linkedin_growth.studio.carousel import render_carousel
-from linkedin_growth.studio.convert import convert_file
+from linkedin_growth.studio.convert import convert_file, find_libreoffice
 from linkedin_growth.studio.spec import parse_spec
 from linkedin_growth.studio.video import media_seconds, render_video
+
+# The smallest OpenDocument text LibreOffice opens: a zip with the mimetype
+# stored first, a manifest and the content. Built at test time so the suite
+# needs no binary fixture.
+ODT_MANIFEST = (
+    '<?xml version="1.0" encoding="UTF-8"?>'
+    '<manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" '
+    'manifest:version="1.3">'
+    '<manifest:file-entry manifest:full-path="/" '
+    'manifest:media-type="application/vnd.oasis.opendocument.text"/>'
+    '<manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/>'
+    "</manifest:manifest>"
+)
+ODT_CONTENT = (
+    '<?xml version="1.0" encoding="UTF-8"?>'
+    '<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" '
+    'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" office:version="1.3">'
+    "<office:body><office:text>{paragraphs}</office:text></office:body>"
+    "</office:document-content>"
+)
 
 DECK = [
     {"layout": "cover", "headline": "Um gancho curto."},
@@ -30,6 +54,23 @@ DECK = [
 def chromium():
     if not browser_available():
         pytest.skip("no Chromium to render with (uv run playwright install chromium)")
+
+
+@pytest.fixture(scope="module")
+def libreoffice():
+    if not find_libreoffice():
+        pytest.skip("LibreOffice is not installed")
+
+
+def write_odt(path: Path, paragraphs: list[str]) -> Path:
+    body = "".join(f"<text:p>{html.escape(paragraph)}</text:p>" for paragraph in paragraphs)
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr(zipfile.ZipInfo("mimetype"), "application/vnd.oasis.opendocument.text")
+        archive.writestr("META-INF/manifest.xml", ODT_MANIFEST, compress_type=zipfile.ZIP_DEFLATED)
+        archive.writestr(
+            "content.xml", ODT_CONTENT.format(paragraphs=body), compress_type=zipfile.ZIP_DEFLATED
+        )
+    return path
 
 
 def carousel(slides, **deck):
@@ -111,6 +152,22 @@ def test_a_pdf_with_mixed_page_sizes_is_refit_to_one_size(chromium, tmp_path):
     assert result.pages == 2
     assert page_sizes(result.pdf) == {(810, 1013)}
     assert any("different sizes" in warning for warning in result.warnings)
+
+
+def test_an_office_document_converts_through_libreoffice(libreoffice, tmp_path):
+    """The path .pptx, .xlsx, .odt and .doc files take. Skipped without LibreOffice.
+
+    LibreOffice sets its own page size; what LinkedIn requires, and what is
+    checked, is that every page shares it.
+    """
+    source = write_odt(tmp_path / "notas.odt", ["Uma nota de estudo.", "Com acentos: ação, útil, pão."])
+
+    result = convert_file(source, tmp_path / "notas.pdf")
+
+    assert result.ok, result.errors
+    assert result.kind == "office"
+    assert result.pages >= 1
+    assert len(page_sizes(result.pdf)) == 1
 
 
 def test_a_short_video_encodes_to_its_planned_length_with_captions(chromium, tmp_path):

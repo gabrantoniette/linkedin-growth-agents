@@ -191,6 +191,9 @@ uv run linkedin convert notes.md             # a file to a document PDF: md, doc
 uv run linkedin screenshot https://github.com/agno-agi/agno            # a real capture, as proof
 ```
 
+Office files (`.pptx`, `.xlsx`, `.odt`, `.doc`) convert through LibreOffice. On
+Windows: `winget install TheDocumentFoundation.LibreOffice`.
+
 **The look.** The slides are drawn like a page of engineering work, because the
 positioning is "a measured number instead of an opinion": computation paper with
 its printed grid, graphite type, non-photo blue construction lines, and red kept

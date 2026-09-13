@@ -47,6 +47,7 @@ from markupsafe import Markup
 from pygments.lexers import get_lexer_for_filename
 from pygments.util import ClassNotFound
 
+from linkedin_growth.config import TMP_DIR
 from linkedin_growth.studio.browser import Studio, run_isolated
 from linkedin_growth.studio.code import highlight
 from linkedin_growth.studio.html import ORIGIN, Document, font_faces, render_template
@@ -406,14 +407,31 @@ def _office(source: Path, target: Path, result: ConvertResult, theme: str, langu
     if not soffice:
         result.errors.append(
             f"{source.suffix} files are converted through LibreOffice, which is not "
-            "installed. Install it (https://www.libreoffice.org), or export the file "
-            "to PDF from the app that made it and convert that PDF instead."
+            "installed. Install it (on Windows: winget install "
+            "TheDocumentFoundation.LibreOffice; elsewhere: https://www.libreoffice.org), "
+            "or export the file to PDF from the app that made it and convert that PDF "
+            "instead."
         )
         return
+    # A profile of its own, under tmp/. A headless conversion that shares the
+    # desktop profile is handed to the LibreOffice already open, and can return
+    # without converting anything.
+    profile = (TMP_DIR / "libreoffice-profile").resolve()
+    profile.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="studio-office-") as scratch:
         try:
             completed = subprocess.run(
-                [soffice, "--headless", "--norestore", "--convert-to", "pdf", "--outdir", scratch, str(source)],
+                [
+                    soffice,
+                    f"-env:UserInstallation={profile.as_uri()}",
+                    "--headless",
+                    "--norestore",
+                    "--convert-to",
+                    "pdf",
+                    "--outdir",
+                    scratch,
+                    str(source),
+                ],
                 capture_output=True,
                 text=True,
                 timeout=OFFICE_TIMEOUT_SECONDS,
