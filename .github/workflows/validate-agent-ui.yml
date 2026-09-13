@@ -49,9 +49,17 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          # `package.json` declares no `engines`, so this is the pin. Next 15
-          # needs at least 18.18; 20 is the current LTS.
-          node-version: 20
+          # Floor set by pnpm, not by taste: pnpm 11.25 declares
+          # `engines: { node: ">=22.13" }` and reaches for `node:sqlite`, which
+          # does not exist before Node 22. Pinning 20 here failed with
+          # `ERR_UNKNOWN_BUILTIN_MODULE: No such built-in module: node:sqlite`
+          # inside the pnpm setup step.
+          #
+          # 22 rather than the 26 a developer may have locally, on purpose: this
+          # project declares no `engines`, so CI is where the supported floor is
+          # decided, and testing the floor catches a Node 26 API sneaking into the
+          # code. Anything that passes on 22 passes on 26.
+          node-version: 22
           cache: pnpm
           cache-dependency-path: agent_ui/pnpm-lock.yaml
 
