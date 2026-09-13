@@ -1,0 +1,62 @@
+name: Validate agent_ui
+
+# Moved here from `agent_ui/.github/workflows/validate.yml`, where it had never
+# run once: GitHub Actions only reads workflows from `.github/workflows/` at the
+# repository root, and that copy sat one directory down. It arrived with the
+# vendored `agent_ui` template, which was its own repository at the time, so the
+# path was right there and wrong here.
+#
+# Worth knowing because it was actively misleading: the file looked like a CI
+# gate, so the `prettier --check` inside it looked enforced, and it was not.
+on:
+  push:
+
+jobs:
+  validate:
+    name: lint, format, typecheck
+    runs-on: ubuntu-latest
+
+    # The whole job runs inside `agent_ui`. Every path in the scripts is relative
+    # to that directory, which is what the file assumed when it lived there.
+    defaults:
+      run:
+        working-directory: agent_ui
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm before Node, so `cache: pnpm` below has a store to point at.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          # Pinned to match the committed lockfile, which is format 9.0. Kept at
+          # the version the original file used rather than raised to the 11.x a
+          # developer may have locally: pnpm 11 stopped reading the
+          # `pnpm.overrides` field in `package.json`, where this project pins
+          # `picomatch: ">=2.3.2"`. The pin is already baked into the lockfile
+          # (`picomatch@2.3.2`), so a frozen install honours it either way, but
+          # there is no reason for CI to resolve differently from the lock it was
+          # given.
+          version: 10.14.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # `package.json` declares no `engines`, so this is the pin. Next 15
+          # needs at least 18.18; 20 is the current LTS.
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: agent_ui/pnpm-lock.yaml
+
+      - name: Install dependencies
+        # pnpm defaults to `--frozen-lockfile` when CI is set, so a lockfile that
+        # disagrees with `package.json` fails here rather than installing
+        # something nobody chose.
+        run: pnpm install
+
+      - name: Validate
+        # lint && format && typecheck. The `format` step is `prettier --check`,
+        # which is why `.gitattributes` had to declare LF: without it a Windows
+        # checkout hands Prettier CRLF files and this step fails on 67 files that
+        # pass here.
+        run: pnpm run validate

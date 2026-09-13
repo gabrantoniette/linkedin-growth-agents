@@ -1,0 +1,46 @@
+name: Tests
+
+# Every push. The suite takes about 15 seconds, so there is nothing to gain from
+# filtering by path, and a filtered workflow that skips is easy to mistake for a
+# workflow that passed.
+on:
+  push:
+
+jobs:
+  pytest:
+    name: pytest
+    runs-on: ubuntu-latest
+
+    # NO SECRETS ARE PROVIDED HERE, AND THAT IS THE POINT.
+    #
+    # `conftest.py` states that no test may call the Anthropic or LinkedIn API:
+    # a test that spends credit does not get run, and a test that does not get
+    # run is worth nothing. Running with no key at all is what turns that
+    # statement into something enforced. If a test ever reaches for the network,
+    # it fails here instead of quietly billing someone.
+    #
+    # The same absence covers a second property for free: the runner has no
+    # cached embedding model, so if anything in an import path tried to load the
+    # 220MB FastEmbed model, this job would either hang or blow up. It does not,
+    # because the retrieval tests carry hand-written vectors.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          # Read from `.python-version` rather than pinned here, so the version
+          # has one home and CI cannot drift from local development.
+          python-version-file: .python-version
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        # `--locked` fails if `uv.lock` does not match `pyproject.toml`. That
+        # turns "someone added a dependency and forgot to relock" into a red
+        # build instead of a broken clone for the next person.
+        run: uv sync --locked
+
+      - name: Run tests
+        run: uv run pytest
