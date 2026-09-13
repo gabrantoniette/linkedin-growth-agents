@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="{{ language }}">
+<head>
+<meta charset="utf-8">
+<title>{{ title }}</title>
+<style>
+{{ font_faces }}
+:root { {{ theme_vars }}; --w: {{ width }}px; --h: {{ height }}px; }
+@page { size: {{ width }}px {{ height }}px; margin: 0; }
+{% include "studio.css" %}
+</style>
+</head>
+<body class="theme-{{ theme_id }} mode-{{ mode }} canvas-{{ canvas }}{% if captions %} has-captions{% endif %}">
+{% for s in slides %}
+{% include "slide.html.j2" %}
+{% endfor %}
+</body>
+</html>

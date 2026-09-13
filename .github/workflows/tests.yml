@@ -1,8 +1,10 @@
 name: Tests
 
-# Every push. The suite takes about 15 seconds, so there is nothing to gain from
+# Every push. The suite takes about a minute, so there is nothing to gain from
 # filtering by path, and a filtered workflow that skips is easy to mistake for a
-# workflow that passed.
+# workflow that passed. Most of that minute is `test_studio_render.py`, which
+# renders real slides and a real video: it uses the Google Chrome the runner
+# image ships, and skips itself on a runner without one.
 on:
   push:
 

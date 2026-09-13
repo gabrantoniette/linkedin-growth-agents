@@ -79,9 +79,14 @@ def build() -> Agent:
             "Ranking Tuesday against Wednesday does not survive the evidence, so "
             "do not spend a row of the calendar on it.",
             "For every post in the calendar, fill in SIX fields: date, pillar, "
-            "topic (a specific sentence, not a subject), format (plain text / "
-            "text with image / PDF carousel), PROOF ASSET (the concrete link or "
-            "artifact the post will show) and the provisional hook.",
+            "topic (a specific sentence, not a subject), format (text / image / "
+            "PDF carousel / video), PROOF ASSET (the concrete link or artifact "
+            "the post will show) and the provisional hook.",
+            "Choose the format with `read_reference` on 'kb-visual-formats.md', "
+            "section 2: for a personal profile a PDF carousel suits content with "
+            "steps, a comparison or an architecture; a single image suits one "
+            "strong real artifact; video only when motion is the proof. The Post "
+            "Designer produces the media; the user uploads it by hand.",
             "A vague topic is the error that kills a calendar. 'Talk about RAG' "
             "is vague. 'Why my RAG got worse when I raised the chunk size from "
             "500 to 2000' is a topic.",

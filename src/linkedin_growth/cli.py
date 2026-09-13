@@ -29,13 +29,18 @@ from linkedin_growth.config import (
     EMBEDDER_MODEL,
     EXPORT_DIR,
     MAX_TOKENS,
+    MEDIA_DIR,
     METRICS_CSV,
     POSTS_DIR,
     PROFILE_YAML,
+    ROOT,
     MissingConfiguration,
     VOICE_MD,
     ensure_directories,
 )
+
+# What `linkedin design --format` accepts.
+DESIGN_FORMATS = ("auto", "carousel", "image", "video")
 
 app = typer.Typer(
     add_completion=False,
@@ -174,6 +179,16 @@ def _extract_section(text: str, language: str) -> Optional[str]:
         re.DOTALL | re.IGNORECASE | re.MULTILINE,
     )
     return found.group(1).strip() if found else None
+
+
+def _locate_post(file: Path) -> Path:
+    """A post path as typed: absolute, relative to here, or a name in content/posts/."""
+    path = file if file.is_absolute() else (Path.cwd() / file)
+    if not path.exists():
+        path = POSTS_DIR / file.name
+    if not path.exists():
+        _fail(f"File not found: {file}")
+    return path
 
 
 # ==============================================================================
@@ -394,13 +409,20 @@ def publish(
     """Publish a post to LinkedIn through the official API."""
     from linkedin_growth.tools import linkedin as li
 
-    path = file if file.is_absolute() else (Path.cwd() / file)
-    if not path.exists():
-        path = POSTS_DIR / file.name
-    if not path.exists():
-        _fail(f"File not found: {file}")
-
+    path = _locate_post(file)
     raw = path.read_text(encoding="utf-8")
+
+    # A caption the Post Designer wrote for a carousel, an image or a video is
+    # not a text post. Publishing it through the API would send the words
+    # without the PDF they describe, and the post would make no sense.
+    media = re.search(r"^format:\s*(carousel|image|video)\s*$", raw, re.MULTILINE)
+    if media:
+        _fail(
+            f"{path.name} is the caption for a {media.group(1)}, not a text post.\n\n"
+            "The API publishes text only, so media goes up by hand: open the "
+            "LinkedIn composer, add the file from the same folder and paste the "
+            "caption. The steps are at the end of the file."
+        )
 
     # The Editor rejects a post that claims experience the user does not have,
     # and when it does that it deliberately omits the publishable headings so
@@ -472,6 +494,188 @@ def publish(
             f"LinkedIn refused (HTTP {result.get('status')}):\n"
             f"{result.get('error')}"
         )
+
+
+@app.command()
+def design(
+    file: Annotated[Path, typer.Argument(help="Post file in content/posts/.")],
+    format: Annotated[
+        str, typer.Option("--format", help="auto, carousel, image or video.")
+    ] = "auto",
+    language: Annotated[
+        str, typer.Option(help="Which version of the post to design: pt or en.")
+    ] = "pt",
+) -> None:
+    """Turn a written post into its best format: PDF carousel, image or video."""
+    from linkedin_growth.agents import designer
+    from linkedin_growth.studio.safety import slugify
+
+    if format not in DESIGN_FORMATS:
+        _fail(f"--format must be one of: {', '.join(DESIGN_FORMATS)}.")
+    if language not in ("pt", "en"):
+        _fail("--language must be pt or en.")
+
+    path = _locate_post(file)
+    raw = path.read_text(encoding="utf-8")
+
+    # The Designer refuses these too, but checking here costs nothing, and the
+    # agent would cost a model call to say the same thing.
+    if re.search(r"^status:\s*rejected\s*$", raw, re.MULTILINE):
+        _fail(
+            f"{path.name} was rejected by the Editor. Resolve the open items listed "
+            "in it and regenerate the post before designing it."
+        )
+    if "[PREENCHER" in raw:
+        _fail(f"{path.name} still has [PREENCHER] markers. Complete the text first.")
+
+    try:
+        relative = path.resolve().relative_to(CONTENT_DIR.resolve()).as_posix()
+        source = f"POST FILE: {relative} (read it with read_artifact)"
+    except ValueError:
+        source = (
+            "POST FILE: outside content/, so its text follows.\n"
+            f"MEDIA SLUG: {slugify(path.stem)}\n\n{raw}"
+        )
+
+    choice = "decide it with the format-selection skill" if format == "auto" else format
+    _run_agent(
+        designer.build,
+        f"{source}\nFORMAT: {choice}\n"
+        f"LANGUAGE: {'pt-BR' if language == 'pt' else 'en'}\n\n"
+        "Design this post, following your work order.",
+        f"Designing {path.name}",
+    )
+
+
+@app.command()
+def render(
+    spec_file: Annotated[
+        Path,
+        typer.Argument(help="A carousel.yaml, image.yaml or video.yaml, usually in content/media/."),
+    ],
+) -> None:
+    """Render a saved spec again after editing it by hand. No model is called."""
+    import yaml
+
+    from linkedin_growth.studio.brand import default_author
+    from linkedin_growth.studio.carousel import render_carousel
+    from linkedin_growth.studio.spec import parse_spec
+    from linkedin_growth.studio.video import render_video
+
+    ensure_directories()
+    path = spec_file if spec_file.is_absolute() else (Path.cwd() / spec_file)
+    if not path.is_file():
+        _fail(f"File not found: {spec_file}")
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as error:
+        _fail(f"{path.name} is not valid YAML:\n{error}")
+    if not isinstance(data, dict):
+        _fail(f"{path.name} is not a spec: it needs 'title' and 'slides' or 'scenes'.")
+
+    kind = "video" if data.get("kind") == "video" or "scenes" in data else "carousel"
+    spec, problems = parse_spec(data, kind)
+    if spec is None:
+        _fail("The spec is invalid:\n" + "\n".join(f"- {problem}" for problem in problems))
+
+    console.rule(f"[bold]Rendering {path.name}")
+    try:
+        with console.status("Rendering in a headless browser..."):
+            if kind == "video":
+                result = render_video(spec, path.parent, author=default_author(), save_spec=False)
+            else:
+                result = render_carousel(
+                    spec,
+                    path.parent,
+                    author=default_author(),
+                    single_image=path.stem == "image",
+                    save_spec=False,
+                )
+    except MissingConfiguration as error:
+        _fail(str(error))
+
+    console.print(result.summary(ROOT))
+    if not result.ok:
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def convert(
+    file: Annotated[
+        Path,
+        typer.Argument(
+            help="Markdown, text, HTML, docx, CSV, source code, images, PDF, or "
+            "Office files when LibreOffice is installed."
+        ),
+    ],
+    theme: Annotated[str, typer.Option(help="drafting or blueprint.")] = "drafting",
+    output: Annotated[
+        Optional[Path],
+        typer.Option("--output", help="Where to write the PDF. Default: content/media/<name>/."),
+    ] = None,
+) -> None:
+    """Convert a file into a PDF that LinkedIn accepts as a document post."""
+    from linkedin_growth.studio.brand import default_author
+    from linkedin_growth.studio.convert import convert_file
+    from linkedin_growth.studio.safety import slugify
+    from linkedin_growth.studio.themes import THEMES
+
+    ensure_directories()
+    source = file if file.is_absolute() else (Path.cwd() / file)
+    if theme not in THEMES:
+        _fail(f"--theme must be one of: {', '.join(THEMES)}.")
+    name = slugify(source.stem)
+    target = output or (MEDIA_DIR / name / f"{name}.pdf")
+
+    console.rule(f"[bold]Converting {source.name}")
+    try:
+        with console.status("Typesetting in a headless browser..."):
+            result = convert_file(source, target, theme=theme, author=default_author())
+    except MissingConfiguration as error:
+        _fail(str(error))
+
+    console.print(result.summary(ROOT))
+    if not result.ok:
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def screenshot(
+    url: Annotated[str, typer.Argument(help="A public page, starting with https://.")],
+    slug: Annotated[
+        Optional[str], typer.Option(help="The media folder. Default: today's date plus 'screens'.")
+    ] = None,
+    name: Annotated[Optional[str], typer.Option(help="File name, without extension.")] = None,
+    full_page: Annotated[bool, typer.Option("--full-page", help="Capture the whole page.")] = False,
+    selector: Annotated[str, typer.Option(help="Capture one element, e.g. 'article'.")] = "",
+    dark: Annotated[bool, typer.Option("--dark", help="Ask the page for its dark theme.")] = False,
+) -> None:
+    """Capture a public web page as proof for a post. Never LinkedIn itself."""
+    from urllib.parse import urlsplit
+
+    from linkedin_growth.studio.capture import capture_url
+    from linkedin_growth.studio.safety import slugify, valid_slug
+
+    ensure_directories()
+    folder = slug or f"{date.today().isoformat()}-screens"
+    if not valid_slug(folder):
+        _fail(f"'{folder}' is not a valid folder name: lowercase letters, digits and hyphens.")
+    parts = urlsplit(url)
+    file_name = name or slugify(f"{parts.hostname or 'page'} {parts.path}")[:60]
+    target = MEDIA_DIR / folder / "screens" / f"{file_name}.png"
+
+    console.rule(f"[bold]Capturing {url}")
+    try:
+        with console.status("Loading the page in a clean browser..."):
+            result = capture_url(
+                url, target, full_page=full_page, selector=selector or None, dark_mode=dark
+            )
+    except MissingConfiguration as error:
+        _fail(str(error))
+
+    console.print(result.summary(ROOT))
+    if not result.ok:
+        raise typer.Exit(code=1)
 
 
 @app.command()
@@ -732,6 +936,8 @@ def status() -> None:
     calendars = list((CONTENT_DIR / "calendar").glob("*.md"))
     table.add_row("calendars", f"{len(calendars)}", "uv run linkedin calendar")
     table.add_row("posts written", f"{len(posts)}", 'uv run linkedin post --topic "..."')
+    designed = [folder for folder in MEDIA_DIR.glob("*") if folder.is_dir()]
+    table.add_row("posts designed", f"{len(designed)}", "uv run linkedin design <post file>")
 
     # The index is not a stage, it is a state that goes stale: every new post
     # makes it one file out of date, and nothing tells the user but this line.

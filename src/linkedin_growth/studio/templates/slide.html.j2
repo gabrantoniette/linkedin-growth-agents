@@ -1,0 +1,19 @@
+<section class="slide layout-{{ s.slide.layout }}" data-index="{{ s.index }}" data-layout="{{ s.slide.layout }}">
+  <div class="grid" aria-hidden="true"></div>
+  <main class="content" data-box>
+    <div class="stack">
+      {% include "layouts/" ~ s.slide.layout ~ ".html.j2" %}
+      {% if s.slide.note %}<p class="note">{{ s.slide.note | inline }}</p>{% endif %}
+    </div>
+  </main>
+  <footer class="foot">
+    {% if total > 1 %}{{ s.scale }}{% endif %}
+    {% if author %}
+    <div class="foot-row">
+      {% if author.avatar_src %}<img class="avatar" src="{{ author.avatar_src }}" alt="">{% endif %}
+      <span class="who"><span class="who-name">{{ author.name }}</span>{% if author.tagline %}<span class="who-tagline">{{ author.tagline }}</span>{% endif %}</span>
+    </div>
+    {% endif %}
+  </footer>
+  {% if captions %}<div class="burned-caption"><span></span></div>{% endif %}
+</section>

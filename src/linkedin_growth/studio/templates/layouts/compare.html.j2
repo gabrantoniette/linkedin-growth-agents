@@ -1,0 +1,10 @@
+<h2 class="h-slide" data-fit data-min="52">{{ s.slide.headline | inline }}</h2>
+<div class="compare" data-fit data-min="26">
+{% for side, column in [('left', s.slide.left), ('right', s.slide.right)] %}
+  <div class="compare-col{% if s.slide.favored == side %} is-favored{% endif %}">
+    <div class="compare-title">{{ column.title | inline }}</div>
+    <ul>{% for item in column.items %}<li>{{ item | inline }}</li>{% endfor %}</ul>
+  </div>
+{% endfor %}
+</div>
+{% if s.slide.verdict %}<p class="verdict" data-fit data-min="30">{{ s.slide.verdict | inline }}</p>{% endif %}

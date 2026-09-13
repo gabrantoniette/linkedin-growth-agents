@@ -26,14 +26,15 @@ flowchart TD
     F5 --> F6["<b>6 · Write the post</b><br/>linkedin post --topic<br/><i>research → writing → rubric</i>"]
     F6 --> GATE{"Passed the rubric<br/>and no PREENCHER marker?"}
     GATE -->|no| F6
-    GATE -->|yes| F7["<b>7 · Publish</b><br/>linkedin publish<br/><i>official API, with your approval</i>"]
+    GATE -->|yes| F65["<b>6.5 · Design the format</b><br/>linkedin design<br/><i>carousel, image or video + caption</i>"]
+    F65 --> F7["<b>7 · Publish</b><br/>linkedin publish<br/><i>text through the API · media by hand</i>"]
     F7 --> F8["<b>8 · Measure</b><br/>linkedin metrics<br/><i>numbers by hand, days later</i>"]
     F8 -->|every 4 to 6 weeks| F4
     F8 -->|every week| F5
 
     classDef auto fill:#e8f0fe,stroke:#4a6fa5,color:#1a2332
     classDef manual fill:#fdf0e3,stroke:#b07d3a,color:#1a2332
-    class F0,F1,F2,F3,F4,F5,F6,F7,F8 auto
+    class F0,F1,F2,F3,F4,F5,F6,F65,F7,F8 auto
     class REV,PASTE,GATE manual
 ```
 
@@ -384,6 +385,54 @@ the post: it goes out under your name.
 
 ---
 
+### Stage 6.5 · Design the format
+
+| | |
+|---|---|
+| **Command** | `uv run linkedin design content/posts/YYYY-MM-DD-topic.md` |
+| **Who runs it** | The **Post Designer** agent · Opus 5 · with the studio tools and five Agent Skills |
+| **In** | the approved post + `references/kb-visual-formats.md` |
+| **Out** | `content/media/YYYY-MM-DD-topic/`: the PDF carousel, image or video, its spec, and `post.md` |
+| **Typical time** | 3 to 8 minutes |
+
+**Why this stage exists:** format moves results more than posting frequency
+(`kb-linkedin-publicacao.md` §11), and the document carousel is the
+highest-engagement format in every LinkedIn dataset (`kb-visual-formats.md`
+§2.1). A post with a real architecture, a comparison or a debugging story
+reaches further as slides than as text.
+
+**What happens internally**
+
+1. The command refuses a rejected post or one with `[PREENCHER]` before any
+   model runs: nothing gets designed on top of a gap.
+2. The agent loads the `format-selection` skill and decides: a carousel for
+   content with sequence or structure, an image for one strong artifact, a text
+   post when there is no visual proof, video only when motion is the proof. It
+   says the format and the reason before building.
+3. For a carousel it loads `carousel-design`, outlines one idea per slide with a
+   sentence headline each, and writes a YAML spec with the studio's eleven
+   layouts. A screenshot, if the post needs one, is captured first from a real
+   public page (`proof-screenshots`).
+4. `render_carousel` draws it in a headless browser: the fonts are bundled, the
+   network is closed, text that does not fit is shrunk within legible limits,
+   and a slide that still does not fit fails the render instead of shipping
+   clipped. The tool returns the contact sheet as an image.
+5. The agent **looks at the contact sheet**, inspects the cover and the densest
+   slide at full size, goes through the review checklist, fixes the spec and
+   renders again. Two review rounds at most.
+6. It loads `post-copy` and writes `post.md`: the caption for that format, the
+   document title, the first comment and the upload steps.
+
+**What needs you:** uploading. The API publishes text only, so the PDF, image or
+video goes up through the LinkedIn composer with the caption from `post.md`. To
+change a slide, edit the saved spec and run `uv run linkedin render` on it, with
+no model involved.
+
+**Done when:** the folder has the asset and a `post.md`, and the contact sheet
+reads well at thumbnail size.
+
+---
+
 ### Stage 7 · Publish
 
 | | |
@@ -507,6 +556,9 @@ What is built, what does not exist, and what is out of our reach.
 | Post pt + en with a rubric | ✅ Done | Seven criteria; Truth fails the post |
 | Long-term memory across conversations | ✅ Done | The team writes, the agents read |
 | Publish a text post | ✅ Done | Official API, with approval, falls back to the legacy endpoint |
+| Carousel PDF, image and video from a post | ✅ Done | Post Designer; uploaded by hand |
+| Any file to a document PDF | ✅ Done | `linkedin convert`; Office files need LibreOffice |
+| Screenshots of public pages as proof | ✅ Done | Never LinkedIn, never private addresses |
 | Web chat interface | ✅ Done | Agno Agent UI, Team mode |
 | Publish an image or PDF carousel | ⚙️ Not implemented | The API allows it; the code only sends text today |
 | Edit the profile automatically | ❌ No API exists | At any tier, for any app |
@@ -528,9 +580,9 @@ Ideas, not commitments. None of them are scheduled.
 
 **Short term, improving what exists**
 
-- Publishing with an image and a PDF carousel. The API allows it; what is
-  missing is media upload in `tools/linkedin.py`. It is the highest gain per
-  unit of effort, because a carousel reaches further than plain text.
+- Publishing with an image and a PDF carousel. The Post Designer already makes
+  the files; what is missing is media upload in `tools/linkedin.py`, and
+  checking that the self-serve product allows document posts for a member.
 - A `review` command that runs an already-written post past the Editor again,
   without redoing the research.
 - Scheduling: generating a whole week of posts at once from the calendar,

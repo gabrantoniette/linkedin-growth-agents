@@ -38,6 +38,11 @@ mindmap
         LanceDB, local embedder
         posts: hybrid, for dedup
         voice: vector, for tone
+      studio/
+        Themes tested against WCAG
+        Specs with eleven layouts
+        Headless Chromium, offline
+        PDF, PNG, MP4 and SRT
     Agents
       Profile Diagnosis
       Profile Writer
@@ -46,7 +51,14 @@ mindmap
       Editorial Planner
       Writer
       Editor
+      Post Designer
       Publisher
+    Skills
+      format-selection
+      carousel-design
+      proof-screenshots
+      short-video
+      post-copy
     Orchestration
       Team in coordinate mode
         linkedin chat
@@ -68,12 +80,20 @@ mindmap
       LinkedIn
         check_linkedin_connection
         publish_post
+      Studio
+        render_carousel
+        render_image_post
+        inspect_slides
+        render_video
+        capture_screenshot
+        convert_to_pdf
     Output
       diagnosis.md
       optimized_profile.md
       strategy.md
       weekly calendar
       posts in pt and en
+      carousel, image or video
       Published post in the feed
     Feedback
       metrics.csv by hand
@@ -123,7 +143,7 @@ never learns what worked.
 
 ---
 
-## 3. The eight agents
+## 3. The nine agents
 
 They all inherit `base_instructions()` from `principles.py` and receive the
 whole profile in `additional_context`. What differs between them is the role,
@@ -138,6 +158,7 @@ the tools and the model.
 | **Editorial Planner** | A calendar with six fields per post, including the proof asset | `today`, `read_artifact`, `list_artifacts`, `save_artifact` | Opus 5 | `calendar/YYYY-Wxx.md` |
 | **Writer** | Writes the post in Portuguese and rewrites it for an international reader | `read_artifact` | Opus 5 | nothing, it hands off to the Editor |
 | **Editor** | Applies the seven-criteria rubric, cuts and finalizes | `today`, `save_artifact` | Opus 5 | `posts/YYYY-MM-DD-topic.md` |
+| **Post Designer** | Chooses the format, renders the carousel, image or video, looks at it and fixes it, writes the caption | the studio tools, `read_artifact`, `save_artifact`, five Agent Skills | Opus 5 | `media/<post>/` |
 | **Publisher** | The last gate before the public. Checks the token, extracts the body, publishes | `check_linkedin_connection`, `read_artifact`, `list_artifacts`, `publish_post` | Sonnet 5 | nothing, it publishes |
 
 **Why Sonnet in two of them:** the Researcher and the Publisher do volume and
@@ -165,8 +186,8 @@ flowchart LR
         AG["Single agent<br/><i>direct call</i>"]
     end
 
-    subgraph EXEC["The eight specialists"]
-        A8["Diagnosis · Profile · Strategist<br/>Researcher · Planner<br/>Writer · Editor · Publisher"]
+    subgraph EXEC["The nine specialists"]
+        A8["Diagnosis · Profile · Strategist<br/>Researcher · Planner<br/>Writer · Editor · Designer · Publisher"]
     end
 
     CLI -->|post, calendar| WF
@@ -204,7 +225,8 @@ but do not show up in the chat. Run those from the CLI.
 ## 5. Anatomy of an agent
 
 Every `build()` in `agents/` assembles the same structure. Understand one and
-you understand all eight.
+you understand all nine. The Post Designer adds one field the others do not
+have: `skills`, the Agent Skills it loads on demand.
 
 ```mermaid
 flowchart TB
@@ -249,7 +271,10 @@ content/                         everything the system produces
   strategy.md                    positioning, pillars, cadence
   calendar/YYYY-Wxx.md           editorial calendar by ISO week
   posts/YYYY-MM-DD-topic.md      post in pt and en + the Editor's evaluation
+  media/<post>/                  carousel PDF, slides, video, screenshots, caption
   metrics.csv                    filled in by you, by hand
+
+skills/                          Agent Skills the Post Designer loads on demand
 
 src/linkedin_growth/
   config.py                      secrets, paths, models, database
@@ -257,13 +282,20 @@ src/linkedin_growth/
     schema.py                    the profile's Pydantic contract
     importer.py                  reads the CSVs, tolerant of variation
     context.py                   profile -> markdown for the prompt
+  studio/                        deterministic rendering, no model
+    themes.py                    drafting and blueprint, tested against WCAG
+    spec.py                      the eleven layouts and their rules
+    carousel.py · video.py       PDF and PNG · MP4 and SRT
+    capture.py · convert.py      real screenshots · any file to PDF
+    templates/                   the HTML, the CSS and the fitting script
   tools/
     artifacts.py                 read, save, list, confined to content/
     search.py                    web search via DDGS, no API key
     linkedin.py                  official API: token, URN, payload, publishing
+    studio.py                    the studio as tools, confined to content/media/
   agents/
     principles.py                the codified strategy · start here
-    <eight files>                one build() each
+    <nine files>                 one build() each
   team.py                        the coordinating Team
   flows.py                       the two workflows
   cli.py                         the thirteen commands

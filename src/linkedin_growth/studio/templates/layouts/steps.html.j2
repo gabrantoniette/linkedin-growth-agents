@@ -1,0 +1,6 @@
+<h2 class="h-slide" data-fit data-min="54">{{ s.slide.headline | inline }}</h2>
+<ol class="steps" data-fit data-min="30">
+{% for step in s.slide.steps %}
+  <li><span class="steps-index">{{ loop.index }}</span><div class="steps-body"><div class="steps-title">{{ step.title | inline }}</div>{% if step.detail %}<div class="steps-detail">{{ step.detail | inline }}</div>{% endif %}</div></li>
+{% endfor %}
+</ol>

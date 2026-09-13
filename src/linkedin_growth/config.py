@@ -34,13 +34,20 @@ PROFILE_DIR = ROOT / "profile"
 EXPORT_DIR = PROFILE_DIR / "linkedin_export"
 PROFILE_YAML = PROFILE_DIR / "profile.yaml"
 VOICE_MD = PROFILE_DIR / "voice.md"
+# Optional, hand-written: the name, tagline, photo and theme on every slide.
+BRAND_YAML = PROFILE_DIR / "brand.yaml"
 
 CONTENT_DIR = ROOT / "content"
 CALENDAR_DIR = CONTENT_DIR / "calendar"
 POSTS_DIR = CONTENT_DIR / "posts"
 METRICS_CSV = CONTENT_DIR / "metrics.csv"
+# What the Post Designer produces, one folder per post: the carousel PDF, the
+# slide PNGs, the video, the screenshots and the caption for that format.
+MEDIA_DIR = CONTENT_DIR / "media"
 
 REFERENCES_DIR = ROOT / "references"
+# Agent Skills (SKILL.md folders), loaded by Agno's `LocalSkills`.
+SKILLS_DIR = ROOT / "skills"
 
 TMP_DIR = ROOT / "tmp"
 DB_FILE = TMP_DIR / "linkedin_growth.db"
@@ -54,6 +61,7 @@ def ensure_directories() -> None:
         CONTENT_DIR,
         CALENDAR_DIR,
         POSTS_DIR,
+        MEDIA_DIR,
         REFERENCES_DIR,
         TMP_DIR,
     ):

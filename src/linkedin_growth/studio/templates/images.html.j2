@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="{{ language }}">
+<head>
+<meta charset="utf-8">
+<title>{{ title }}</title>
+<style>
+{{ font_faces }}
+:root { {{ theme_vars }}; }
+@page { size: {{ width }}px {{ height }}px; margin: 0; }
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--paper); }
+body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.page { width: {{ width }}px; height: {{ height }}px; display: flex; flex-direction: column; gap: 22px; padding: 108px; background: var(--paper); break-after: page; }
+.page:last-child { break-after: auto; }
+.page.bleed { padding: 0; }
+.frame { position: relative; flex: 1; min-height: 0; }
+.frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.caption { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 22px; color: var(--pencil); }
+</style>
+</head>
+<body>
+{% for image in images %}
+<section class="page{% if bleed %} bleed{% endif %}"><div class="frame"><img src="{{ image.src }}" alt=""></div>{% if image.caption %}<p class="caption">{{ image.caption }}</p>{% endif %}</section>
+{% endfor %}
+</body>
+</html>
