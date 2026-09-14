@@ -1,0 +1,6 @@
+{% if s.slide.headline %}<h2 class="h-slide" data-fit data-min="52">{{ s.slide.headline | inline }}</h2>{% endif %}
+<figure class="listing-figure">
+  <div class="listing listing-{{ s.slide.frame }}"><pre class="listing-code" data-fit data-fit-x data-min="20"><span class="code-body" data-measure>{% for line in s.code.lines %}<span class="code-line{% if line.highlighted %} is-marked{% endif %}"><span class="code-ln">{{ line.number }}</span><span class="code-src">{{ line.html }}</span></span>{% endfor %}</span></pre></div>
+  <figcaption class="listing-label">{{ s.listing_label }}</figcaption>
+</figure>
+{% if s.slide.caption %}<p class="caption-text" data-fit data-min="26">{{ s.slide.caption | inline }}</p>{% endif %}

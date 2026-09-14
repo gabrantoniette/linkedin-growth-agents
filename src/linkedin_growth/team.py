@@ -65,10 +65,15 @@ def build(session: str | None = None) -> Team:
             "- calendar, plan the week -> Editorial Planner",
             "- write a post -> Writer",
             "- review, critique, improve a draft -> Editor",
+            "- carousel, PDF, image, video, screenshot, visual format, convert a "
+            "file to PDF -> Post Designer",
             "- publish to LinkedIn, check the connection -> Publisher",
             "To write a post from scratch, chain them: Researcher (if the topic "
             "depends on something new) -> Writer -> Editor. Do not skip the "
             "Editor.",
+            "When the user wants the visual version of a post, the Post Designer "
+            "comes after the Editor and works from the saved post file. Pass it "
+            "the file path. It designs nothing on top of a rejected post.",
             "Do not delegate publishing unless the user asked for it "
             "explicitly. Publishing is irreversible and public.",
             "If the profile has not been imported yet, tell the user to run "

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="{{ language }}">
+<head>
+<meta charset="utf-8">
+<title>{{ title }}</title>
+<style>
+{{ font_faces }}
+:root { {{ theme_vars }}; }
+@page { size: {{ width }}px {{ height }}px; margin: 0; }
+{% include "document.css" %}
+</style>
+</head>
+<body class="theme-{{ theme_id }}">
+<table class="sheet">
+  <thead><tr><td><div class="sheet-top"><span class="sheet-label"><i></i>{{ label }}</span></div></td></tr></thead>
+  <tfoot><tr><td><div class="sheet-bottom">{% if author %}<span>{{ author.name }}</span>{% endif %}</div></td></tr></tfoot>
+  <tbody><tr><td><article class="doc">{{ body }}</article></td></tr></tbody>
+</table>
+</body>
+</html>

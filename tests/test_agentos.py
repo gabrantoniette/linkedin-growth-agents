@@ -70,7 +70,7 @@ def test_the_ui_finds_the_team(client):
     # The UI reads `entity.id` for the item value and `entity.model` for the
     # label. Either one missing breaks the selector.
     assert payload["model"]["provider"]
-    assert len(payload["members"]) == 8
+    assert len(payload["members"]) == len(agents.all_agents())
 
 
 def test_the_ui_finds_the_agents(client):
@@ -80,7 +80,12 @@ def test_the_ui_finds_the_agents(client):
     assert response.status_code == 200, response.text
     listing = response.json()
 
-    assert len(listing) == 8
+    # Nine since the Post Designer joined. Counted from the source of truth
+    # rather than hard-coded, so the next agent does not break this test; the
+    # Designer is named because it is the one with skills, and an agent with
+    # skills is exactly the kind of field this route could fail to serialize.
+    assert len(listing) == len(agents.all_agents())
+    assert "Post Designer" in {agent["name"] for agent in listing}
     for agent in listing:
         assert agent["id"], agent.get("name")
         assert agent["model"]["model"]

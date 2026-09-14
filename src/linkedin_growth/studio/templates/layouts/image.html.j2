@@ -1,0 +1,7 @@
+{% if s.slide.headline %}<h2 class="h-slide" data-fit data-min="52">{{ s.slide.headline | inline }}</h2>{% endif %}
+<figure class="figure fit-{{ s.slide.fit }}">
+  {% if s.slide.frame == 'browser' and s.host %}<figcaption class="figure-address">{{ s.host }}</figcaption>{% endif %}
+  <div class="figure-view"{% if s.slide.fit == 'contain' and s.image_ratio %} style="aspect-ratio: {{ s.image_ratio }}"{% endif %}><img src="{{ s.image_src }}" alt="{{ s.slide.alt or '' }}" class="fit-{{ s.slide.fit }}"></div>
+</figure>
+{% if s.slide.caption %}<p class="caption-text" data-fit data-min="26">{{ s.slide.caption | inline }}</p>{% endif %}
+{% if s.slide.source %}<p class="source"><b>{{ t.source }}</b>{{ s.slide.source }}</p>{% endif %}

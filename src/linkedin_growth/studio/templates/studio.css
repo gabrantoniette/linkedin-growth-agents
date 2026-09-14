@@ -1,0 +1,504 @@
+/* ==========================================================================
+   The studio stylesheet: a page of engineering work.
+
+   Computation paper with its printed grid, graphite for text, non-photo blue
+   for construction lines, red for measurements and nothing else. The one
+   device a reader should remember is the dimension line: it measures where
+   they are in the deck at the foot of every slide, and it measures the value
+   on a metric slide. Everything around it stays quiet.
+
+   Units are CSS pixels on a 1080px canvas with a 36px module. A phone shows
+   the canvas at about a third of its size, so 36px here is about 12px in the
+   hand: the floor for body text (kb-visual-formats.md, section 5).
+   ========================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; background: var(--paper); }
+
+body {
+  font-family: 'Archivo', system-ui, sans-serif;
+  font-stretch: 100%;
+  color: var(--ink);
+  font-kerning: normal;
+  font-variant-numeric: lining-nums;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+p, h1, h2, ol, ul, figure, blockquote, pre { margin: 0; }
+
+/* --------------------------------------------------------------------------
+   Canvas
+   -------------------------------------------------------------------------- */
+
+.slide {
+  --margin: 108px;         /* three modules; clear of Instagram's 3:4 grid crop */
+  --content-top: 144px;    /* four modules */
+  --content-bottom: 216px; /* six modules, where the scale and the signature sit */
+  --foot-bottom: 54px;
+  position: relative;
+  width: var(--w);
+  height: var(--h);
+  overflow: hidden;
+  background: var(--paper);
+  isolation: isolate;
+  break-after: page;
+}
+
+.slide:last-of-type { break-after: auto; }
+
+/* 9:16 video: Meta's unified safe zone keeps the top 14% and the bottom 35%
+   free of anything that has to be read. */
+.canvas-tall .slide { --content-top: 288px; --content-bottom: 900px; --foot-bottom: 700px; }
+.canvas-square .slide { --content-top: 108px; --content-bottom: 198px; }
+.has-captions .slide { --content-bottom: 360px; }
+.has-captions.canvas-tall .slide { --content-bottom: 1000px; }
+
+/* The printed grid of a computation pad: a 36px module, a heavier line every
+   five. The margins and the top of the content sit on its lines. */
+.grid {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(var(--grid-major) 2px, transparent 2px),
+    linear-gradient(90deg, var(--grid-major) 2px, transparent 2px),
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 180px 180px, 180px 180px, 36px 36px, 36px 36px;
+  background-position: -1px -1px, -1px -1px, -0.5px -0.5px, -0.5px -0.5px;
+}
+
+/* --------------------------------------------------------------------------
+   Content. Interior slides anchor to the same top line, so the eye does not
+   have to find the headline again after every swipe. `.stack` is measured
+   against `.content` to detect overflow.
+   -------------------------------------------------------------------------- */
+
+.content {
+  position: absolute;
+  top: var(--content-top);
+  bottom: var(--content-bottom);
+  left: var(--margin);
+  right: var(--margin);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.stack { display: flex; flex-direction: column; gap: 54px; min-height: 0; }
+
+/* --------------------------------------------------------------------------
+   Foot: the dimension line, and who signed the page
+   -------------------------------------------------------------------------- */
+
+.foot {
+  position: absolute;
+  left: var(--margin);
+  right: var(--margin);
+  bottom: var(--foot-bottom);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.scale { display: block; width: 100%; height: 58px; overflow: visible; }
+.scale-rule, .scale-tick { stroke: var(--construction); stroke-width: 2.5; }
+.scale-tick.is-current { stroke: var(--measure); stroke-width: 3; }
+.scale-current { stroke: var(--measure); stroke-width: 3; }
+.scale-arrow { fill: var(--measure); }
+.scale-more { fill: var(--construction); }
+
+.scale-label {
+  font-family: 'Archivo', sans-serif;
+  font-size: 28px;
+  font-weight: 650;
+  font-stretch: 90%;
+  font-variant-numeric: tabular-nums;
+  fill: var(--measure);
+}
+
+.foot-row { display: flex; align-items: center; gap: 18px; min-height: 44px; }
+
+.who {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 14px;
+  min-width: 0;
+  font-size: 26px;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--pencil);
+}
+
+.who-name { font-weight: 650; color: var(--ink); }
+.avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; align-self: center; }
+
+/* --------------------------------------------------------------------------
+   Type
+   -------------------------------------------------------------------------- */
+
+.h-cover, .h-slide, .h-closing, .statement {
+  font-family: 'Archivo', sans-serif;
+  color: var(--ink);
+  overflow-wrap: break-word;
+  hyphens: manual;
+}
+
+.h-cover { font-size: 150px; font-weight: 780; font-stretch: 72%; line-height: 0.93; letter-spacing: -0.01em; text-wrap: pretty; }
+.h-slide { font-size: 94px; font-weight: 740; font-stretch: 76%; line-height: 0.97; letter-spacing: -0.006em; text-wrap: balance; }
+.h-closing { font-size: 112px; font-weight: 760; font-stretch: 74%; line-height: 0.95; letter-spacing: -0.008em; text-wrap: balance; }
+.statement { font-size: 128px; font-weight: 760; font-stretch: 72%; line-height: 0.94; letter-spacing: -0.008em; text-wrap: pretty; }
+
+.sub, .support {
+  font-size: 46px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--pencil);
+  text-wrap: pretty;
+}
+
+.caption-text { font-size: 34px; line-height: 1.36; color: var(--pencil); text-wrap: pretty; }
+.note, .source { font-size: 26px; line-height: 1.4; color: var(--pencil); text-wrap: pretty; }
+.source b { font-weight: 650; color: var(--ink); margin-right: 0.45em; }
+
+/* The inline marks from `text.py`. A highlight is underlined in red, the way
+   a reviewer marks the number that matters. */
+strong { font-weight: 700; }
+em { font-style: italic; }
+
+mark {
+  color: inherit;
+  background: none;
+  text-decoration: underline;
+  text-decoration-color: var(--measure);
+  text-decoration-thickness: 0.085em;
+  text-underline-offset: 0.16em;
+  text-decoration-skip-ink: none;
+}
+
+code {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.84em;
+  font-weight: 400;
+  padding: 0.02em 0.26em;
+  border-radius: 3px;
+  background: var(--panel);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--construction) 55%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+   cover: the hook, set big and low, with the paper above it
+   -------------------------------------------------------------------------- */
+
+.layout-cover .content { justify-content: flex-end; }
+.layout-cover .stack { gap: 40px; }
+
+/* --------------------------------------------------------------------------
+   statement
+   -------------------------------------------------------------------------- */
+
+/* A statement has no evidence under it to anchor to, so it sits in the middle
+   of the page instead of at the headline line. */
+.layout-statement .content { justify-content: center; }
+.layout-statement .stack { gap: 44px; }
+
+/* --------------------------------------------------------------------------
+   points: a list, marked with measure ticks; numbers only for a sequence
+   -------------------------------------------------------------------------- */
+
+.points { list-style: none; padding: 0; font-size: 46px; display: flex; flex-direction: column; gap: 0.7em; }
+.points li { display: grid; grid-template-columns: 1.3em 1fr; align-items: baseline; }
+.points-mark { position: relative; align-self: stretch; }
+.points-mark::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 0.62em; height: 3px; background: var(--measure); }
+.points.is-numbered li { grid-template-columns: 1.5em 1fr; }
+.points.is-numbered .points-mark::before { content: none; }
+.points.is-numbered .points-mark { font-weight: 700; color: var(--measure); font-variant-numeric: tabular-nums; }
+.points-text { line-height: 1.26; text-wrap: pretty; }
+
+/* --------------------------------------------------------------------------
+   steps: a sequence, with drawing balloons on a construction line
+   -------------------------------------------------------------------------- */
+
+.steps { list-style: none; padding: 0; font-size: 46px; display: flex; flex-direction: column; }
+.steps li { position: relative; display: grid; grid-template-columns: 1.3em 1fr; gap: 0.6em; padding-bottom: 0.9em; }
+.steps li:last-child { padding-bottom: 0; }
+.steps li:not(:last-child)::before { content: ""; position: absolute; left: 0.65em; top: 1.3em; bottom: 0; width: 2px; transform: translateX(-1px); background: var(--construction); }
+
+.steps-index {
+  width: 1.3em;
+  height: 1.3em;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  display: grid;
+  place-items: center;
+  font-size: 1em;
+  font-weight: 700;
+  font-stretch: 85%;
+  font-variant-numeric: tabular-nums;
+  background: var(--paper);
+}
+
+.steps-body { padding-top: 0.12em; }
+.steps-title { font-weight: 700; line-height: 1.16; }
+.steps-detail { margin-top: 0.22em; font-size: 0.8em; line-height: 1.32; color: var(--pencil); text-wrap: pretty; }
+
+/* --------------------------------------------------------------------------
+   code: a printed listing, banded like green-bar paper
+   -------------------------------------------------------------------------- */
+
+.layout-code .stack { gap: 44px; }
+.listing-figure { display: flex; flex-direction: column; gap: 14px; }
+.listing { background: var(--panel); border: 2px solid var(--construction); border-radius: 3px; }
+
+.listing-code {
+  padding: 22px 0;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 31px;
+  line-height: 1.62;
+  color: var(--code-text);
+  font-variant-ligatures: none;
+  white-space: pre;
+  overflow: hidden;
+  tab-size: 4;
+}
+
+/* Sized to the widest line, which is what the fitter measures against the
+   listing. Bands and the marked line span it. */
+.code-body { display: inline-block; min-width: 100%; }
+/* The right padding lives on the line, so bands and the marked line reach the
+   border while the text keeps its distance from it. */
+.code-line { display: block; padding-right: 34px; }
+.code-line:nth-child(6n+4), .code-line:nth-child(6n+5), .code-line:nth-child(6n+6) { background: var(--band); }
+.code-ln { display: inline-block; width: 2.5em; padding-right: 0.95em; text-align: right; color: var(--code-gutter); }
+.code-line.is-marked { background: color-mix(in srgb, var(--measure) 12%, var(--panel)); box-shadow: inset 6px 0 0 var(--measure); }
+.code-line.is-marked .code-ln { color: var(--measure); font-weight: 600; }
+.listing-terminal .code-ln { display: none; }
+.listing-terminal .code-line { padding-left: 34px; }
+.listing-label { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 24px; color: var(--pencil); }
+
+.t-keyword { color: var(--code-keyword); }
+.t-function { color: var(--code-function); font-weight: 600; }
+.t-class { color: var(--code-class); }
+.t-string { color: var(--code-string); }
+.t-number { color: var(--code-number); }
+.t-comment { color: var(--code-comment); }
+.t-operator { color: var(--code-operator); }
+.t-builtin { color: var(--code-builtin); }
+.t-tag { color: var(--code-tag); }
+.t-attribute { color: var(--code-attribute); }
+.t-prompt { color: var(--code-prompt); font-weight: 600; }
+.t-output { color: var(--code-text); }
+
+/* --------------------------------------------------------------------------
+   compare: two columns and a construction line between them
+   -------------------------------------------------------------------------- */
+
+.compare { display: grid; grid-template-columns: 1fr 1fr; font-size: 40px; }
+.compare-col { padding-right: 0.9em; }
+.compare-col + .compare-col { padding-right: 0; padding-left: 0.9em; border-left: 2px solid var(--construction); }
+
+.compare-title {
+  margin-bottom: 0.65em;
+  padding-bottom: 0.42em;
+  border-bottom: 2px solid var(--construction);
+  font-size: 1.12em;
+  font-weight: 720;
+  font-stretch: 82%;
+  line-height: 1.12;
+}
+
+.compare-col.is-favored .compare-title { border-bottom: 5px solid var(--measure); padding-bottom: 0.36em; }
+.compare ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.6em; }
+.compare li { position: relative; padding-left: 0.95em; line-height: 1.26; text-wrap: pretty; }
+.compare li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 0.5em; height: 2px; background: var(--construction); }
+.compare-col.is-favored li::before { height: 3px; background: var(--measure); }
+.verdict { font-size: 44px; font-weight: 600; line-height: 1.24; text-wrap: pretty; }
+
+/* --------------------------------------------------------------------------
+   metric: a value, dimensioned like a measurement on a drawing
+   -------------------------------------------------------------------------- */
+
+.layout-metric .stack { gap: 38px; }
+.measure { position: relative; align-self: flex-start; max-width: 100%; padding-top: 80px; }
+
+/* The dimension line and its two extension lines, spanning the value. */
+.measure::before { content: ""; position: absolute; left: 0; right: 0; top: 31px; height: 3px; background: var(--measure); }
+.measure::after { content: ""; position: absolute; left: 0; right: 0; top: 10px; height: 46px; border-left: 3px solid var(--measure); border-right: 3px solid var(--measure); }
+
+.measure-unit {
+  position: absolute;
+  z-index: 1;
+  top: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 14px;
+  background: var(--paper);
+  font-size: 36px;
+  font-weight: 650;
+  font-stretch: 88%;
+  line-height: 1.3;
+  white-space: nowrap;
+  color: var(--measure);
+}
+
+.measure-value {
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 400px;
+  font-weight: 760;
+  font-stretch: 68%;
+  line-height: 0.82;
+  letter-spacing: -0.01em;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.metric-label { font-size: 68px; font-weight: 700; font-stretch: 80%; line-height: 1.04; text-wrap: balance; }
+
+/* --------------------------------------------------------------------------
+   quote
+   -------------------------------------------------------------------------- */
+
+.layout-quote .stack { gap: 36px; }
+
+.quote {
+  padding-left: 40px;
+  border-left: 6px solid var(--measure);
+  font-size: 76px;
+  font-weight: 500;
+  font-style: italic;
+  font-stretch: 86%;
+  line-height: 1.1;
+  text-wrap: pretty;
+}
+
+.quote-author { padding-left: 46px; font-size: 34px; font-weight: 700; line-height: 1.3; }
+.quote-author small { display: block; margin-top: 4px; font-size: 30px; font-weight: 400; color: var(--pencil); }
+
+/* --------------------------------------------------------------------------
+   image: a real capture, as a figure
+   -------------------------------------------------------------------------- */
+
+.layout-image .stack { flex: 1; gap: 40px; }
+
+.figure {
+  flex: 1 1 auto;
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 2px solid var(--construction);
+  border-radius: 3px;
+  background: var(--panel);
+}
+
+.figure-address {
+  flex: none;
+  padding: 12px 20px;
+  border-bottom: 2px solid var(--construction);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 22px;
+  color: var(--pencil);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.figure-view { position: relative; flex: 1; min-height: 0; }
+
+/* 'contain': the frame takes the capture's proportions (the aspect-ratio is set
+   inline from the image file), so no empty bands sit above and below it. When
+   the slide has no room for that height, the frame shrinks and the capture
+   stays whole inside it. */
+.figure.fit-contain { flex: 0 1 auto; min-height: 240px; }
+.figure.fit-contain .figure-view { flex: 0 1 auto; min-height: 160px; }
+.figure-view img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.figure-view img.fit-cover { object-fit: cover; object-position: top center; }
+.figure-view img.fit-contain { object-fit: contain; object-position: center; }
+
+/* --------------------------------------------------------------------------
+   diagram: a flow, boxes on a spine of construction arrows
+   -------------------------------------------------------------------------- */
+
+.flow { list-style: none; padding: 0; font-size: 44px; display: flex; flex-direction: column; }
+
+.flow-node {
+  display: grid;
+  grid-template-columns: 1.5em 1fr;
+  align-items: baseline;
+  gap: 0.35em;
+  padding: 0.48em 0.7em;
+  border: 2.5px solid var(--ink);
+  border-radius: 2px;
+  background: var(--panel);
+}
+
+.flow-index { font-size: 0.72em; font-weight: 700; color: var(--measure); font-variant-numeric: tabular-nums; }
+.flow-label { font-weight: 700; line-height: 1.15; }
+.flow-detail { margin-top: 0.14em; font-size: 0.72em; line-height: 1.3; color: var(--pencil); }
+.flow-edge { height: 1.15em; padding-left: 0.72em; display: flex; align-items: center; color: var(--construction); }
+.flow-edge svg { width: 0.9em; height: 1.1em; }
+
+/* --------------------------------------------------------------------------
+   closing
+   -------------------------------------------------------------------------- */
+
+.layout-closing .stack { gap: 54px; }
+
+.closing-question {
+  padding-top: 38px;
+  border-top: 5px solid var(--measure);
+  font-size: 60px;
+  font-weight: 600;
+  font-stretch: 90%;
+  line-height: 1.16;
+  text-wrap: pretty;
+}
+
+.closing-cta { font-size: 34px; line-height: 1.35; color: var(--pencil); }
+
+/* --------------------------------------------------------------------------
+   Video. One moment per scene, not an effect per element: the content comes
+   in together, and the dimension line draws the reader's position.
+   -------------------------------------------------------------------------- */
+
+@keyframes studio-appear { from { opacity: 0; } to { opacity: 1; } }
+@keyframes studio-draw { from { stroke-dashoffset: 1200; } to { stroke-dashoffset: 0; } }
+@keyframes studio-extend { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+.mode-video .stack { animation: studio-appear 0.35s ease-out both; }
+.mode-video .scale-current { stroke-dasharray: 1200; animation: studio-draw 0.7s 0.15s cubic-bezier(0.6, 0, 0.2, 1) both; }
+.mode-video .scale-arrow { animation: studio-appear 0.2s 0.7s ease-out both; }
+.mode-video .scale-more { display: none; }
+.mode-video .measure::before { transform-origin: left center; animation: studio-extend 0.7s 0.15s cubic-bezier(0.6, 0, 0.2, 1) both; }
+
+.burned-caption {
+  position: absolute;
+  left: var(--margin);
+  right: var(--margin);
+  bottom: 196px;
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+
+.canvas-tall .burned-caption { bottom: 780px; }
+
+.burned-caption span:empty { display: none; }
+
+.burned-caption span {
+  max-width: 900px;
+  padding: 14px 24px;
+  border-radius: 3px;
+  font-size: 38px;
+  font-weight: 600;
+  line-height: 1.28;
+  white-space: pre-line;
+  color: var(--paper);
+  background: var(--ink);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}

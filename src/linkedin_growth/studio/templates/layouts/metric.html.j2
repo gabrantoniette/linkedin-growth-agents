@@ -1,0 +1,4 @@
+<div class="measure">{% if s.slide.unit %}<span class="measure-unit">{{ s.slide.unit }}</span>{% endif %}<div class="measure-value" data-fit data-fit-x data-min="120">{{ s.slide.value }}</div></div>
+<p class="metric-label" data-fit data-min="42">{{ s.slide.label | inline }}</p>
+{% if s.slide.detail %}<p class="support" data-fit data-min="30">{{ s.slide.detail | inline }}</p>{% endif %}
+<p class="source"><b>{{ t.source }}</b>{{ s.slide.source }}</p>

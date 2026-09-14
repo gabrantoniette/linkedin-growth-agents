@@ -32,6 +32,7 @@ from agno.models.response import ModelResponse
 
 from linkedin_growth import config, team
 from linkedin_growth.agents import (
+    designer,
     diagnosis,
     editor,
     planner,
@@ -255,6 +256,7 @@ def no_api(monkeypatch: pytest.MonkeyPatch) -> Callable[..., SpyModel]:
     monkeypatch.setattr(config, "model", factory)
     monkeypatch.setattr(team, "model", factory)
     for module in (
+        designer,
         diagnosis,
         editor,
         planner,

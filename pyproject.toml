@@ -22,6 +22,15 @@ dependencies = [
     "sqlalchemy>=2.0.52",
     "typer>=0.27.1",
     "uvicorn>=0.52.4",
+    "playwright>=1.62.0",
+    "jinja2>=3.1.6",
+    "pypdfium2>=5.13.0",
+    "imageio-ffmpeg>=0.6.0",
+    "mammoth>=1.12.2",
+    "pillow>=12.3.0",
+    "markdown-it-py>=4.2.0",
+    "pygments>=2.21.0",
+    "filetype>=1.2.0",
 ]
 
 [project.scripts]

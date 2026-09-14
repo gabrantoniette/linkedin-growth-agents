@@ -36,6 +36,12 @@ HONESTY = [
     "when that figure is not in the profile.",
     "A lack of experience is not disguised with big words. If the user is "
     "starting out, the text says so, and shows what they have already built.",
+    "Never fabricate visual proof. A screenshot, a terminal output, a chart, a "
+    "metric or a quote goes into an image, a carousel or a video only if it is "
+    "real: a capture of a real page, the user's real code or output, a number "
+    "from the USER'S REAL DATA, a source that says it. A frame drawn around a "
+    "real capture is presentation; a capture of something that never ran is a "
+    "lie.",
 ]
 
 # ==============================================================================
@@ -87,6 +93,9 @@ VOICE_RULES = [
     "not a blog article.",
     "No empty corporate jargon: 'sinergia', 'disruptivo', 'game changer', "
     "'mindset'.",
+    "No fake Unicode bold or italic (𝗯𝗼𝗹𝗱, 𝘪𝘵𝘢𝘭𝘪𝘤). Screen readers spell it "
+    "out symbol by symbol and LinkedIn search does not index it, so the words "
+    "that matter most become the ones nobody finds.",
 ]
 
 WRITING_RULES = [
@@ -107,6 +116,31 @@ WRITING_RULES = [
     "End with a concrete, answerable question, not 'and you, what do you "
     "think?'. A good question is 'who here has run this in production, did the "
     "cost pay off?'.",
+]
+
+# The visual rules. Every one of them is either measured (one idea per slide,
+# legibility at phone size: references/kb-visual-formats.md sections 4 and 5) or
+# a guard against the look of a templated slide, which a technical audience
+# reads as generated before it reads a word.
+DESIGN_RULES = [
+    "One idea per slide. Each slide's headline is a full sentence stating its "
+    "point, and the body is the evidence for it: code, a diagram, a number, a "
+    "comparison, a real screenshot. 'Contexto', 'Resultados' and 'Conclusão' "
+    "are labels, not headlines.",
+    "Legibility is judged at phone size, a third of the canvas. If a slide does "
+    "not fit, cut words or split it in two; never shrink the type until it fits.",
+    "The cover is the thumbnail in the feed: one hook of at most twelve words, "
+    "and nothing competing with it.",
+    "Headlines are stated plainly. No accented word, no bold or highlighted "
+    "phrase inside a headline: emphasis belongs to the evidence underneath.",
+    "Numbers mark only a sequence or a ranking. A list of reasons is not "
+    "numbered, because the numbers would claim an order that is not there.",
+    "The identity does not change per post: the same themes, the same "
+    "typography and the same foot on every slide. Consistency is what makes a "
+    "series recognizable in the feed.",
+    "Text inside a picture is invisible to search and to screen readers. Every "
+    "image gets alt text, every video gets captions, and the caption of every "
+    "carousel states its core point in plain words.",
 ]
 
 DO_NOT = [
@@ -141,12 +175,13 @@ PLATFORM_LIMITS = [
     "paste it.",
     "The system CAN publish posts through the official API, and always with the "
     "user's approval first.",
-    "The system publishes TEXT ONLY today. A PDF carousel or an image is the "
-    "highest-performing format on the platform (see "
-    "references/kb-linkedin-publicacao.md section 5), so do recommend one when "
-    "the content suits it, but say in the same breath that the user assembles "
-    "and publishes it by hand. Never plan a carousel as if `linkedin publish` "
-    "could send it.",
+    "The system PUBLISHES text only. The Post Designer PRODUCES the media: PDF "
+    "carousels, images and short videos, in content/media/, and the user "
+    "uploads them by hand in LinkedIn's composer. A document carousel is the "
+    "highest-engagement format on the platform (references/kb-visual-formats.md "
+    "section 2, references/kb-linkedin-publicacao.md section 5), so recommend "
+    "one when the content suits it, and say who does what. Never plan media as "
+    "if `linkedin publish` could send it.",
     "The system CANNOT read post metrics through the API: LinkedIn restricts "
     "that access. The user records metrics by hand in content/metrics.csv.",
 ]
@@ -285,6 +320,16 @@ def voice_instructions() -> list[str]:
     before any other.
     """
     return _prefix("VOICE", VOICE_RULES)
+
+
+def design_instructions() -> list[str]:
+    """The visual rules, for whoever turns a post into slides, an image or a video.
+
+    Short and universal on purpose, like the voice rules: the procedures (how a
+    carousel is built, how a video is timed) live in the Agent Skills under
+    `skills/`, and the evidence behind them in references/kb-visual-formats.md.
+    """
+    return _prefix("DESIGN", DESIGN_RULES)
 
 
 def content_instructions() -> list[str]:

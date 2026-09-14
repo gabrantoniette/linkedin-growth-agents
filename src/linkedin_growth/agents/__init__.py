@@ -11,6 +11,7 @@ from __future__ import annotations
 from agno.agent import Agent
 
 from linkedin_growth.agents import (
+    designer,
     diagnosis,
     editor,
     planner,
@@ -22,6 +23,7 @@ from linkedin_growth.agents import (
 )
 
 __all__ = [
+    "designer",
     "diagnosis",
     "editor",
     "planner",
@@ -44,5 +46,6 @@ def all_agents() -> list[Agent]:
         planner.build(),
         writer.build(),
         editor.build(),
+        designer.build(),
         publisher.build(),
     ]
