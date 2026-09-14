@@ -17,6 +17,7 @@ import pypdfium2 as pdfium
 import pytest
 from PIL import Image as PILImage
 
+from linkedin_growth.studio import browser
 from linkedin_growth.studio.browser import browser_available
 from linkedin_growth.studio.carousel import render_carousel
 from linkedin_growth.studio.convert import convert_file, find_libreoffice
@@ -114,6 +115,18 @@ def test_text_that_cannot_fit_writes_no_pdf(chromium, tmp_path):
     assert any("does not fit" in error for error in result.errors)
     assert not (tmp_path / "deck" / "carousel.pdf").exists()
     assert (tmp_path / "deck" / "preview" / "contact-sheet.png").is_file()
+
+
+def test_a_deck_whose_bundled_fonts_do_not_load_writes_no_pdf(chromium, tmp_path, monkeypatch):
+    """A deck set in a fallback system face must never look like a finished file."""
+    # The page still declares every face; the browser just refuses to serve them.
+    monkeypatch.setattr(browser, "FONTS", ())
+
+    result = render_carousel(carousel(DECK), tmp_path / "deck", content_root=tmp_path)
+
+    assert not result.ok
+    assert any("fonts did not load" in error for error in result.errors)
+    assert not (tmp_path / "deck" / "carousel.pdf").exists()
 
 
 def test_a_single_image_post_writes_one_png_and_no_pdf(chromium, tmp_path):

@@ -9,10 +9,9 @@ __pycache__/
 .env
 .env.local
 
-# Personal data: the LinkedIn export and the profile derived from it
-profile/linkedin_export/
-profile/profile.yaml
-profile/voice.md
+# Personal data: the LinkedIn export, the profile derived from it, the optional
+# brand file and the photo it points to. Nothing in this folder is project code.
+profile/
 
 # What the agents produce from that data. It stays out for the same reason the
 # profile does: the diagnosis, the profile copy and the strategy are one

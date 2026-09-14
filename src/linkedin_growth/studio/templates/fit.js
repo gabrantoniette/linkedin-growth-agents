@@ -12,12 +12,12 @@ async () => {
     )
   );
 
-  const fontsOk = [
-    '400 40px "Inter"',
-    '800 40px "Inter"',
-    '500 24px "JetBrains Mono"',
-    'italic 400 40px "Instrument Serif"',
-  ].every((face) => document.fonts.check(face));
+  // Every face the page declares (themes.FONTS, through html.font_faces) has
+  // to load. Faces no text on this page uses are loaded too, so the check does
+  // not depend on the deck, and no family name has to be repeated here.
+  const faces = [...document.fonts];
+  await Promise.all(faces.map((face) => face.load().catch(() => null)));
+  const fontsOk = faces.length > 0 && faces.every((face) => face.status === 'loaded');
   const broken = images.filter((img) => !img.naturalWidth).map((img) => img.getAttribute('src'));
 
   const size = (el) => parseFloat(getComputedStyle(el).fontSize);

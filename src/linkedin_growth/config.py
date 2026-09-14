@@ -130,11 +130,24 @@ MAX_TOKENS = int(os.getenv("MAX_TOKENS", "16000"))
 
 
 def model(model_id: str | None = None) -> Claude:
-    """Instantiate the Claude model the agents use."""
+    """Instantiate the Claude model the agents use, with prompt caching on.
+
+    Every turn of a tool loop resends the tools, the system prompt and the
+    conversation so far. Uncached, each resend bills at the full input price;
+    cached, a read costs about a tenth of it. The Post Designer makes around ten
+    model calls per run.
+
+    Two breakpoints: `cache_system_prompt` marks the system prompt (the tools
+    render before it, so they are covered too), and the top-level
+    `cache_control` is Anthropic's automatic breakpoint, which lands on the last
+    block of each request and moves forward as the conversation grows.
+    """
     return Claude(
         id=model_id or MAIN_MODEL,
         api_key=require_anthropic(),
         max_tokens=MAX_TOKENS,
+        cache_system_prompt=True,
+        request_params={"cache_control": {"type": "ephemeral"}},
     )
 
 
