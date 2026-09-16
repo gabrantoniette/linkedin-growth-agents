@@ -16,7 +16,7 @@ scope:
   - post_copy_by_format
   - cross_platform_adaptation
 out_of_scope:
-  - timing_and_frequency      # kb-linkedin-publicacao.md
+  - timing_and_frequency      # kb-linkedin-publishing.md
   - hook_formulas             # hooks.md
   - paid_ads
 global_confidence: medium
@@ -51,7 +51,7 @@ number is. Written for the Post Designer, readable by anyone deciding a format.
    the authority and this file is the starting hypothesis.
 6. **Cite the `source_id` (§11) when you state a number.**
 7. **Precedence with the other references.** For days, times, frequency and the
-   decision hierarchy, `kb-linkedin-publicacao.md` rules. For the per-post text
+   decision hierarchy, `kb-linkedin-publishing.md` rules. For the per-post text
    checklist, `linkedin-algorithm.md`. This file rules format and design.
 
 ---
@@ -134,7 +134,7 @@ number is. Written for the Post Designer, readable by anyone deciding a format.
 engagement on LinkedIn in every dataset. AuthoredUp adds the detail that matters
 most for a personal brand: documents are 4.88% of posts but **12.92% of all
 saved posts**, about 2.6 times their share, and only 4.88% of profiles post them
-regularly. Saves are the long-half-life signal `kb-linkedin-publicacao.md` §6.3
+regularly. Saves are the long-half-life signal `kb-linkedin-publishing.md` §6.3
 describes.
 
 **Divergence to preserve, video, `confidence: low`:** pages and mixed accounts

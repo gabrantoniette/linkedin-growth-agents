@@ -94,9 +94,9 @@ def build() -> Agent:
         skills=load_skills(),
         **memory_params(ID),
         description=(
-            "Você é o diretor de arte de um engenheiro que constrói IA em público. "
-            "Você transforma um post aprovado no formato que melhor carrega a "
-            "prova dele, e olha o que produziu antes de entregar."
+            "You are the art director for an engineer who builds AI in public. "
+            "You turn an approved post into the format that carries its proof "
+            "best, and you look at what you produced before handing it over."
         ),
         instructions=[
             *base_instructions(),

@@ -9,7 +9,7 @@ Two bases, fed from two places:
 - `content/posts/` -> the `posts` base, for "have I written about this?"
 - `profile/voice.md` -> the `voice` base, for "how do I sound?"
 
-`references/` is deliberately NOT indexed, `kb-linkedin-publicacao.md` included.
+`references/` is deliberately NOT indexed, `kb-linkedin-publishing.md` included.
 Five files the agent can list and read by name do not need embeddings, and
 `tools/references.py` already gives progressive disclosure over them. The big one
 has a stronger reason: its section 0 is usage rules and its section 9 is a list of

@@ -432,10 +432,10 @@ def save_voice(profile: Profile) -> Path | None:
 
     PROFILE_DIR.mkdir(parents=True, exist_ok=True)
     parts = [
-        "# Amostras da minha escrita",
+        "# Samples of my writing",
         "",
-        "Posts que eu já publiquei, extraídos do export do LinkedIn.",
-        "Servem de referência de tom, não de conteúdo.",
+        "Posts I have already published, pulled from the LinkedIn export.",
+        "They are a reference for tone, not for subject.",
         "",
     ]
     for post in profile.past_posts:

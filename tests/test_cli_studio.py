@@ -14,7 +14,7 @@ def invoke(*arguments: str):
 def test_publish_refuses_a_media_caption(tmp_path):
     """A carousel caption sent through the API would go out without its PDF."""
     caption = tmp_path / "post.md"
-    caption.write_text("---\nformat: carousel\n---\n\n## Legenda (pt-BR)\n\nTexto.\n", encoding="utf-8")
+    caption.write_text("---\nformat: carousel\n---\n\n## Caption (pt-BR)\n\nTexto.\n", encoding="utf-8")
 
     result = invoke("publish", str(caption), "--dry-run")
 

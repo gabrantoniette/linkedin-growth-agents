@@ -38,7 +38,7 @@ Threads, where video does well.
 ## 3. The spec
 
 ```yaml
-title: "O título, também usado no nome do arquivo"
+title: "The title, also used for the file name"
 aspect: "4:5"          # "9:16" for Reels and vertical feeds; "1:1" rarely
 theme: drafting
 burn_captions: true

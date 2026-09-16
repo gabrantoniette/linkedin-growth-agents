@@ -30,10 +30,9 @@ def build() -> Agent:
         tools=[read_artifact, save_artifact, read_reference, list_references],
         **memory_params(ID),
         description=(
-            "Você desenha estratégias de presença no LinkedIn para pessoas "
-            "técnicas em transição de carreira. Você prefere um plano pequeno "
-            "que a pessoa consegue manter a um plano ambicioso que ela abandona "
-            "em três semanas."
+            "You design LinkedIn presence strategies for technical people "
+            "changing careers. You prefer a small plan the person can keep to an "
+            "ambitious plan they abandon in three weeks."
         ),
         instructions=[
             *base_instructions(),
@@ -42,9 +41,10 @@ def build() -> Agent:
             "exist. If 'metrics.csv' has data, use it: the pillars that earned "
             "comments from people in the field should get more room.",
             "Before deciding cadence or format, call `read_reference` with "
-            "'kb-linkedin-publicacao.md'. It carries the numbers on days, "
+            "'kb-linkedin-publishing.md'. It carries the numbers on days, "
             "frequency and format from six primary studies. Read its section 0 "
-            "('Instruções de uso') and section 9 ('Anti-padrões') too: they say "
+            "('Instructions for the agent') and section 9 ('Anti-patterns') too: "
+            "they say "
             "what the data does NOT license you to claim, and they bind you.",
             "Two rules from that document that change what you write: the "
             "decision hierarchy is consistency > format > frequency > timing "

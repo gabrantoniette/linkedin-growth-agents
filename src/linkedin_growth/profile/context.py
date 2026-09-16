@@ -11,9 +11,11 @@ have already written and your past writing DO go through a vector store, because
 answers well. See `config.py` and `indexing.py`. The embedder runs locally
 through FastEmbed, so none of that needs a second API key.
 
-The rendered block is in Portuguese on purpose. It is prompt content read by a
-model that writes Portuguese posts, and the section titles line up with the
-LinkedIn UI the user copies into.
+The scaffolding of the rendered block -- headings, labels, instructions -- is
+English, like the rest of the project. The values inside it are whatever the
+user wrote on LinkedIn, so a Brazilian profile renders in Portuguese. That is
+data, not project language, and the agents that write posts carry their own
+pt-BR instruction.
 """
 
 from __future__ import annotations
@@ -55,84 +57,84 @@ def _block(title: str, lines: list[str]) -> list[str]:
 def _period(start: str | None, end: str | None) -> str:
     if not start and not end:
         return ""
-    return f" ({start or '?'} a {end or 'atual'})"
+    return f" ({start or '?'} to {end or 'present'})"
 
 
 def render(profile: Profile) -> str:
     """Profile -> compact markdown for the agents' `additional_context`."""
     parts: list[str] = [
-        "## DADOS REAIS DO USUÁRIO",
+        "## THE USER'S REAL DATA",
         "",
-        "Tudo abaixo é verdade verificável. Use só isto como base factual.",
-        "Se algo que você precisa não está aqui, pergunte. Não invente.",
+        "Everything below is verifiable truth. Use only this as factual ground.",
+        "If something you need is not here, ask for it. Do not make it up.",
         "",
     ]
 
     identity = []
     if profile.name:
-        identity.append(f"- Nome: {profile.name}")
+        identity.append(f"- Name: {profile.name}")
     if profile.headline:
-        identity.append(f"- Headline atual: {profile.headline}")
+        identity.append(f"- Current headline: {profile.headline}")
     if profile.industry:
-        identity.append(f"- Setor: {profile.industry}")
+        identity.append(f"- Industry: {profile.industry}")
     if profile.location:
-        identity.append(f"- Localização: {profile.location}")
+        identity.append(f"- Location: {profile.location}")
     for website in profile.websites:
-        identity.append(f"- Site: {website}")
-    parts += _block("Identidade", identity)
+        identity.append(f"- Website: {website}")
+    parts += _block("Identity", identity)
 
     if profile.about:
-        parts += _block("Seção 'Sobre' atual", [profile.about])
+        parts += _block("Current 'About' section", [profile.about])
 
-    parts += _block("Objetivo de carreira", [profile.goal])
+    parts += _block("Career goal", [profile.goal])
 
     if profile.topics_of_interest:
         parts += _block(
-            "Temas de interesse", [", ".join(profile.topics_of_interest)]
+            "Topics of interest", [", ".join(profile.topics_of_interest)]
         )
 
     experiences = []
     for exp in profile.experiences:
-        heading = f"- **{exp.title or 'Cargo não informado'}**"
+        heading = f"- **{exp.title or 'Role not given'}**"
         if exp.company:
             heading += f", {exp.company}"
         heading += _period(exp.start, exp.end)
         experiences.append(heading)
         if exp.description:
             experiences.append(f"  {exp.description}")
-    parts += _block("Experiência profissional", experiences)
+    parts += _block("Work experience", experiences)
 
     education = []
     for item in profile.education:
-        line = f"- {item.degree or 'Formação'}"
+        line = f"- {item.degree or 'Degree'}"
         if item.course:
-            line += f" em {item.course}"
+            line += f" in {item.course}"
         if item.school:
             line += f", {item.school}"
         line += _period(item.start, item.end)
         education.append(line)
-    parts += _block("Formação", education)
+    parts += _block("Education", education)
 
     certifications = [
-        f"- {c.name or 'Certificação'}"
+        f"- {c.name or 'Certification'}"
         + (f", {c.issuer}" if c.issuer else "")
         + (f" ({c.url})" if c.url else "")
         for c in profile.certifications
     ]
-    parts += _block("Certificações", certifications)
+    parts += _block("Certifications", certifications)
 
     projects = []
     for project in profile.projects:
         projects.append(
-            f"- **{project.title or 'Projeto'}**"
+            f"- **{project.title or 'Project'}**"
             + (f", {project.url}" if project.url else "")
         )
         if project.description:
             projects.append(f"  {project.description}")
-    parts += _block("Projetos", projects)
+    parts += _block("Projects", projects)
 
     if profile.skills:
-        parts += _block("Skills declaradas", [", ".join(profile.skills)])
+        parts += _block("Declared skills", [", ".join(profile.skills)])
 
     languages = [
         f"- {language.name}"
@@ -140,7 +142,7 @@ def render(profile: Profile) -> str:
         for language in profile.languages
         if language.name
     ]
-    parts += _block("Idiomas", languages)
+    parts += _block("Languages", languages)
 
     return "\n".join(parts).strip()
 
@@ -151,26 +153,27 @@ def voice_sample() -> str:
         return ""
     text = VOICE_MD.read_text(encoding="utf-8")
     if len(text) > MAX_VOICE_CHARACTERS:
-        text = text[:MAX_VOICE_CHARACTERS] + "\n\n[...amostra truncada]"
+        text = text[:MAX_VOICE_CHARACTERS] + "\n\n[...sample truncated]"
     return (
-        "\n\n## COMO O USUÁRIO ESCREVE\n\n"
-        "Posts que ele já publicou. Imite o ritmo e o vocabulário, não o assunto.\n"
-        "Se estiver vazio, use um tom direto e sem jargão de marketing.\n\n"
+        "\n\n## HOW THE USER WRITES\n\n"
+        "Posts they have already published. Mirror the rhythm and the "
+        "vocabulary, not the subject.\n"
+        "If this is empty, use a direct tone with no marketing jargon.\n\n"
         + text
     )
 
 
-NO_PROFILE = """## DADOS REAIS DO USUÁRIO
+NO_PROFILE = """## THE USER'S REAL DATA
 
-O perfil ainda não foi importado, então você não sabe nada de concreto sobre
-este usuário.
+The profile has not been imported yet, so you know nothing concrete about this
+user.
 
-Não invente nada. Se a tarefa depender de dados do perfil, responda dizendo que
-é preciso rodar primeiro:
+Do not make anything up. If the task depends on profile data, answer by saying
+that this has to run first:
 
     uv run linkedin import
 
-depois de colocar os CSVs do export do LinkedIn em `profile/linkedin_export/`.
+after putting the LinkedIn export CSVs in `profile/linkedin_export/`.
 """
 
 

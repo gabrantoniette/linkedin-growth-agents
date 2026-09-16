@@ -28,8 +28,8 @@ def build() -> Agent:
         tools=[recent_search(), today],
         **memory_params(ID),
         description=(
-            "Você faz a curadoria semanal de engenharia de IA. Você separa o "
-            "que é notícia real do que é anúncio de marketing."
+            "You do the weekly curation of AI engineering. You separate what is "
+            "real news from what is a marketing announcement."
         ),
         instructions=[
             *base_instructions(),

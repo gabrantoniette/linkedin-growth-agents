@@ -324,8 +324,8 @@ def diagnose() -> None:
 
     _run_agent(
         diagnosis.build,
-        "Faça o diagnóstico completo do meu perfil do LinkedIn para uma "
-        "transição para engenharia de IA. Pesquise vagas reais primeiro.",
+        "Run the full diagnosis of my LinkedIn profile for a move into AI "
+        "engineering. Search real job posts first.",
         "Profile diagnosis",
     )
 
@@ -337,8 +337,8 @@ def profile() -> None:
 
     _run_agent(
         profile_writer.build,
-        "Escreva a versão otimizada do meu perfil do LinkedIn: headline, "
-        "Sobre, experiências, projetos e skills. Português e inglês.",
+        "Write the optimized version of my LinkedIn profile: headline, About, "
+        "experiences, projects and skills. In Portuguese and in English.",
         "Profile copy",
     )
 
@@ -350,9 +350,8 @@ def strategy() -> None:
 
     _run_agent(
         strategist.build,
-        "Monte a minha estratégia de conteúdo no LinkedIn para os próximos "
-        "seis meses, com foco em ser notado por recrutadores de engenharia "
-        "de IA.",
+        "Build my LinkedIn content strategy for the next six months, aimed at "
+        "getting noticed by AI engineering recruiters.",
         "Content strategy",
     )
 
@@ -372,8 +371,8 @@ def calendar(
         _fail(str(error))
 
     output = flow.run(
-        f"Levante as pautas de engenharia de IA desta semana e monte o "
-        f"calendário editorial das próximas {weeks} semanas."
+        f"Gather this week's AI engineering stories and build the editorial "
+        f"calendar for the next {weeks} weeks."
     )
     console.print(Markdown(str(output.content or "")))
 
