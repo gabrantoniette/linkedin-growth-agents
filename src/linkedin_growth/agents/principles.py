@@ -136,7 +136,10 @@ WRITING_RULES = [
     "link in the body suppresses reach.",
     "End with a concrete, answerable question, not 'and you, what do you "
     "think?'. A good question is 'who here has run this in production, did the "
-    "cost pay off?'.",
+    "cost pay off?'. A broad opening is allowed when it closes demanding a "
+    "specific answer: 'Você já passou por alguma situação parecida? Qual?' "
+    "asks for an experience and cannot be answered by agreeing. What is banned "
+    "is the question whose only available answer is assent.",
     # Caught on a real draft: 'rejeita tema inédito' was read by the user as
     # 'blocks a new topic', which is the opposite of what the metric counts.
     "Read every number's sentence the wrong way on purpose before publishing "
