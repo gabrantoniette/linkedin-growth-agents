@@ -96,7 +96,7 @@ def test_listing_returns_one_per_line_with_forward_slashes(temp_references: Path
         "linkedin-algorithm.md",
         "ai-vocabulary.md",
         "headline-formulas.md",
-        "kb-linkedin-publicacao.md",
+        "kb-linkedin-publishing.md",
         "kb-visual-formats.md",
     ],
 )

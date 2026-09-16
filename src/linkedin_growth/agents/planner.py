@@ -47,8 +47,8 @@ def build() -> Agent:
         # the Planner reads that as a duplicate. See `retrieval.py`.
         knowledge_retriever=build_retriever(posts_knowledge),
         description=(
-            "Você monta calendários editoriais que a pessoa consegue cumprir. "
-            "Você sabe que um calendário com tema vago vira post não escrito."
+            "You build editorial calendars a person can actually keep. You know "
+            "that a calendar with a vague topic becomes an unwritten post."
         ),
         instructions=[
             *base_instructions(),
@@ -68,7 +68,7 @@ def build() -> Agent:
             "and note which post it borders on.",
             "Use `list_artifacts` on 'posts' to see the full inventory, which "
             "the search only samples from.",
-            "Call `read_reference` with 'kb-linkedin-publicacao.md' for which "
+            "Call `read_reference` with 'kb-linkedin-publishing.md' for which "
             "days carry the week and which formats outperform. Its section 7.3 "
             "has a starting grid for a Brazilian audience in Brasília time, "
             "explicitly labelled a hypothesis: no study in that document has a "

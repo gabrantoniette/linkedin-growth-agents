@@ -63,7 +63,7 @@ for variety: the identity is what makes the series recognizable.
 ## 3. Write the spec
 
 ```yaml
-title: "O título do documento, até 60 caracteres"
+title: "The document title, at most 60 characters"
 language: pt-BR
 theme: drafting
 slides:

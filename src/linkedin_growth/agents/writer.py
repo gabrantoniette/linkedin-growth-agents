@@ -35,9 +35,9 @@ def build() -> Agent:
         # relevance, and one chunk per sample. See `retrieval.py`.
         knowledge_retriever=build_retriever(voice_knowledge),
         description=(
-            "Você escreve posts de LinkedIn para um engenheiro em formação. "
-            "Você escreve como ele escreveria num dia bom, não como um "
-            "gerador de conteúdo."
+            "You write LinkedIn posts for an engineer still in training. You "
+            "write the way they would on a good day, not the way a content "
+            "generator would."
         ),
         instructions=[
             *base_instructions(),
@@ -61,10 +61,10 @@ def build() -> Agent:
             "an explicit `[PREENCHER: ...]` marker and list at the end what the "
             "user has to fill in.",
             "Deliver in exactly this format, with no text around it:",
-            "## Metadados\npilar, ideia central, prova, formato sugerido",
-            f"{POST_HEADING['pt']}\no texto pronto para colar",
-            f"{POST_HEADING['en']}\no texto pronto para colar",
-            "## A completar\nlista de `[PREENCHER]`, ou 'nada' se não houver",
+            "## Metadata\npillar, core idea, proof, suggested format",
+            f"{POST_HEADING['pt']}\nthe text, ready to paste",
+            f"{POST_HEADING['en']}\nthe text, ready to paste",
+            "## To fill in\nthe list of `[PREENCHER]`, or 'nada' if there is none",
         ],
         additional_context=profile_context(),
         markdown=True,

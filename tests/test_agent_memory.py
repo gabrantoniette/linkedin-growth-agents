@@ -326,7 +326,7 @@ def test_the_profile_still_reaches_every_run(temp_db, no_api):
     agent.run("escreva um post")
 
     context = spy.call_text(0)
-    assert "DADOS REAIS DO USUÁRIO" in context or "profile.yaml" in context
+    assert "THE USER'S REAL DATA" in context or "profile.yaml" in context
     assert agent.additional_context
 
 

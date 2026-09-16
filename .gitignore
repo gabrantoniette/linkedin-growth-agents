@@ -45,6 +45,6 @@ Thumbs.db
 # means nothing outside the process that wrote it.
 .claude/.headroom_wrap_*
 
-# Benchmarks: ferramenta de medicao local, nao faz parte do que se publica.
-# Inclui o indice e o corpus sintetico que as rodadas escrevem.
+# Benchmarks: a local measurement tool, not part of what gets published.
+# Covers the index and the synthetic corpus that the runs write.
 benchmarks/

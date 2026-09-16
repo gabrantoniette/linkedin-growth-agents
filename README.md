@@ -344,7 +344,7 @@ content/                      what the system produces (out of git)
   metrics.csv                 filled in by you
 
 references/                   supporting material, read-only (produces nothing)
-  kb-linkedin-publicacao.md   days, frequency and format, from six studies
+  kb-linkedin-publishing.md   days, frequency and format, from six studies
   kb-visual-formats.md        formats, design and video across four platforms
   hooks.md                    hook formulas, one per pillar
   linkedin-algorithm.md       per-post format checklist

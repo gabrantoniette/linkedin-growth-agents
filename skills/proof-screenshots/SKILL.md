@@ -65,13 +65,13 @@ URL that loaded, the page title and the time. That is the image's provenance.
 
 ```yaml
 - layout: image
-  headline: "A frase que a captura prova"
+  headline: "The sentence the capture proves"
   image: media/<slug>/screens/<name>.png
   frame: browser            # prints the address above the capture
   url: https://example.org/the/real/page
   fit: contain              # the frame takes the capture's proportions
-  alt: "O que a imagem mostra, incluindo o texto que importa, até 300 caracteres"
-  source: "nome do site ou da página"
+  alt: "What the image shows, including any text that matters, at most 300 characters"
+  source: "the name of the site or the page"
 ```
 
 Use `fit: cover` only for a capture taller than the space it gets, when showing

@@ -59,28 +59,28 @@ source_post: posts/2026-09-04-topic.md
 slides: 8
 ---
 
-## Legenda (pt-BR)
+## Caption (pt-BR)
 
 (the caption)
 
-## Título do documento
+## Document title
 
 (the title; carousel only)
 
-## Primeiro comentário
+## First comment
 
 (the links)
 
-## Texto alternativo
+## Alt text
 
 (alt text; image posts, and one line per screenshot slide)
 
-## Como publicar
+## How to publish
 
-1. LinkedIn: Começar publicação > Adicionar documento, e envie `content/media/<slug>/carousel.pdf`.
-2. Título do documento: (the title).
-3. Cole a legenda e publique.
-4. Comente o link logo depois.
+1. LinkedIn: "Começar publicação" > "Adicionar documento", and upload `content/media/<slug>/carousel.pdf`.
+2. Document title: (the title).
+3. Paste the caption and publish.
+4. Post the link as a comment right after.
 ```
 
 For an image post the first step uploads `image.png` through "Adicionar mídia";

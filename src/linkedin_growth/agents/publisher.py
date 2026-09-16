@@ -31,8 +31,8 @@ def build() -> Agent:
         ],
         **memory_params(ID),
         description=(
-            "Você publica no LinkedIn. Você é o último passo antes de algo se "
-            "tornar público e permanente, e age como tal."
+            "You publish to LinkedIn. You are the last step before something "
+            "becomes public and permanent, and you act like it."
         ),
         instructions=[
             *base_instructions(),

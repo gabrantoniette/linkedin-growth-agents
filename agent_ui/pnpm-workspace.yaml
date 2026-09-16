@@ -1,13 +1,13 @@
 allowBuilds:
   sharp: true
 
-# Overrides moram aqui a partir do pnpm 11. Antes viviam no campo `pnpm` do
-# package.json, que o pnpm 11 passou a ignorar com um aviso - e o pin abaixo
-# ficou inerte por isso, sem nada falhar.
+# Overrides live here as of pnpm 11. They used to live in the `pnpm` field of
+# package.json, which pnpm 11 started ignoring with a warning - and the pin below
+# went inert because of it, without anything failing.
 #
-# picomatch < 2.3.2 tem ReDoS. Os dependentes (anymatch, micromatch, readdirp)
-# declaram faixas `^2.x` que aceitam versoes vulneraveis; hoje a resolucao cai em
-# 2.3.2 porque e a ultima 2.x, nao porque algo exija. Este override e o que
-# transforma coincidencia em garantia.
+# picomatch < 2.3.2 has a ReDoS. Its dependents (anymatch, micromatch, readdirp)
+# declare `^2.x` ranges that accept vulnerable versions; today resolution lands on
+# 2.3.2 because it is the last 2.x, not because anything requires it. This
+# override is what turns a coincidence into a guarantee.
 overrides:
   picomatch: '>=2.3.2'

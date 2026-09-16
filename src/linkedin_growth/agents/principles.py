@@ -245,7 +245,7 @@ PLATFORM_LIMITS = [
     "carousels, images and short videos, in content/media/, and the user "
     "uploads them by hand in LinkedIn's composer. A document carousel is the "
     "highest-engagement format on the platform (references/kb-visual-formats.md "
-    "section 2, references/kb-linkedin-publicacao.md section 5), so recommend "
+    "section 2, references/kb-linkedin-publishing.md section 5), so recommend "
     "one when the content suits it, and say who does what. Never plan media as "
     "if `linkedin publish` could send it.",
     "The system CANNOT read post metrics through the API: LinkedIn restricts "

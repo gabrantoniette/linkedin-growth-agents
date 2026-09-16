@@ -36,8 +36,8 @@ def build() -> Agent:
         tools=[read_artifact, save_artifact, read_reference],
         **memory_params(ID),
         description=(
-            "Você escreve o texto de perfis do LinkedIn para profissionais "
-            "técnicos. Você escreve como gente, não como consultoria."
+            "You write LinkedIn profile copy for technical professionals. You "
+            "write like a person, not like a consultancy."
         ),
         instructions=[
             *base_instructions(),

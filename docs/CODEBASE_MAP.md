@@ -206,7 +206,7 @@ Helpers: `_run_agent` (loops on `output.is_paused` with `Confirm.ask`), `_warn_i
 |--------------|-------|---------------------|--------|--------|
 | Profile Diagnosis (`diagnosis.py`) | main | `broad_search`, `save_artifact` | `content/diagnosis.md` | 562 |
 | Profile Writer (`profile_writer.py`) | main | artifacts, `read_reference` (`headline-formulas.md`) | `content/optimized_profile.md` | 688 |
-| Content Strategist (`strategist.py`) | main | artifacts, references (`kb-linkedin-publicacao.md`), searches 3 past sessions | `content/strategy.md` | 1,000 |
+| Content Strategist (`strategist.py`) | main | artifacts, references (`kb-linkedin-publishing.md`), searches 3 past sessions | `content/strategy.md` | 1,000 |
 | Researcher (`researcher.py`) | fast | `recent_search` (last week, news), `today` | nothing | 648 |
 | Editorial Planner (`planner.py`) | main | artifacts, references, posts knowledge via `build_retriever` | `content/calendar/YYYY-Wxx.md` | 1,140 |
 | Writer (`writer.py`) | main | `read_artifact`, references (`hooks.md`), voice knowledge via `build_retriever` | nothing (the Editor saves) | 751 |
@@ -318,10 +318,10 @@ Read whole through `read_reference` (progressive disclosure) and never indexed. 
 | File | Content | Used by | Tokens |
 |------|---------|---------|--------|
 | `kb-visual-formats.md` | carousel, image and video evidence and specs | Designer, Planner, `principles.DESIGN_RULES`; cited in comments across `studio/` | 9,208 |
-| `kb-linkedin-publicacao.md` | studies on posting day, time, frequency and format (pt-BR) | Planner, Strategist, `principles.PLATFORM_LIMITS` | 7,129 |
+| `kb-linkedin-publishing.md` | studies on posting day, time, frequency and format | Planner, Strategist, `principles.PLATFORM_LIMITS` | 7,129 |
 | `hooks.md` | 20 hook formulas mapped to the five pillars | Writer | 3,231 |
 | `linkedin-algorithm.md` | per-post format checklist | Editor, `principles.WRITING_RULES` | 1,314 |
-| `ai-vocabulary.md` | words and habits that read as AI-written (pt-BR) | Editor, for the VOICE criterion | 884 |
+| `ai-vocabulary.md` | words and habits that read as AI-written (pt-BR examples) | Editor, for the VOICE criterion | 884 |
 | `headline-formulas.md` | profile headline formula and antipatterns | Profile Writer | 828 |
 
 ### Web UI (`agent_ui/`)

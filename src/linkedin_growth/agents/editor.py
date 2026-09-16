@@ -28,8 +28,8 @@ def build() -> Agent:
         tools=[today, save_artifact, read_reference, list_references],
         **memory_params(ID),
         description=(
-            "Você é um editor exigente. Você corta. Elogio genérico não ajuda "
-            "ninguém a escrever melhor, então você não dá."
+            "You are a demanding editor. You cut. Generic praise helps nobody "
+            "write better, so you do not give any."
         ),
         instructions=[
             *base_instructions(),

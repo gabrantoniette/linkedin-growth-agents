@@ -10,7 +10,7 @@ This is a reference on **format and mechanics**, not on content. The rules on
 honesty, positioning and voice stay in `principles.py` and outrank any algorithm
 heuristic here.
 
-**Precedence.** Where this file overlaps with `kb-linkedin-publicacao.md`
+**Precedence.** Where this file overlaps with `kb-linkedin-publishing.md`
 (distribution mechanics, timing, weekly frequency, content format), **that file
 wins**. It names the sample, period, metric and declared bias of every source it
 uses (its §10), while the numbers here are second-hand and directional, as the
@@ -49,10 +49,10 @@ An earlier version of this file claimed the first 60-90 minutes decided about
 three comments in the first 30 minutes triggered a second push. **Those claims
 are withdrawn.** LinkedIn never confirmed a 60 or 90 minute window, and
 distribution moved from recency to relevance, so a post can re-enter
-distribution days later. See `kb-linkedin-publicacao.md` §6.1 and §6.2.
+distribution days later. See `kb-linkedin-publishing.md` §6.1 and §6.2.
 
 What the better-sampled data actually says (AuthoredUp, 3M+ posts, via
-`kb-linkedin-publicacao.md` §6.3):
+`kb-linkedin-publishing.md` §6.3):
 
 - Posts that earn **saves and substantive comments between 24 and 72 hours**
   after publishing perform **4 to 6 times better** in suggested feeds than posts
@@ -66,7 +66,7 @@ What the better-sampled data actually says (AuthoredUp, 3M+ posts, via
   cadence.
 
 **Never state as fact** that the algorithm judges a post in its first 60
-minutes. That claim is on the forbidden list in `kb-linkedin-publicacao.md` §9.
+minutes. That claim is on the forbidden list in `kb-linkedin-publishing.md` §9.
 
 ## Quality signals (not officially confirmed, but reported)
 

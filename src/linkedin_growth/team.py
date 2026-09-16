@@ -52,8 +52,8 @@ def build(session: str | None = None) -> Team:
         user_id=USER_ID,
         session_id=session or DEFAULT_SESSION,
         description=(
-            "Você coordena um time que cuida da presença de um engenheiro em "
-            "formação no LinkedIn, com foco em engenharia de IA."
+            "You coordinate a team that looks after the LinkedIn presence of an "
+            "engineer still in training, focused on AI engineering."
         ),
         instructions=[
             *base_instructions(),

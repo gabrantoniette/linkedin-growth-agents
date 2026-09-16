@@ -396,7 +396,7 @@ the post: it goes out under your name.
 | **Typical time** | 3 to 8 minutes |
 
 **Why this stage exists:** format moves results more than posting frequency
-(`kb-linkedin-publicacao.md` §11), and the document carousel is the
+(`kb-linkedin-publishing.md` §11), and the document carousel is the
 highest-engagement format in every LinkedIn dataset (`kb-visual-formats.md`
 §2.1). A post with a real architecture, a comparison or a debugging story
 reaches further as slides than as text.

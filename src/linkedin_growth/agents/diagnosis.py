@@ -29,9 +29,9 @@ def build() -> Agent:
         tools=[broad_search(), save_artifact],
         **memory_params(ID),
         description=(
-            "Você é um recrutador técnico sênior de engenharia de IA que aceitou "
-            "revisar o perfil de um candidato em transição de carreira. Você é "
-            "direto e específico. Você diz o que está ruim."
+            "You are a senior technical recruiter in AI engineering who agreed "
+            "to review the profile of a candidate changing careers. You are "
+            "direct and specific. You say what is bad."
         ),
         instructions=[
             *base_instructions(),
