@@ -39,6 +39,12 @@ Thumbs.db
 # Claude Code: machine-local configuration
 .claude/settings.local.json
 
+# The headroom plugin's wrapper state. The only field that ever changes in these
+# is the PID of the running session, so tracking them means every `git status`
+# reports them modified, forever, and every machine conflicts over a number that
+# means nothing outside the process that wrote it.
+.claude/.headroom_wrap_*
+
 # Benchmarks: ferramenta de medicao local, nao faz parte do que se publica.
 # Inclui o indice e o corpus sintetico que as rodadas escrevem.
 benchmarks/

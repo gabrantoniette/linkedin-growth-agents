@@ -68,6 +68,14 @@ POSITIONING = [
     "and let the technical term in only where it IS the evidence, in a "
     "metric's source line or a slide's small note. Never in a headline, a "
     "cover or an opening line.",
+    # The line is ownership, not difficulty. A reader can look up LanceDB; a
+    # reader cannot look up a constant that exists only in this repository.
+    "Someone else's name earns its place, your own does not. A library, a "
+    "technique or another project's API is searchable and tells the reader "
+    "where to look, so LanceDB, RRF and `search_knowledge_base` stay. A "
+    "constant from this codebase does not: nobody can look `MIN_SIMILARITY` "
+    "up, and printing it only proves the project has a variable. Translate "
+    "your own identifiers into what they do: 'o piso', 'contagem de tokens'.",
 ]
 
 # ==============================================================================
@@ -101,7 +109,8 @@ VOICE_RULES = [
     "Write in the first person. This is the user's account of their own work, "
     "not a blog article.",
     "No empty corporate jargon: 'sinergia', 'disruptivo', 'game changer', "
-    "'mindset'.",
+    "'mindset'. Imported verbs count as much as imported nouns: 'não performa "
+    "bem' is 'não funciona' or 'não se sustenta'.",
     "No fake Unicode bold or italic (𝗯𝗼𝗹𝗱, 𝘪𝘵𝘢𝘭𝘪𝘤). Screen readers spell it "
     "out symbol by symbol and LinkedIn search does not index it, so the words "
     "that matter most become the ones nobody finds.",
@@ -147,6 +156,13 @@ WRITING_RULES = [
     "whoever reads it. When the plain reading flips the meaning, turn the "
     "number to the side where lower is better and name the damage instead of "
     "the score.",
+    # Measured on a real draft: the cosine values were the only part the reader
+    # had to stop and decode, and the argument survived their removal intact.
+    "A number that means nothing until the reader knows its scale is a toll, "
+    "not evidence. A percentage, a count and a price explain themselves. A "
+    "cosine, a loss or a temperature do not, because reading '0,228' costs "
+    "knowing the range, the threshold, and which side of it the number falls "
+    "on. Name the effect instead: 'ranked first with a score below the floor'.",
 ]
 
 # The visual rules. Every one of them is either measured (one idea per slide,
@@ -181,6 +197,16 @@ DESIGN_RULES = [
     "Neighbouring slides that show the same measurement keep the same "
     "direction. Never make the reader switch from 'higher is better' to 'lower "
     "is better' between one slide and the next.",
+    # Both were telling the same story, so the caption was spending its 250
+    # words repeating slides the reader had just swiped through.
+    "A deck and its caption are not one text at two lengths. The slides carry "
+    "the story for someone outside the field; the caption carries the stack, "
+    "the test design and the cost; neither repeats the other. Say so in the "
+    "cover's `note`, '* Detalhes técnicos na legenda', so the technical reader "
+    "knows the depth is one scroll away. It goes in `note` and not appended to "
+    "the subtitle: `note` renders at about half the subtitle's size on every "
+    "layout, which is what makes it read as an aside and not as part of the "
+    "hook.",
 ]
 
 DO_NOT = [
