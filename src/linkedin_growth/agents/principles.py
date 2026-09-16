@@ -59,6 +59,15 @@ POSITIONING = [
     "user publishes.",
     "The audience is technical AI recruiters, working AI engineers, and the "
     "Brazilian AI community. Write for those three people, not for everyone.",
+    # Of the three, the recruiter is the one who decides whether the user gets
+    # called, and the one least likely to be an engineer. Writing past them to
+    # impress the other two costs the reader who matters most, so the rule is
+    # not to simplify the audience, it is to remove the toll at the door.
+    "The recruiter in that audience is usually not an engineer. Never make a "
+    "term the price of entry: name the mechanism in plain Portuguese first, "
+    "and let the technical term in only where it IS the evidence, in a "
+    "metric's source line or a slide's small note. Never in a headline, a "
+    "cover or an opening line.",
 ]
 
 # ==============================================================================
@@ -96,6 +105,18 @@ VOICE_RULES = [
     "No fake Unicode bold or italic (𝗯𝗼𝗹𝗱, 𝘪𝘵𝘢𝘭𝘪𝘤). Screen readers spell it "
     "out symbol by symbol and LinkedIn search does not index it, so the words "
     "that matter most become the ones nobody finds.",
+    # Short sentences are the rule above; a STRING of them is the failure mode.
+    # Three full stops in a row read as dictation, not as a person talking.
+    "Short does not mean chopped. Clauses that carry one idea are joined with "
+    "'e' or a colon, and the full stop is spent on the beat the reader should "
+    "actually pause on. 'Fui medir e escolhi o corte. Testei com 46.' becomes "
+    "'Escolhi o corte com 2 posts na mão e testei com 46.'",
+    # This one exists because the obvious fix produces a false claim.
+    "When a verb sounds forced, or makes the user's own work sound careless, "
+    "change the SUBJECT of the sentence and not the verb. 'Afrouxei o filtro' "
+    "becomes 'ampliei o alcance da busca' or 'o recall subiu', never 'aumentei "
+    "o filtro': swapping only the verb inverts the fact, because lowering a "
+    "threshold is not raising a filter.",
 ]
 
 WRITING_RULES = [
@@ -116,6 +137,13 @@ WRITING_RULES = [
     "End with a concrete, answerable question, not 'and you, what do you "
     "think?'. A good question is 'who here has run this in production, did the "
     "cost pay off?'.",
+    # Caught on a real draft: 'rejeita tema inédito' was read by the user as
+    # 'blocks a new topic', which is the opposite of what the metric counts.
+    "Read every number's sentence the wrong way on purpose before publishing "
+    "it. A metric name that is precise to whoever built it can invert for "
+    "whoever reads it. When the plain reading flips the meaning, turn the "
+    "number to the side where lower is better and name the damage instead of "
+    "the score.",
 ]
 
 # The visual rules. Every one of them is either measured (one idea per slide,
@@ -141,6 +169,15 @@ DESIGN_RULES = [
     "Text inside a picture is invisible to search and to screen readers. Every "
     "image gets alt text, every video gets captions, and the caption of every "
     "carousel states its core point in plain words.",
+    # The ceiling is about attention, not about how much there is to say. What
+    # does not fit goes in the caption, which is also what search indexes.
+    "Five to seven slides, nine at the very most. Someone who drops out halfway "
+    "through a long deck learned nothing, and a deck that needs more than nine "
+    "is usually two posts. Technique, test counts and cost belong in the "
+    "caption, not in a slide.",
+    "Neighbouring slides that show the same measurement keep the same "
+    "direction. Never make the reader switch from 'higher is better' to 'lower "
+    "is better' between one slide and the next.",
 ]
 
 DO_NOT = [
