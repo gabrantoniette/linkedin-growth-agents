@@ -201,9 +201,12 @@ DESIGN_RULES = [
     # words repeating slides the reader had just swiped through.
     "A deck and its caption are not one text at two lengths. The slides carry "
     "the story for someone outside the field; the caption carries the stack, "
-    "the test design and the cost; neither repeats the other. Say so on the "
-    "cover, 'Detalhes técnicos na legenda', so the technical reader knows the "
-    "depth is one scroll away.",
+    "the test design and the cost; neither repeats the other. Say so in the "
+    "cover's `note`, '* Detalhes técnicos na legenda', so the technical reader "
+    "knows the depth is one scroll away. It goes in `note` and not appended to "
+    "the subtitle: `note` renders at about half the subtitle's size on every "
+    "layout, which is what makes it read as an aside and not as part of the "
+    "hook.",
 ]
 
 DO_NOT = [
