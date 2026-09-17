@@ -50,9 +50,7 @@ LITTLE_RESERVED = set(r"\|{}@[]()<>#*_~")
 _HASHTAG = re.compile(r"(?<![\w#])#([0-9A-Za-zÀ-ÖØ-öø-ÿ]+)")
 
 
-# ==============================================================================
 # Text formatting
-# ==============================================================================
 
 
 def escape_little(text: str) -> str:
@@ -76,9 +74,7 @@ def to_little(text: str) -> str:
     return "".join(parts)
 
 
-# ==============================================================================
 # HTTP client
-# ==============================================================================
 
 
 def _headers(*, versioned: bool) -> dict[str, str]:
@@ -119,9 +115,7 @@ def member_urn() -> str:
     return f"urn:li:person:{sub}"
 
 
-# ==============================================================================
 # Payload assembly
-# ==============================================================================
 
 
 def rest_payload(text: str, author: str, visibility: str = "PUBLIC") -> dict[str, Any]:
@@ -171,9 +165,7 @@ def preview(text: str, visibility: str = "PUBLIC") -> str:
     )
 
 
-# ==============================================================================
 # Publishing
-# ==============================================================================
 
 
 def _post_url(response: httpx.Response) -> str:
@@ -233,9 +225,7 @@ def publish(text: str, visibility: str = "PUBLIC") -> dict[str, Any]:
     }
 
 
-# ==============================================================================
 # Tools exposed to the agents
-# ==============================================================================
 
 
 @tool(requires_confirmation=True)

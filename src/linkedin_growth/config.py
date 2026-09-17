@@ -23,31 +23,23 @@ if TYPE_CHECKING:
 
 load_dotenv()
 
-# ==============================================================================
 # Paths
-# ==============================================================================
-# config.py lives in src/linkedin_growth/, so the project root is two levels
-# above the package.
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[2]  # two levels above this package
 
 PROFILE_DIR = ROOT / "profile"
 EXPORT_DIR = PROFILE_DIR / "linkedin_export"
 PROFILE_YAML = PROFILE_DIR / "profile.yaml"
 VOICE_MD = PROFILE_DIR / "voice.md"
-# Optional, hand-written: the name, tagline, photo and theme on every slide.
-BRAND_YAML = PROFILE_DIR / "brand.yaml"
+BRAND_YAML = PROFILE_DIR / "brand.yaml"  # optional: name, tagline, photo, theme
 
 CONTENT_DIR = ROOT / "content"
 CALENDAR_DIR = CONTENT_DIR / "calendar"
 POSTS_DIR = CONTENT_DIR / "posts"
 METRICS_CSV = CONTENT_DIR / "metrics.csv"
-# What the Post Designer produces, one folder per post: the carousel PDF, the
-# slide PNGs, the video, the screenshots and the caption for that format.
-MEDIA_DIR = CONTENT_DIR / "media"
+MEDIA_DIR = CONTENT_DIR / "media"  # Post Designer output: PDF, PNGs, video, caption
 
 REFERENCES_DIR = ROOT / "references"
-# Agent Skills (SKILL.md folders), loaded by Agno's `LocalSkills`.
-SKILLS_DIR = ROOT / "skills"
+SKILLS_DIR = ROOT / "skills"  # SKILL.md folders, loaded by Agno's `LocalSkills`
 
 TMP_DIR = ROOT / "tmp"
 DB_FILE = TMP_DIR / "linkedin_growth.db"
@@ -68,9 +60,7 @@ def ensure_directories() -> None:
         directory.mkdir(parents=True, exist_ok=True)
 
 
-# ==============================================================================
 # Secrets
-# ==============================================================================
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 LINKEDIN_ACCESS_TOKEN = os.getenv("LINKEDIN_ACCESS_TOKEN")
 LINKEDIN_VERSION = os.getenv("LINKEDIN_VERSION", "202609")
@@ -108,40 +98,20 @@ def require_linkedin() -> str:
     return LINKEDIN_ACCESS_TOKEN
 
 
-# ==============================================================================
 # Models
-# ==============================================================================
-# Opus 5 for work that needs judgement (strategy, diagnosis, editing).
-# Sonnet 5 for high-volume, more mechanical work (research, first drafts).
+# Opus 5: judgement work (strategy, diagnosis, editing). Sonnet 5: mechanical
+# work (research, first drafts).
 MAIN_MODEL = os.getenv("MAIN_MODEL", "claude-opus-5")
 FAST_MODEL = os.getenv("FAST_MODEL", "claude-sonnet-5")
 
-# Agno defaults to 8192, and that is too little for this system. These agents
-# write a long document and then call `save_artifact` with the whole document
-# as an argument. At 8192 the text alone eats the budget: the response is cut
-# mid-sentence, the tool call never happens, and the file is never created,
-# while the model has already written "report saved". An expensive, silent
-# failure.
-#
-# 16000 is the recommended value for a non-streaming request, which is what
-# happens here (`agent.run()`). Opus 5 and Sonnet 5 accept up to 128000, but
-# going past this without streaming runs into the SDK's HTTP timeout.
+# Agno's 8192 default is too low: agents write a long document, then pass the
+# whole thing to `save_artifact`, and get cut off mid-sentence before the tool
+# call happens. 16000 is the max recommended for a non-streaming `agent.run()`.
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "16000"))
 
 
 def model(model_id: str | None = None) -> Claude:
-    """Instantiate the Claude model the agents use, with prompt caching on.
-
-    Every turn of a tool loop resends the tools, the system prompt and the
-    conversation so far. Uncached, each resend bills at the full input price;
-    cached, a read costs about a tenth of it. The Post Designer makes around ten
-    model calls per run.
-
-    Two breakpoints: `cache_system_prompt` marks the system prompt (the tools
-    render before it, so they are covered too), and the top-level
-    `cache_control` is Anthropic's automatic breakpoint, which lands on the last
-    block of each request and moves forward as the conversation grows.
-    """
+    """Instantiate the Claude model the agents use, with prompt caching on."""
     return Claude(
         id=model_id or MAIN_MODEL,
         api_key=require_anthropic(),
@@ -151,16 +121,9 @@ def model(model_id: str | None = None) -> Claude:
     )
 
 
-# ==============================================================================
 # Shared database (agent sessions, history and memory)
-# ==============================================================================
-# This is the `BaseDb` half of storage: sessions, run history, user memories.
-# It is NOT interchangeable with the vector database below. `SqliteDb` and
-# `LanceDb` implement disjoint interfaces (`agno.db.base.BaseDb` versus
-# `agno.vectordb.base.VectorDb`) and answer different questions: this one keeps
-# *what happened in the conversation*, the other one keeps *documents to search
-# by similarity*. Agents, teams, workflows, AgentOS and the memory manager all
-# want this one.
+# `BaseDb`, not `VectorDb`: this keeps conversation state, the vector db below
+# keeps documents for similarity search. Disjoint interfaces, not interchangeable.
 _db: SqliteDb | None = None
 
 
@@ -173,22 +136,11 @@ def db() -> SqliteDb:
     return _db
 
 
-# ==============================================================================
 # Embedder
-# ==============================================================================
-# Anthropic has no embeddings API, so the embedder has to come from somewhere
-# else. FastEmbed runs locally on ONNX: no second API key, no daemon, and it
-# keeps the project's "one key and `uv sync`" promise.
-#
-# The model is multilingual on purpose. The corpus is bilingual: `content/` and
-# `voice.md` are pt-BR while `references/` is English, and the user asks in
-# Portuguese. FastEmbed's default (`BAAI/bge-small-en-v1.5`) is English-first
-# and would degrade badly on all of it. This one covers ~50 languages at the
-# same 384 dimensions and 220MB on disk.
-#
-# The model file downloads on first use, not at install. Expect the first
-# `linkedin index` to take a couple of minutes; every run after that is local
-# and free.
+# FastEmbed runs locally (no second API key needed, since Anthropic has no
+# embeddings API). Multilingual model on purpose: the corpus mixes pt-BR
+# (`content/`, `voice.md`) and English (`references/`). Downloads on first use,
+# so the first `linkedin index` takes a couple of minutes.
 EMBEDDER_MODEL = os.getenv(
     "EMBEDDER_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 )
@@ -198,12 +150,9 @@ _embedder: FastEmbedEmbedder | None = None
 
 
 def embedder() -> FastEmbedEmbedder:
-    """The embedder shared by every knowledge base.
-
-    Both tables must use the same one: an embedding is only comparable to
-    another produced by the same model, so mixing them silently returns
-    nonsense rather than an error.
-    """
+    """The embedder shared by every knowledge base (mixing models silently
+    breaks similarity search, since embeddings are only comparable within
+    the same model)."""
     from agno.knowledge.embedder.fastembed import FastEmbedEmbedder
 
     global _embedder
@@ -214,21 +163,10 @@ def embedder() -> FastEmbedEmbedder:
     return _embedder
 
 
-# ==============================================================================
 # Vector databases (knowledge retrieval)
-# ==============================================================================
-# The `VectorDb` half: embedded documents, searched by similarity.
-#
-# There are two tables, not one, because the two use cases want different
-# search types and `search_type` is fixed per instance, not per query:
-#
-#   posts -> hybrid. "Have I written about this already?" needs both halves.
-#            Vector alone collapses "Opus 5" and "Sonnet 5" into the same point
-#            and reports a duplicate that isn't one; keyword alone misses the
-#            paraphrase ("why my API bill tripled" vs "inference cost").
-#   voice -> vector. Here the question is which past posts *sound* like this
-#            topic. BM25 would promote whatever repeats the topic's words, which
-#            is unrelated to whether it reads like the user.
+# Two tables because `search_type` is fixed per instance: posts use hybrid
+# (dedup needs both keyword and vector matches), voice uses pure vector
+# (tone matching cares about *how* something sounds, not shared keywords).
 LANCEDB_URI = TMP_DIR / "lancedb"
 
 _posts_vector_db: LanceDb | None = None
@@ -267,21 +205,12 @@ def voice_vector_db() -> LanceDb:
     return _voice_vector_db
 
 
-# ==============================================================================
 # Knowledge bases
-# ==============================================================================
-# `Knowledge` is the layer the agents actually touch: it owns chunking, reading
-# files and the `search_knowledge_base` tool. It wraps a vector db for the
-# embeddings and `contents_db` for tracking what was already indexed, which is
-# what makes re-running `linkedin index` cheap instead of re-embedding
-# everything.
-#
-# `name` is not decoration: Agno scopes the `contents_db` rows by it
-# (`linked_to`), so the two bases share one SQLite file without mixing.
-#
-# Both are built lazily. Constructing a `Knowledge` calls `vector_db.create()`
-# in `__post_init__`, so doing this at module level would create tables just by
-# importing this file.
+# `Knowledge` wraps a vector db plus `contents_db`, which tracks what's already
+# indexed so re-running `linkedin index` doesn't re-embed everything. `name`
+# scopes the `contents_db` rows so both bases can share one SQLite file.
+# Built lazily: `Knowledge.__post_init__` creates tables on construction, so
+# doing this at import time would create them just by importing the module.
 _posts_knowledge: Knowledge | None = None
 _voice_knowledge: Knowledge | None = None
 
@@ -321,28 +250,18 @@ def voice_knowledge() -> Knowledge:
     return _voice_knowledge
 
 
-# ==============================================================================
 # Memory
-# ==============================================================================
-# The system serves one person, but Agno indexes memory by `user_id`. Without a
-# fixed id everything would land in an anonymous bucket and nothing would be
-# retrievable, so it exists, and it is configurable for anyone who clones the
-# project.
+# Single-user system, but Agno indexes memory by `user_id`, so one is fixed
+# here (configurable for anyone else who clones the project).
 USER_ID = os.getenv("USER_ID", "user")
 
-# The CLI's default conversation. A stable id is what makes today's
-# `linkedin chat` continue yesterday's: without it Agno draws a fresh session
-# every process and the history starts from zero.
+# Stable id so today's `linkedin chat` continues yesterday's conversation.
 DEFAULT_SESSION = os.getenv("DEFAULT_SESSION", "main")
 
 
 def agent_session(agent_id: str) -> str:
-    """The stable session of a CLI agent.
-
-    Each command (`diagnose`, `strategy`, ...) gets its own, so an agent sees
-    its own earlier runs without mixing them with the other agents' or with the
-    team's conversation.
-    """
+    """Stable per-command session id, so each CLI agent sees its own history
+    without mixing it with other agents' or the team's."""
     return f"cli-{agent_id}"
 
 
@@ -350,19 +269,12 @@ _memory: MemoryManager | None = None
 
 
 def memory() -> MemoryManager:
-    """The long-term memory manager, shared by the whole system.
-
-    It runs on the fast model on purpose: distilling one sentence out of what
-    was just said is mechanical work, and that call happens at the end of every
-    conversation.
-
-    `delete_memories` and `clear_memories` stay off: erasing memory is the
-    user's decision, through the `linkedin memory` command, not a model's in the
-    middle of a conversation.
-    """
-    # Late import: `principles` lives inside the `agents` package, whose
-    # `__init__` imports the agents, which import this module. At the top of the
-    # file this would be a cycle.
+    """The long-term memory manager, shared by the whole system. Runs on the
+    fast model since distilling a sentence per turn is mechanical work.
+    `delete_memories`/`clear_memories` stay off: erasing memory is the user's
+    call via `linkedin memory`, not a model's mid-conversation."""
+    # Late import to avoid a cycle: `agents/__init__` imports the agents,
+    # which import this module.
     from linkedin_growth.agents.principles import memory_instructions
 
     global _memory
@@ -380,18 +292,10 @@ def memory() -> MemoryManager:
 
 
 def memory_params(agent_id: str) -> dict[str, object]:
-    """The memory parameters every agent receives, in one place.
-
-    They live here rather than repeated across eight files for the same reason
-    the principles live in `principles.py`: when the policy changes, it changes
-    in one place.
-
-    The division of labour is deliberate: **the agents read memory, the team
-    writes it.** A CLI agent always receives the same canned command, so it
-    almost never learns anything new about the user. Extracting memory at the
-    end of every run would be one more model call to store nothing. It is in
-    conversation, in the `Team`, that the user tells you things.
-    """
+    """Memory parameters every agent receives, in one place so the policy
+    changes once instead of in eight files. Agents read memory, only the
+    Team writes it: CLI agents run canned commands and rarely learn anything
+    new, so extracting memory after each would just be a wasted model call."""
     return {
         "db": db(),
         "user_id": USER_ID,

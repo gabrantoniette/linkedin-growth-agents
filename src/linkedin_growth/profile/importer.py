@@ -44,9 +44,7 @@ from linkedin_growth.profile.schema import (
 MAX_VOICE_POSTS = 25
 
 
-# ==============================================================================
 # Normalization
-# ==============================================================================
 
 
 def _normalize(text: str) -> str:
@@ -67,9 +65,7 @@ def _value(row: dict[str, str], *synonyms: str) -> str | None:
     return None
 
 
-# ==============================================================================
 # CSV reading
-# ==============================================================================
 
 
 def _csv_rows(path: Path, expected_columns: Iterable[str]) -> list[dict[str, str]]:
@@ -166,9 +162,7 @@ def _map_files(folder: Path) -> tuple[dict[str, Path], list[Path]]:
     return recognized, ignored
 
 
-# ==============================================================================
 # Extractors, one per section
-# ==============================================================================
 
 
 def _extract_identity(rows: list[dict[str, str]], profile: Profile) -> None:
@@ -306,9 +300,7 @@ def _extract_posts(rows: list[dict[str, str]]) -> list[PastPost]:
     return posts[:MAX_VOICE_POSTS]
 
 
-# ==============================================================================
 # Entry point
-# ==============================================================================
 
 
 def import_profile(folder: Path | None = None) -> tuple[Profile, Report]:

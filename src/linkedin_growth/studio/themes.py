@@ -35,40 +35,26 @@ from pathlib import Path
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 FONTS_DIR = ASSETS_DIR / "fonts"
 
-# ==============================================================================
-# Canvas
-# ==============================================================================
-# 1080x1350 is 4:5 portrait. It is the tallest ratio LinkedIn and Instagram show
-# uncropped in the mobile feed, so it takes the most screen, and LinkedIn
-# requires every page of a document to share one size. kb-visual-formats.md §3.
+# Canvas: 4:5 is the tallest ratio LinkedIn/Instagram show uncropped in the
+# mobile feed (kb-visual-formats.md §3).
 CAROUSEL_SIZE = (1080, 1350)
 
-# Video canvases. 4:5 for the LinkedIn feed; 9:16 for vertical surfaces (the
-# LinkedIn video feed, Reels, Threads), where the platform UI covers the top
-# 14% and the bottom 35% (Meta's unified safe zone, kb-visual-formats.md §6).
+# 9:16 for vertical surfaces, where UI covers the top 14%/bottom 35% (Meta's
+# safe zone, kb-visual-formats.md §6).
 VIDEO_SIZES = {
     "4:5": (1080, 1350),
     "9:16": (1080, 1920),
     "1:1": (1080, 1080),
 }
 
-# WCAG 2.2: text (§1.4.3), large text (24px regular, 18.66px bold) and the
-# graphical objects someone needs to see to understand the slide (§1.4.11).
+# WCAG 2.2 §1.4.3 (text) and §1.4.11 (graphical objects).
 MIN_TEXT_CONTRAST = 4.5
 MIN_LARGE_CONTRAST = 3.0
 MIN_GRAPHIC_CONTRAST = 3.0
 
 
-# ==============================================================================
-# Fonts
-# ==============================================================================
-# Two families, and each has one job. Both are under the SIL Open Font License,
-# which allows bundling; the licenses sit next to the files. Subset to Latin
-# (Portuguese needs nothing past Latin-1) and shipped as WOFF2, about 200KB.
-#
-# Bundled rather than fetched because a render has to look the same offline, on
-# CI and a year from now: a font that silently falls back to Arial is the most
-# common way a designed slide starts to look cheap.
+# Fonts: bundled (SIL OFL, subset to Latin, WOFF2 ~200KB) rather than fetched,
+# so a render can't silently fall back to Arial offline or on CI.
 
 
 @dataclass(frozen=True)
@@ -82,41 +68,31 @@ class Font:
 
 
 FONTS = (
-    # Everything that is language: headlines condensed (width 70-80%), body at
-    # normal width. One family whose width does the work two families usually
-    # do, and condensed headlines keep long Portuguese words ("requisição",
-    # "aplicações") on fewer lines at a size that still reads in the feed.
+    # Language text: variable width lets condensed headlines fit long
+    # Portuguese words ("requisição", "aplicações") without shrinking type.
     Font("Archivo", "Archivo-Variable.woff2", "100 900", "normal", "62% 125%"),
     Font("Archivo", "Archivo-Italic-Variable.woff2", "100 900", "italic", "62% 125%"),
-    # Everything that is machine text: code, terminal output, file paths, URLs.
-    # Never labels: a monospace label is decoration, a monospace path is data.
+    # Machine text only: code, terminal output, paths, URLs. Never labels.
     Font("IBM Plex Mono", "IBMPlexMono-Regular.woff2", "400"),
     Font("IBM Plex Mono", "IBMPlexMono-SemiBold.woff2", "600"),
 )
 
 
-# ==============================================================================
 # Themes
-# ==============================================================================
 
 
 @dataclass(frozen=True)
 class Theme:
     id: str
-    # The ground, and one step off it for listings, figures and diagram nodes.
-    paper: str
-    panel: str
-    # The alternate band inside a code listing, like green-bar printout paper.
-    band: str
+    paper: str  # the ground
+    panel: str  # one step off the ground, for listings/figures/diagram nodes
+    band: str  # alternate band inside a code listing, like green-bar paper
     ink: str
     pencil: str
-    # Lines that carry structure: the page scale, borders, connectors.
-    construction: str
-    # The printed grid: a texture, with a heavier line every five modules.
-    grid: str
-    grid_major: str
-    # The one accent. Measurements only.
-    measure: str
+    construction: str  # lines that carry structure: scale, borders, connectors
+    grid: str  # printed grid texture
+    grid_major: str  # heavier grid line every five modules
+    measure: str  # the one accent, for measurements only
     on_measure: str
     code: dict[str, str] = field(default_factory=dict)
 
@@ -139,10 +115,7 @@ class Theme:
 
     def text_pairs(self) -> dict[str, tuple[str, str]]:
         """Every (foreground, background) pair that carries text, by name.
-
-        The tests walk this, so a new color that holds text has to be added
-        here to be allowed at all.
-        """
+        The tests walk this, so a new text color must be added here."""
         pairs = {
             "ink on paper": (self.ink, self.paper),
             "pencil on paper": (self.pencil, self.paper),
@@ -232,9 +205,7 @@ def get_theme(theme_id: str | None) -> Theme:
     return THEMES.get(theme_id or DEFAULT_THEME, DRAFTING)
 
 
-# ==============================================================================
 # Contrast
-# ==============================================================================
 
 
 def _channel(value: int) -> float:
