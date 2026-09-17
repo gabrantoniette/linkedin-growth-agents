@@ -43,9 +43,7 @@ from linkedin_growth.studio.spec import Author, CodeSlide, VideoSpec, dump_spec,
 from linkedin_growth.studio.text import plain
 from linkedin_growth.studio.themes import VIDEO_SIZES
 
-# ==============================================================================
 # Timing
-# ==============================================================================
 
 # The longest entrance in studio.css (0.75s plus the last stagger) with a margin.
 ENTRANCE_SECONDS = 0.9
@@ -312,9 +310,7 @@ def to_srt(timeline: Timeline) -> str:
     return "\n".join(blocks)
 
 
-# ==============================================================================
 # ffmpeg
-# ==============================================================================
 
 _DURATION = re.compile(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)")
 
@@ -393,9 +389,7 @@ def _encode(
     return None
 
 
-# ==============================================================================
 # Rendering
-# ==============================================================================
 
 
 @dataclass

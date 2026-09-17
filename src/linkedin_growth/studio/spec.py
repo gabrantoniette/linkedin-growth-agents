@@ -2,21 +2,13 @@
 
 A spec is what the Post Designer writes and what a person edits by hand: YAML
 (JSON is valid YAML, so either works), one entry per slide, each slide naming
-its layout. Pydantic checks the shape. `text_errors` checks the rules that come
-from `principles.py` and would otherwise ship inside a public asset:
-
-- a `[PREENCHER: ...]` marker, the Writer's "I do not have this fact" flag. In a
-  post it is caught by the rubric and by `linkedin publish`; inside a PDF
-  nothing would catch it, and it would go out as-is.
-- an em dash, an en dash or '--' in prose: the tell VOICE_RULES bans first.
-  Code is exempt, because `--dry-run` is a flag and not a dash.
-
-Both are errors, not warnings: the render refuses, and the message names the
-slide and the field so the agent can fix exactly that and call again. The soft
+its layout. Pydantic checks the shape. `text_errors` blocks two things that
+would otherwise ship inside a public asset: a `[PREENCHER: ...]` placeholder,
+and a dash VOICE_RULES bans in prose (code is exempt). Both are hard errors,
+not warnings, so the agent gets pointed at the exact slide and field. Soft
 limits (words per slide, slide count) are warnings and live in `lint.py`.
 
-Every layout exists because a post needs it, and each one is a single idea with
-its evidence (the assertion-evidence structure, kb-visual-formats.md §4):
+Each layout is a single idea with its evidence (kb-visual-formats.md §4):
 
     cover      the hook; it is the thumbnail in the feed
     statement  one sentence, large
@@ -267,9 +259,7 @@ class VideoSpec(_Deck):
 Spec = Union[CarouselSpec, VideoSpec]
 
 
-# ==============================================================================
 # Loading
-# ==============================================================================
 
 
 def _location(loc: tuple[Any, ...]) -> str:
@@ -336,9 +326,7 @@ def dump_spec(spec: Spec) -> str:
     )
 
 
-# ==============================================================================
-# The rules that come from principles.py
-# ==============================================================================
+# Rules from principles.py
 
 # Fields that hold a path, a lexer name or code: none of them is prose.
 _NOT_PROSE = {

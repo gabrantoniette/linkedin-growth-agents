@@ -1,23 +1,9 @@
-"""What must never reach a public asset.
-
-Three guards, each for a mistake that is cheap to make and impossible to undo
-once the post is out:
-
-1. **Secrets in code.** A code slide is a screenshot of real work, and real work
-   has API keys in it. A key in a PDF is a key in the download folder of every
-   reader, forever: LinkedIn lets anyone download a document post. So code is
-   redacted before it is drawn, and the render says what it masked.
-
-2. **Private pages.** A screenshot tool that follows any URL will happily
-   photograph `localhost:7777`, a router admin page or an internal dashboard.
-   The strategy forbids posting internal systems (strategy.md, "what not to
-   post"); this makes it hard to do by accident.
-
-3. **LinkedIn itself.** The project's line is the official API and nothing
-   else: no scraping, no driven browser (README, "What can and cannot be
-   automated"). A headless browser pointed at linkedin.com is exactly that, so
-   it is refused, with the reason.
-"""
+"""What must never reach a public asset. Three guards, each for a mistake
+that is cheap to make and impossible to undo once the post is out: secrets
+in code slides (a PDF is downloadable forever), private pages (a screenshot
+tool that follows any URL will happily capture localhost or an internal
+dashboard), and LinkedIn itself (this project only talks to it through the
+official API, never a driven browser)."""
 
 from __future__ import annotations
 
@@ -28,10 +14,7 @@ import unicodedata
 from pathlib import Path
 from urllib.parse import urlsplit
 
-# ==============================================================================
-# Secrets
-# ==============================================================================
-# Specific formats first, then generic assignments. The generic ones mask only
+# Secrets: specific formats first, then generic assignments. The generic ones mask only
 # the value, so `api_key = "..."` still shows the reader where the key goes.
 
 _MASK = "••••••••"
@@ -99,10 +82,7 @@ def redact_secrets(text: str) -> tuple[str, list[str]]:
     return text, found
 
 
-# ==============================================================================
 # URLs
-# ==============================================================================
-
 BLOCKED_DOMAINS = ("linkedin.com", "lnkd.in", "licdn.com")
 _PRIVATE_SUFFIXES = (".local", ".internal", ".lan", ".home", ".corp", ".localhost")
 
@@ -172,9 +152,7 @@ def check_url(url: str, *, resolve: bool = True) -> str | None:
     return blocked_host_reason(parts.hostname, resolve=resolve)
 
 
-# ==============================================================================
 # Paths
-# ==============================================================================
 
 
 def confine(root: Path, relative: str) -> Path | None:

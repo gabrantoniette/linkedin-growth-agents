@@ -125,9 +125,7 @@ class ConvertResult:
         return "\n".join(lines)
 
 
-# ==============================================================================
 # Building the HTML
-# ==============================================================================
 
 
 def _redacted(text: str, result: ConvertResult) -> str:
@@ -306,9 +304,7 @@ def _images(paths: list[Path], *, theme: str, language: str, title: str, caption
     return Document(html=html, files=files, width=width, height=height, count=len(paths))
 
 
-# ==============================================================================
 # Printing
-# ==============================================================================
 
 _WAIT_FOR_ASSETS = """async () => {
   await document.fonts.ready;

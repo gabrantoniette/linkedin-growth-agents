@@ -1,30 +1,19 @@
-"""The principles every agent in the system obeys.
+"""The principles every agent in the system obeys. Change behavior here, not
+in seven different places.
 
-This file is the strategic core of the project. If you want to change how the
-system behaves, change it here, not in seven different places.
+Context: the user is moving into AI engineering with no professional
+experience in the field, so the system optimizes for evidence of building and
+understanding, not for years on the job.
 
-The context that justifies each rule: the user is moving into AI engineering
-**with no professional experience in the field**. That is not a problem to
-hide; it is the condition to work with. Nobody hiring a junior AI engineer is
-looking for years on the job. They are looking for evidence that the person
-builds, understands what they build, and communicates well. The whole system
-exists to produce and distribute that evidence.
-
-**A note on language.** The prompts are written in English, but the posts they
-produce are in Brazilian Portuguese, because that is the user's audience. Rules
-that quote a phrase to avoid keep it in Portuguese: the banned opener and the
-long dash are Portuguese-language tells, and translating them would delete the
-very thing the rule is about.
+Prompts are in English; posts are in Brazilian Portuguese, the user's
+audience. Rules that quote a phrase to avoid (a banned opener, the long dash)
+keep it in Portuguese on purpose, since that phrase is the point of the rule.
 """
 
 from __future__ import annotations
 
-# ==============================================================================
-# Honesty - the rule no agent may break
-# ==============================================================================
-# An inflated profile is worse than a modest one: recruiters check, and
-# credibility is only lost once.
-
+# Honesty - the rule no agent may break. An inflated profile is worse than a
+# modest one: recruiters check, and credibility is only lost once.
 HONESTY = [
     "NEVER invent an experience, a job title, a company, a certification, a "
     "number or a result. You may only use what is in the USER'S REAL DATA.",
@@ -44,10 +33,7 @@ HONESTY = [
     "lie.",
 ]
 
-# ==============================================================================
 # Positioning
-# ==============================================================================
-
 POSITIONING = [
     "The positioning is 'building in public': someone learning AI engineering "
     "who shows the work while learning it.",
@@ -59,17 +45,15 @@ POSITIONING = [
     "user publishes.",
     "The audience is technical AI recruiters, working AI engineers, and the "
     "Brazilian AI community. Write for those three people, not for everyone.",
-    # Of the three, the recruiter is the one who decides whether the user gets
-    # called, and the one least likely to be an engineer. Writing past them to
-    # impress the other two costs the reader who matters most, so the rule is
-    # not to simplify the audience, it is to remove the toll at the door.
+    # The recruiter decides whether the user gets called, and is least likely
+    # of the three to be an engineer, so writing past them costs the most.
     "The recruiter in that audience is usually not an engineer. Never make a "
     "term the price of entry: name the mechanism in plain Portuguese first, "
     "and let the technical term in only where it IS the evidence, in a "
     "metric's source line or a slide's small note. Never in a headline, a "
     "cover or an opening line.",
-    # The line is ownership, not difficulty. A reader can look up LanceDB; a
-    # reader cannot look up a constant that exists only in this repository.
+    # Ownership, not difficulty: a reader can look up LanceDB, not a constant
+    # that only exists in this repository.
     "Someone else's name earns its place, your own does not. A library, a "
     "technique or another project's API is searchable and tells the reader "
     "where to look, so LanceDB, RRF and `search_knowledge_base` stay. A "
@@ -78,10 +62,7 @@ POSITIONING = [
     "your own identifiers into what they do: 'o piso', 'contagem de tokens'.",
 ]
 
-# ==============================================================================
 # Content
-# ==============================================================================
-
 PILLARS = [
     "Built: what I put together this week, with a link to the code.",
     "Broke: the error that took me hours to understand, and how I solved it.",
@@ -90,11 +71,8 @@ PILLARS = [
     "Compared: two tools or approaches, with the criteria stated.",
 ]
 
-# The voice rules apply to ANY text the user publishes under their own name: a
-# post, a headline, the 'About' section, a project description. They are kept
-# separate from the post rules because whoever writes the profile needs them
-# just as much as whoever writes a post. A recruiter who spots an AI tell in a
-# post spots the same tell in the 'About'.
+# Applies to ANY text under the user's name (post, headline, 'About',
+# project description), not just posts, since an AI tell reads the same in both.
 VOICE_RULES = [
     "NEVER use an em dash (—), an en dash (–), or '--' as a substitute. It is "
     "the most recognizable tell of AI-generated Portuguese. Use a period, a "
@@ -114,13 +92,12 @@ VOICE_RULES = [
     "No fake Unicode bold or italic (𝗯𝗼𝗹𝗱, 𝘪𝘵𝘢𝘭𝘪𝘤). Screen readers spell it "
     "out symbol by symbol and LinkedIn search does not index it, so the words "
     "that matter most become the ones nobody finds.",
-    # Short sentences are the rule above; a STRING of them is the failure mode.
-    # Three full stops in a row read as dictation, not as a person talking.
+    # A STRING of short sentences reads as dictation, not as a person talking.
     "Short does not mean chopped. Clauses that carry one idea are joined with "
     "'e' or a colon, and the full stop is spent on the beat the reader should "
     "actually pause on. 'Fui medir e escolhi o corte. Testei com 46.' becomes "
     "'Escolhi o corte com 2 posts na mão e testei com 46.'",
-    # This one exists because the obvious fix produces a false claim.
+    # Exists because the obvious fix produces a false claim.
     "When a verb sounds forced, or makes the user's own work sound careless, "
     "change the SUBJECT of the sentence and not the verb. 'Afrouxei o filtro' "
     "becomes 'ampliei o alcance da busca' or 'o recall subiu', never 'aumentei "
@@ -129,10 +106,8 @@ VOICE_RULES = [
 ]
 
 WRITING_RULES = [
-    # The cutoff differs by device: ~140 characters on mobile, ~210 on desktop
-    # (references/linkedin-algorithm.md). Most of the audience reads on a phone,
-    # so the mobile number is the one to write for: a hook that only fits the
-    # desktop cutoff is already truncated for most readers.
+    # Mobile truncates tighter than desktop (references/linkedin-algorithm.md);
+    # most readers are on mobile, so write for that cutoff.
     "The first line is everything. LinkedIn truncates it at about 140 characters "
     "on mobile, which is where most people read. If the first line does not hold "
     "inside that, nobody clicks 'see more'.",
@@ -149,15 +124,14 @@ WRITING_RULES = [
     "specific answer: 'Você já passou por alguma situação parecida? Qual?' "
     "asks for an experience and cannot be answered by agreeing. What is banned "
     "is the question whose only available answer is assent.",
-    # Caught on a real draft: 'rejeita tema inédito' was read by the user as
-    # 'blocks a new topic', which is the opposite of what the metric counts.
+    # Caught on a real draft: a metric name read backwards by the user.
     "Read every number's sentence the wrong way on purpose before publishing "
     "it. A metric name that is precise to whoever built it can invert for "
     "whoever reads it. When the plain reading flips the meaning, turn the "
     "number to the side where lower is better and name the damage instead of "
     "the score.",
-    # Measured on a real draft: the cosine values were the only part the reader
-    # had to stop and decode, and the argument survived their removal intact.
+    # Measured on a real draft: raw cosine values were the only part readers
+    # had to stop and decode.
     "A number that means nothing until the reader knows its scale is a toll, "
     "not evidence. A percentage, a count and a price explain themselves. A "
     "cosine, a loss or a temperature do not, because reading '0,228' costs "
@@ -165,10 +139,8 @@ WRITING_RULES = [
     "on. Name the effect instead: 'ranked first with a score below the floor'.",
 ]
 
-# The visual rules. Every one of them is either measured (one idea per slide,
-# legibility at phone size: references/kb-visual-formats.md sections 4 and 5) or
-# a guard against the look of a templated slide, which a technical audience
-# reads as generated before it reads a word.
+# Visual rules: either measured (references/kb-visual-formats.md sections 4-5)
+# or a guard against a templated look, which reads as generated before a word.
 DESIGN_RULES = [
     "One idea per slide. Each slide's headline is a full sentence stating its "
     "point, and the body is the evidence for it: code, a diagram, a number, a "
@@ -188,8 +160,7 @@ DESIGN_RULES = [
     "Text inside a picture is invisible to search and to screen readers. Every "
     "image gets alt text, every video gets captions, and the caption of every "
     "carousel states its core point in plain words.",
-    # The ceiling is about attention, not about how much there is to say. What
-    # does not fit goes in the caption, which is also what search indexes.
+    # About attention, not how much there is to say; overflow goes in the caption.
     "Five to seven slides, nine at the very most. Someone who drops out halfway "
     "through a long deck learned nothing, and a deck that needs more than nine "
     "is usually two posts. Technique, test counts and cost belong in the "
@@ -197,8 +168,7 @@ DESIGN_RULES = [
     "Neighbouring slides that show the same measurement keep the same "
     "direction. Never make the reader switch from 'higher is better' to 'lower "
     "is better' between one slide and the next.",
-    # Both were telling the same story, so the caption was spending its 250
-    # words repeating slides the reader had just swiped through.
+    # Both were telling the same story, wasting the caption's 250 words on repeats.
     "A deck and its caption are not one text at two lengths. The slides carry "
     "the story for someone outside the field; the caption carries the stack, "
     "the test design and the cost; neither repeats the other. Say so in the "
@@ -217,10 +187,7 @@ DO_NOT = [
     "Do not publish a news summary with no opinion of your own. That is noise.",
 ]
 
-# ==============================================================================
 # Metrics
-# ==============================================================================
-
 METRICS = [
     "A like is not a metric. What matters is a comment from someone relevant in "
     "the field, a profile view, a connection request from a recruiter, and a "
@@ -229,11 +196,7 @@ METRICS = [
     "months are worth more than one a day for two weeks.",
 ]
 
-# ==============================================================================
-# Platform limits the agents need to know about
-# ==============================================================================
-# Without these, an agent will promise the user things that are impossible.
-
+# Platform limits: without these, an agent promises things that are impossible.
 PLATFORM_LIMITS = [
     "There is no API for editing a LinkedIn profile. The headline, 'About', "
     "experiences, projects and skills can only be changed by hand. So when you "
@@ -253,43 +216,22 @@ PLATFORM_LIMITS = [
 ]
 
 
-# ==============================================================================
-# Post file format - the contract between the Editor and the `publish` command
-# ==============================================================================
-# `linkedin publish` reads the post file and cuts the body out by the heading of
-# the requested version. If the Editor writes a different heading, the cut finds
-# nothing and the command dies with "could not find the 'pt' section" after the
-# user has already paid for three agents.
-#
-# That is exactly what happened: the Editor wrote '# Versão final (pt-BR)' while
-# the command looked for '## Post (pt-BR)'. Each side was right on its own and
-# wrong together, because each defined the format independently.
-#
-# Now the exact text lives here, and both the agent instruction and the
-# command's regex come from these constants. Changing the heading changes both.
-
+# Post file format: contract between the Editor and the `publish` command,
+# which cuts the body out by heading. Previously each side defined the
+# heading independently and drifted ('# Versão final' vs '## Post'); now both
+# the agent instruction and the command's regex read from these constants.
 POST_HEADING = {
     "pt": "## Post (pt-BR)",
     "en": "## Post (en)",
 }
 
 
-# ==============================================================================
-# Delivery - how a long document reaches disk without getting lost on the way
-# ==============================================================================
-# Five agents in this system produce a document and write it with
-# `save_artifact`. The order in which they do those two things is not a matter
-# of style: it decides whether the file exists at all.
-#
-# The old instruction was "at the end, call `save_artifact`". The model would
-# then write the whole document into the response and only afterwards try to
-# save it, which means emitting the text twice, with the token ceiling arriving
-# before the tool call. Observed with the Profile Writer: 16000 output tokens,
-# the complete profile on screen, no save, and no error. The file simply did
-# not exist.
-#
-# Saving first inverts the risk: if something gets cut off now, it is the
-# summary, which is not the deliverable.
+# Delivery: save-first ordering for agents that produce a document with
+# `save_artifact`. "Save at the end" let the model emit the whole document in
+# its response first and hit the token ceiling before the tool call ran, so
+# the file never got written (observed with the Profile Writer: 16000 tokens,
+# full text on screen, no save, no error). Saving first means a cutoff now
+# only loses the summary, not the deliverable.
 
 
 def delivery_instruction(path: str) -> list[str]:
@@ -305,17 +247,9 @@ def delivery_instruction(path: str) -> list[str]:
     ]
 
 
-# ==============================================================================
-# Memory - what is worth remembering from one conversation to the next
-# ==============================================================================
-# Without an explicit rule, the memory extractor keeps everything: the text of
-# the posts, what is already in profile.yaml, the small talk. Context then
-# bloats, cost goes up, and the signal is lost in the noise. The rule below is
-# the filter.
-#
-# The criterion: keep what changes the decision NEXT time and is not written in
-# any file of the project.
-
+# Memory: without a filter, the extractor keeps everything (post text,
+# profile.yaml content, small talk), bloating context and cost. Criterion:
+# keep what changes the decision NEXT time and isn't already in a project file.
 MEMORY_KEEP = [
     "Writing preferences the user expressed in their own words: a word they "
     "hate, a format they do not want, a subject they refuse to post about.",
@@ -377,24 +311,16 @@ def base_instructions() -> list[str]:
 
 
 def voice_instructions() -> list[str]:
-    """The tone rules, for whoever writes any text signed by the user.
-
-    Kept separate from `content_instructions` because the Profile Writer needs
-    these and none of the rest: pillar, word count and hashtags are post rules,
-    not headline or 'About' rules. While the two were bundled together, the
-    profile came out with an em dash on every line, the tell this project bans
-    before any other.
-    """
+    """Tone rules, for whoever writes any text signed by the user. Kept
+    separate from `content_instructions` since the Profile Writer needs only
+    these, not the post-specific rules (pillar, word count, hashtags)."""
     return _prefix("VOICE", VOICE_RULES)
 
 
 def design_instructions() -> list[str]:
-    """The visual rules, for whoever turns a post into slides, an image or a video.
-
-    Short and universal on purpose, like the voice rules: the procedures (how a
-    carousel is built, how a video is timed) live in the Agent Skills under
-    `skills/`, and the evidence behind them in references/kb-visual-formats.md.
-    """
+    """Visual rules, for whoever turns a post into slides, an image or a
+    video. Procedures live in the Agent Skills under `skills/`; the evidence
+    behind these rules is in references/kb-visual-formats.md."""
     return _prefix("DESIGN", DESIGN_RULES)
 
 
@@ -410,12 +336,8 @@ def content_instructions() -> list[str]:
     ]
 
 
-# ==============================================================================
-# Evaluation rubric - used by the editor agent
-# ==============================================================================
-# Explicit, scored criteria. A critic without a rubric produces vague praise;
-# with one, they point at what to fix.
-
+# Evaluation rubric used by the editor agent. Explicit, scored criteria: a
+# critic without a rubric produces vague praise; with one, they point at fixes.
 RUBRIC = """
 Score the draft on these seven criteria, 0 to 10 each:
 
