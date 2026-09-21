@@ -227,6 +227,11 @@ class _Deck(_Model):
     theme: Literal["drafting", "blueprint"] = "drafting"
     pillar: str | None = Field(default=None, max_length=80)
     author: Author | None = None
+    # Whether each slide prints its own source line. A deck that attributes all
+    # of its numbers once, on the cover, prints them twice otherwise. This only
+    # controls the drawing: `source` stays required on a metric, so the claim's
+    # origin is still written down and still reviewable in the spec.
+    show_sources: bool = True
 
     @field_validator("language", mode="before")
     @classmethod

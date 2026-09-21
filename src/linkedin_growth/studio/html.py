@@ -191,6 +191,7 @@ def build_document(
             "slide": slide,
             "index": index,
             "scale": scale_svg(index, total) if total > 1 else Markup(""),
+            "show_sources": spec.show_sources,
         }
 
         if isinstance(slide, CodeSlide):
