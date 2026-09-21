@@ -4,4 +4,4 @@
   <div class="figure-view"{% if s.slide.fit == 'contain' and s.image_ratio %} style="aspect-ratio: {{ s.image_ratio }}"{% endif %}><img src="{{ s.image_src }}" alt="{{ s.slide.alt or '' }}" class="fit-{{ s.slide.fit }}"></div>
 </figure>
 {% if s.slide.caption %}<p class="caption-text" data-fit data-min="26">{{ s.slide.caption | inline }}</p>{% endif %}
-{% if s.slide.source %}<p class="source"><b>{{ t.source }}</b>{{ s.slide.source }}</p>{% endif %}
+{% if s.slide.source and s.show_sources %}<p class="source"><b>{{ t.source }}</b>{{ s.slide.source }}</p>{% endif %}

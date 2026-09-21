@@ -39,10 +39,11 @@ POSITIONING = [
     "who shows the work while learning it.",
     "Proof beats assertion. Whenever possible, point at a verifiable artifact: "
     "a repository, a notebook, a diagram, a measurement, a screenshot.",
-    "The headline does not announce a job title, it announces a direction and "
-    "the evidence for it. 'Studying AI' is weak. 'Building AI agents in Python: "
-    "LLMs, RAG, Agno' is strong, because anyone can check it against what the "
-    "user publishes.",
+    "The profile headline does not announce a job title, it announces a "
+    "direction and the evidence for it. 'Studying AI' is weak. 'Building AI "
+    "agents in Python: LLMs, RAG, Agno' is strong, because anyone can check it "
+    "against what the user publishes. This binds the profile headline only: a "
+    "post's cover and first line answer to the DESIGN and WRITING rules.",
     "The audience is technical AI recruiters, working AI engineers, and the "
     "Brazilian AI community. Write for those three people, not for everyone.",
     # The recruiter decides whether the user gets called, and is least likely
@@ -84,8 +85,14 @@ VOICE_RULES = [
     "makes the text readable on a phone.",
     "No decorative emoji pile-ups and no heart bullets. Two emoji at most, and "
     "only if they help someone scan the text.",
-    "Write in the first person. This is the user's account of their own work, "
-    "not a blog article.",
+    # Person is a choice per post, not a default: a feed where every post opens
+    # on "eu fiz" reads as one template, and each person reaches a reader
+    # differently, so varying it is what keeps the series from flattening.
+    "First, second and third person are all allowed, and alternating between "
+    "them across posts is deliberate. What does not change is the ground under "
+    "the text: this is still the user's own work being reported, not a blog "
+    "article. Second person addresses the reader about something the user "
+    "actually did, and never invents the reader's situation.",
     "No empty corporate jargon: 'sinergia', 'disruptivo', 'game changer', "
     "'mindset'. Imported verbs count as much as imported nouns: 'não performa "
     "bem' is 'não funciona' or 'não se sustenta'.",
@@ -148,8 +155,12 @@ DESIGN_RULES = [
     "are labels, not headlines.",
     "Legibility is judged at phone size, a third of the canvas. If a slide does "
     "not fit, cut words or split it in two; never shrink the type until it fits.",
+    # Proof is what the deck owes, not what the hook owes. Demanding a number
+    # in every cover collapses every post into the same shape.
     "The cover is the thumbnail in the feed: one hook of at most twelve words, "
-    "and nothing competing with it.",
+    "and nothing competing with it. The hook does not have to carry the proof: "
+    "a promise, an invitation or a question earns the swipe as well as a number "
+    "does, as long as the slides and the caption pay it off.",
     "Headlines are stated plainly. No accented word, no bold or highlighted "
     "phrase inside a headline: emphasis belongs to the evidence underneath.",
     "Numbers mark only a sequence or a ranking. A list of reasons is not "
