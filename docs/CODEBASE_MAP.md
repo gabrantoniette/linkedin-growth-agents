@@ -23,7 +23,7 @@ graph TB
     subgraph Orchestration["Orchestration"]
         Flows["flows.py<br/>post-flow, week-flow"]
         Team["team.py<br/>LinkedIn Presence Team"]
-        Agents["agents/<br/>9 specialist agents"]
+        Agents["agents/<br/>10 specialist agents"]
         Principles["agents/principles.py<br/>rules, pillars, rubric"]
     end
 
@@ -97,6 +97,8 @@ graph LR
     Design --> Manual["manual upload<br/>on LinkedIn"]
     Publish --> Metrics["metrics<br/>metrics.csv"]
     Manual --> Metrics
+    Metrics --> Report["report<br/>performance.md"]
+    Report -.->|"changes to test"| Strategy
 ```
 
 ## Directory Structure
@@ -120,18 +122,19 @@ linkedin-growth-agents/
 ├── src/linkedin_growth/
 │   ├── config.py               # paths, env, models, SQLite, embedder, LanceDB, memory
 │   ├── cli.py                  # Typer CLI (every command)
-│   ├── agentos.py              # AgentOS app: team, 9 agents, 2 workflows
+│   ├── agentos.py              # AgentOS app: team, 10 agents, 2 workflows
 │   ├── team.py                 # coordinate-mode Team (chat surface)
 │   ├── flows.py                # post and week workflows
 │   ├── indexing.py             # posts and voice into LanceDB
+│   ├── analytics.py            # LinkedIn analytics export -> metrics CSVs -> summary
 │   ├── retrieval.py            # thresholded, grouped knowledge search
-│   ├── agents/                 # 9 agents + principles.py
+│   ├── agents/                 # 10 agents + principles.py
 │   ├── profile/                # LinkedIn export -> Profile -> prompt context
-│   ├── tools/                  # artifacts, references, search, linkedin, studio
+│   ├── tools/                  # artifacts, references, search, linkedin, studio, analytics
 │   └── studio/                 # deterministic renderer
 │       ├── templates/          # Jinja2 deck/slide/document, layouts/, CSS, fit.js
 │       └── assets/fonts/       # Archivo, IBM Plex Mono (WOFF2 + OFL)
-├── tests/                      # 24 test modules + conftest.py, no API calls
+├── tests/                      # 27 test modules + conftest.py, no API calls
 └── agent_ui/                   # vendored Agno agent-ui (Next.js) + approval flow
 
 Local only (gitignored): .env, profile/ (LinkedIn export, profile.yaml,
@@ -148,7 +151,7 @@ profile), applications/, benchmarks/
 
 | Area | Names |
 |------|-------|
-| Paths (from `ROOT`) | `PROFILE_DIR`, `EXPORT_DIR`, `PROFILE_YAML`, `VOICE_MD`, `BRAND_YAML`, `CONTENT_DIR`, `CALENDAR_DIR`, `POSTS_DIR`, `MEDIA_DIR`, `METRICS_CSV`, `REFERENCES_DIR`, `SKILLS_DIR`, `TMP_DIR`, `DB_FILE`; `ensure_directories()` |
+| Paths (from `ROOT`) | `PROFILE_DIR`, `EXPORT_DIR`, `PROFILE_YAML`, `VOICE_MD`, `BRAND_YAML`, `CONTENT_DIR`, `CALENDAR_DIR`, `POSTS_DIR`, `MEDIA_DIR`, `METRICS_CSV`, `METRICS_AUDIENCE_CSV`, `METRICS_EXPORTS_DIR`, `REFERENCES_DIR`, `SKILLS_DIR`, `TMP_DIR`, `DB_FILE`; `ensure_directories()` |
 | Models | `MAIN_MODEL` (default `claude-opus-5`), `FAST_MODEL` (default `claude-sonnet-5`), `MAX_TOKENS` (16000); `model(model_id=None)` returns an Agno `Claude` with prompt caching on: `cache_system_prompt=True` plus Anthropic's automatic top-level `cache_control` (pinned by `tests/test_prompt_cache.py`) |
 | Secrets | `require_anthropic()`, `require_linkedin()` raise `MissingConfiguration` with fix-it text |
 | Storage | `db()` → `SqliteDb` at `tmp/linkedin_growth.db`; `embedder()` → local FastEmbed (ONNX); `posts_vector_db()` (LanceDB, hybrid search), `voice_vector_db()` (LanceDB, vector search); `posts_knowledge()`, `voice_knowledge()` |
@@ -185,7 +188,8 @@ profile), applications/, benchmarks/
 | `render SPEC_FILE` | re-renders a hand-edited `carousel.yaml`, `image.yaml` or `video.yaml`, no model |
 | `convert FILE`, `screenshot URL` | `studio.convert.convert_file`, `studio.capture.capture_url`, no model |
 | `connection` | `tools.linkedin.token_profile()` |
-| `metrics` | prompts for a row appended to `content/metrics.csv` |
+| `metrics [EXPORTS...]` | `analytics.import_export()` per .xlsx (or every .xlsx in a folder): upserts `content/metrics.csv` and `metrics_audience.csv`, copies the file to `metrics_exports/`; with no argument, prints what is recorded |
+| `report` | refuses without metrics, then runs the Performance Analyst → `content/performance.md` |
 | `chat [--session NAME]` | REPL over `team.build()`, confirms paused tool calls |
 | `memory [--forget ID] [--clear]` | lists or deletes shared memories (id prefix matching) |
 | `serve [--port 7777] [--host]` | `agentos.agent_os.serve(app=...)` |
@@ -199,20 +203,21 @@ Helpers: `_run_agent` (loops on `output.is_paused` with `Confirm.ask`), `_warn_i
 
 ### Agents
 
-**Purpose**: nine specialists sharing one shape: module-level `ID`, `NAME`, `ROLE` and a lazy `build() -> Agent`. Instructions are assembled from `principles.py` helpers; every agent gets `**memory_params(ID)`, `additional_context=profile_context()`, `markdown=True` and a `tool_call_limit` between 8 and 40.
-**Entry point**: `agents/__init__.py` → `all_agents()` (fixed order: diagnosis, profile_writer, strategist, researcher, planner, writer, editor, designer, publisher).
+**Purpose**: ten specialists sharing one shape: module-level `ID`, `NAME`, `ROLE` and a lazy `build() -> Agent`. Instructions are assembled from `principles.py` helpers; every agent gets `**memory_params(ID)`, `additional_context=profile_context()`, `markdown=True` and a `tool_call_limit` between 8 and 40.
+**Entry point**: `agents/__init__.py` → `all_agents()` (fixed order: diagnosis, profile_writer, strategist, researcher, planner, writer, editor, designer, publisher, analyst).
 
 | Agent (file) | Model | Tools and knowledge | Writes | Tokens |
 |--------------|-------|---------------------|--------|--------|
 | Profile Diagnosis (`diagnosis.py`) | main | `broad_search`, `save_artifact` | `content/diagnosis.md` | 562 |
 | Profile Writer (`profile_writer.py`) | main | artifacts, `read_reference` (`headline-formulas.md`) | `content/optimized_profile.md` | 688 |
-| Content Strategist (`strategist.py`) | main | artifacts, references (`kb-linkedin-publishing.md`), searches 3 past sessions | `content/strategy.md` | 1,000 |
+| Content Strategist (`strategist.py`) | main | artifacts (starts from `performance.md` when it exists), references (`kb-linkedin-publishing.md`), searches 3 past sessions | `content/strategy.md` | 1,000 |
 | Researcher (`researcher.py`) | fast | `recent_search` (last week, news), `today` | nothing | 648 |
 | Editorial Planner (`planner.py`) | main | artifacts, references, posts knowledge via `build_retriever` | `content/calendar/YYYY-Wxx.md` | 1,140 |
 | Writer (`writer.py`) | main | `read_artifact`, references (`hooks.md`), voice knowledge via `build_retriever` | nothing (the Editor saves) | 751 |
 | Editor (`editor.py`) | main | `today`, `save_artifact`, references (`ai-vocabulary.md`, `linkedin-algorithm.md`) | `content/posts/YYYY-MM-DD-<slug>.md` | 736 |
 | Post Designer (`designer.py`) | main | 7 studio tools, artifacts, references, 5 Agent Skills | `content/media/<slug>/` | 1,635 |
 | Publisher (`publisher.py`) | fast | `check_linkedin_connection`, artifacts, `publish_post` | a LinkedIn text post | 471 |
+| Performance Analyst (`analyst.py`) | main | `metrics_summary`, artifacts, `read_reference` (`kb-linkedin-publishing.md`) | `content/performance.md` | ~1,650 |
 
 Diagnosis, Strategist and Planner keep 2 history runs. Researcher, Planner and Writer change behavior when the prompt contains `TOPIC ALREADY DECIDED`, which only `flows.py` sends.
 
@@ -231,10 +236,16 @@ Diagnosis, Strategist and Planner keep 2 history runs. Researcher, Planner and W
 
 | File | Purpose | Tokens |
 |------|---------|--------|
-| `indexing.py` | `index_posts()` chunks `content/posts/*.md` (`MarkdownReader`, `chunk_size=1500`) into `posts_knowledge()`; `index_voice()` chunks `profile/voice.md` (1000) into `voice_knowledge()`; front matter becomes metadata; `upsert=True` re-embeds everything each run; `index_all()` → `IndexReport` | 1,570 |
+| `indexing.py` | `index_posts()` chunks `content/posts/*.md` (`MarkdownReader`, `chunk_size=1500`) into `posts_knowledge()`; `index_voice()` chunks `profile/voice.md` (1000) into `voice_knowledge()`; front matter becomes metadata (`front_matter()` falls back to `key: value` lines when a value has an unquoted colon; `analytics.py` reuses it); `upsert=True` re-embeds everything each run; `index_all()` → `IndexReport` | 1,570 |
 | `retrieval.py` | `search(knowledge, query, num_documents, min_similarity)`: over-fetch (`OVERFETCH=4`, `MAX_CANDIDATES=50`), recompute cosine similarity from stored embeddings, gate on the best candidate against `MIN_SIMILARITY`, keep source ranking, one hit per document, whitelisted metadata; `build_retriever(knowledge_factory)` plugs it in as Agno's `knowledge_retriever` | 2,274 |
 
 `references/` and `profile.yaml` are deliberately not indexed: references are read whole, the profile is injected whole.
+
+### Post metrics
+
+| File | Purpose | Tokens |
+|------|---------|--------|
+| `analytics.py` | `read_export(path)` parses LinkedIn's per-post "Post analytics" .xlsx (openpyxl) into a row plus audience rows; a missing figure stays empty, never 0. `match_post(url, date)` pairs it with a `content/posts/` file dated within 7 days whose first line, hashtags or media spec title cover ≥ 60% of the URL slug, else None. `import_export()` upserts by post id, keeping the hand-typed `MANUAL_COLUMNS` (file, pillar, format, relevant_comments, recruiter_contacts, note). `summarize(rows, audience)` renders every ratio the Analyst may cite: per post, medians by origin/pillar/format/weekday (posts under 7 days excluded, groups under 3 marked `*`), per ISO week, hooks, audience, data gaps | ~6,800 |
 
 ### Profile import
 
@@ -254,6 +265,7 @@ Diagnosis, Strategist and Planner keep 2 history runs. Researcher, Planner and W
 | `tools/references.py` | `read_reference`, `list_references` | read-only, confined to `references/`; no write tool by design | 578 |
 | `tools/search.py` | `recent_search()`, `broad_search()` | Agno `WebSearchTools` (ddgs, no key) | 193 |
 | `tools/linkedin.py` | `publish_post` (`requires_confirmation=True`), `check_linkedin_connection`; plain functions `publish`, `preview`, `token_profile` | LinkedIn "little text" escaping and hashtag templates; POST `/rest/posts`, falls back to `/v2/ugcPosts` on 403 | 2,442 |
+| `tools/analytics.py` | `metrics_summary` | returns `analytics.summarize()`: every ratio precomputed so the agent never divides | ~300 |
 | `tools/studio.py` | `render_carousel`, `render_image_post`, `inspect_slides`, `render_video`, `capture_screenshot`, `convert_to_pdf`, `list_media` | each wrapped in `_safely()`; writes only under `content/media/<slug>/`; `preview()` downsizes PNGs (1568 px) for the vision model | 3,160 |
 
 ### Studio
@@ -367,6 +379,8 @@ Read whole through `read_reference` (progressive disclosure) and never indexed. 
 | `test_artifacts.py`, `test_references.py` | path confinement; no write tool for references; cited reference files exist |
 | `test_linkedin_format.py` | little-text escaping, hashtag templates, payloads, post URL |
 | `test_cli_memory.py`, `test_cli_studio.py` | `memory` command; `design`, `render` and `publish` gates fail before any model or browser starts |
+| `test_analytics.py` | export parsing (absent is not zero, both label spellings), post matching, re-import keeps hand-typed columns, the summary's ratios and sample-size marks |
+| `test_analyst.py` | the Analyst's rules and tools, import order without a cycle, `metrics` and `report` gates |
 | `test_designer.py` | skills on disk match `SKILL_NAMES`; documented layouts render; caption heading ban |
 | `test_studio_spec.py`, `test_studio_lint.py`, `test_studio_text.py`, `test_studio_code.py` | spec validation, lint warnings, inline marks, highlighting |
 | `test_studio_html.py`, `test_studio_safety.py`, `test_studio_themes.py` | templates under `StrictUndefined`; URL, secret and path guards; WCAG contrast and CSS variables |

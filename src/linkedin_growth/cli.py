@@ -3,14 +3,13 @@
 Each command is one step of the cycle:
 
     import -> diagnose -> profile -> strategy -> calendar
-           -> post -> publish -> metrics -> (back to strategy)
+           -> post -> publish -> metrics -> report -> (back to strategy)
 
 Run `uv run linkedin --help` to see everything.
 """
 
 from __future__ import annotations
 
-import csv
 import re
 from datetime import date
 from pathlib import Path
@@ -481,8 +480,8 @@ def publish(
         console.print(f"\n[green]Published.[/green] {result['url']}")
         console.print(f"[dim]via {result['endpoint']}[/dim]")
         console.print(
-            "\nIn a few days, record the metrics with "
-            "[cyan]uv run linkedin metrics[/cyan]."
+            "\nIn about a week, export the post's analytics on LinkedIn and "
+            "import them with [cyan]uv run linkedin metrics <file.xlsx>[/cyan]."
         )
     else:
         _fail(
@@ -699,49 +698,109 @@ def connection() -> None:
     )
 
 
+def _metrics_table(rows: list[dict[str, str]], title: str) -> Table:
+    table = Table(title=title)
+    for column in ("date", "post", "pillar", "format", "impressions", "reached", "comments", "profile views"):
+        table.add_column(column)
+    for row in rows:
+        table.add_row(
+            row.get("date", ""),
+            Path(row["file"]).stem if row.get("file") else "[yellow]no post file[/yellow]",
+            row.get("pillar") or "?",
+            row.get("format") or "?",
+            row.get("impressions") or "n/a",
+            row.get("members_reached") or "n/a",
+            row.get("comments") or "n/a",
+            row.get("profile_views") or "n/a",
+        )
+    return table
+
+
 @app.command()
-def metrics() -> None:
-    """Record the metrics of a published post.
+def metrics(
+    exports: Annotated[
+        Optional[list[Path]],
+        typer.Argument(
+            help="Post analytics exports (.xlsx) downloaded on LinkedIn, or a "
+            "folder holding them. Without one, shows what is recorded."
+        ),
+    ] = None,
+) -> None:
+    """Import LinkedIn's post analytics exports into content/metrics.csv.
 
-    LinkedIn does not expose post metrics through the self-serve API, so these
-    numbers go in by hand. This is what closes the loop: the strategist reads
-    this file to learn which kind of post works for you.
+    LinkedIn does not expose post metrics through the self-serve API, but each
+    post's analytics page exports an .xlsx. Importing it is what closes the
+    loop: `linkedin report` reads these numbers to say what worked.
     """
+    from linkedin_growth import analytics
+
     ensure_directories()
-    columns = [
-        "date",
-        "file",
-        "pillar",
-        "impressions",
-        "reactions",
-        "comments",
-        "profile_views",
-        "recruiter_contacts",
-        "note",
-    ]
+    if not exports:
+        rows = analytics.load_rows()
+        if not rows:
+            console.print(
+                "No metrics recorded yet. On LinkedIn, open a post's analytics, "
+                "click Export, then run:\n"
+                "    [cyan]uv run linkedin metrics <file.xlsx>[/cyan]"
+            )
+            return
+        console.print(_metrics_table(rows, f"{len(rows)} posts in {METRICS_CSV.name}"))
+        return
 
-    is_new = not METRICS_CSV.exists()
-    console.rule("[bold]Record the metrics of a post")
+    files: list[Path] = []
+    for entry in exports:
+        if entry.is_dir():
+            files += sorted(entry.glob("*.xlsx"))
+        else:
+            files.append(entry)
+    if not files:
+        _fail("No .xlsx file found in what was passed.")
 
-    row = {
-        "date": Prompt.ask("Post date", default=date.today().isoformat()),
-        "file": Prompt.ask("Post file", default=""),
-        "pillar": Prompt.ask("Pillar (built/broke/understood/read/compared)", default=""),
-        "impressions": Prompt.ask("Impressions", default="0"),
-        "reactions": Prompt.ask("Reactions", default="0"),
-        "comments": Prompt.ask("Comments", default="0"),
-        "profile_views": Prompt.ask("Profile views this week", default="0"),
-        "recruiter_contacts": Prompt.ask("Recruiter contacts", default="0"),
-        "note": Prompt.ask("Note", default=""),
-    }
+    imported, problems = [], []
+    for path in files:
+        try:
+            imported.append(analytics.import_export(path))
+        except (OSError, ValueError) as error:
+            problems.append(str(error))
 
-    with METRICS_CSV.open("a", encoding="utf-8", newline="") as handle:
-        csv_writer = csv.DictWriter(handle, fieldnames=columns)
-        if is_new:
-            csv_writer.writeheader()
-        csv_writer.writerow(row)
+    if imported:
+        console.print(_metrics_table(imported, f"Imported into {METRICS_CSV.name}"))
+        unmatched = [row for row in imported if not row.get("file")]
+        if unmatched:
+            console.print(
+                f"\n[yellow]{len(unmatched)} post(s) did not match a file in "
+                "content/posts/.[/yellow] If one was made with this system, fill "
+                f"its 'file', 'pillar' and 'format' in {METRICS_CSV}. A later "
+                "import keeps what you typed."
+            )
+        console.print(
+            "\nThe export does not say who commented. Fill 'relevant_comments' "
+            "(comments from AI engineers, technical recruiters or the community) "
+            "and 'recruiter_contacts' by hand.\n"
+            "To read what worked: [cyan]uv run linkedin report[/cyan]"
+        )
+    for problem in problems:
+        console.print(f"[red]Skipped:[/red] {problem}")
+    if problems and not imported:
+        raise typer.Exit(code=1)
 
-    console.print(f"\n[green]Recorded in[/green] {METRICS_CSV}")
+
+@app.command()
+def report() -> None:
+    """Read the post metrics and write content/performance.md: what to change."""
+    from linkedin_growth import analytics
+    from linkedin_growth.agents import analyst
+
+    if not analytics.load_rows():
+        _fail(
+            "There are no metrics to analyze yet. Import a post's analytics "
+            "export first:\n    uv run linkedin metrics <file.xlsx>"
+        )
+    _run_agent(
+        analyst.build,
+        "Analyze the recorded post metrics, following your work order.",
+        "Performance report",
+    )
 
 
 @app.command()
@@ -933,6 +992,16 @@ def status() -> None:
     table.add_row("posts written", f"{len(posts)}", 'uv run linkedin post --topic "..."')
     designed = [folder for folder in MEDIA_DIR.glob("*") if folder.is_dir()]
     table.add_row("posts designed", f"{len(designed)}", "uv run linkedin design <post file>")
+
+    from linkedin_growth import analytics
+
+    table.add_row("posts measured", f"{len(analytics.load_rows())}", "uv run linkedin metrics <export.xlsx>")
+    report_done = (CONTENT_DIR / "performance.md").exists()
+    table.add_row(
+        "performance report",
+        "[green]done[/green]" if report_done else "[yellow]pending[/yellow]",
+        "uv run linkedin report",
+    )
 
     # The index is not a stage, it is a state that goes stale: every new post
     # makes it one file out of date, and nothing tells the user but this line.

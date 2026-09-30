@@ -49,8 +49,9 @@ def build() -> Agent:
             "Before calling `publish_post`, show the user the exact text that "
             "will be published, with a character count.",
             "After publishing, return the post URL and remind the user to "
-            "record the metrics in content/metrics.csv in a few days: LinkedIn "
-            "does not expose that data through the API.",
+            "export the post's analytics on LinkedIn in about a week and import "
+            "the .xlsx with `uv run linkedin metrics`: LinkedIn does not expose "
+            "that data through the API.",
         ],
         additional_context=profile_context(),
         markdown=True,

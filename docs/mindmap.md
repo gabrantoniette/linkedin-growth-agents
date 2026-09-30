@@ -53,6 +53,7 @@ mindmap
       Editor
       Post Designer
       Publisher
+      Performance Analyst
     Skills
       format-selection
       carousel-design
@@ -80,6 +81,8 @@ mindmap
       LinkedIn
         check_linkedin_connection
         publish_post
+      Metrics
+        metrics_summary
       Studio
         render_carousel
         render_image_post
@@ -95,8 +98,11 @@ mindmap
       posts in pt and en
       carousel, image or video
       Published post in the feed
+      performance.md
     Feedback
-      metrics.csv by hand
+      Each post's analytics export
+      metrics.csv
+      The Performance Analyst reads it
       Feeds the strategist
       Adjusts the pillars
 ```
@@ -124,26 +130,28 @@ flowchart TD
 
     DIAG --> PROF
     DIAG --> STRAT
-    MET["content/metrics.csv<br/><i>filled in by you</i>"] --> STRAT
+    MET["content/metrics.csv<br/><i>imported from LinkedIn's export</i>"] --> PERF["content/performance.md"]
+    PERF --> STRAT
     STRAT --> CAL
     CAL -.->|topic of the day| POST
     POST --> PUB(["Post published on LinkedIn"])
-    PUB -.->|days later, by hand| MET
+    PUB -.->|a week later, exported by you| MET
 
     classDef input fill:#e8f0fe,stroke:#4a6fa5,color:#1a2332
     classDef output fill:#e9f5ec,stroke:#4a8a5e,color:#1a2332
     classDef external fill:#fdf0e3,stroke:#b07d3a,color:#1a2332
     class EXPORT,YAML,VOICE,MET input
-    class DIAG,PROF,STRAT,CAL,POST output
+    class DIAG,PROF,STRAT,CAL,POST,PERF output
     class PUB external
 ```
 
-The loop closes at `metrics.csv`. Without it the system produces forever but
-never learns what worked.
+The loop closes at `performance.md`, which the Performance Analyst writes from
+`metrics.csv`. Without them the system produces forever but never learns what
+worked.
 
 ---
 
-## 3. The nine agents
+## 3. The ten agents
 
 They all inherit `base_instructions()` from `principles.py` and receive the
 whole profile in `additional_context`. What differs between them is the role,
@@ -160,6 +168,7 @@ the tools and the model.
 | **Editor** | Applies the seven-criteria rubric, cuts and finalizes | `today`, `save_artifact` | Opus 5 | `posts/YYYY-MM-DD-topic.md` |
 | **Post Designer** | Chooses the format, renders the carousel, image or video, looks at it and fixes it, writes the caption | the studio tools, `read_artifact`, `save_artifact`, five Agent Skills | Opus 5 | `media/<post>/` |
 | **Publisher** | The last gate before the public. Checks the token, extracts the body, publishes | `check_linkedin_connection`, `read_artifact`, `list_artifacts`, `publish_post` | Sonnet 5 | nothing, it publishes |
+| **Performance Analyst** | Reads the imported metrics, separates reach from response, proposes up to three measurable changes | `metrics_summary`, `read_artifact`, `list_artifacts`, `save_artifact`, `read_reference` | Opus 5 | `performance.md` |
 
 **Why Sonnet in two of them:** the Researcher and the Publisher do volume and
 execution work, not judgement. Opus there would be money spent for no gain.
@@ -186,13 +195,13 @@ flowchart LR
         AG["Single agent<br/><i>direct call</i>"]
     end
 
-    subgraph EXEC["The nine specialists"]
-        A8["Diagnosis · Profile · Strategist<br/>Researcher · Planner<br/>Writer · Editor · Designer · Publisher"]
+    subgraph EXEC["The ten specialists"]
+        A8["Diagnosis · Profile · Strategist<br/>Researcher · Planner<br/>Writer · Editor · Designer · Publisher<br/>Performance Analyst"]
     end
 
     CLI -->|post, calendar| WF
     CLI -->|chat| TEAM
-    CLI -->|diagnose, profile, strategy| AG
+    CLI -->|diagnose, profile, strategy, report| AG
     WEB -->|AgentOS :7777| TEAM
     WEB --> AG
 
@@ -214,7 +223,7 @@ flowchart LR
 - **Team** (`chat`, or the web UI in Team mode): you do not know in advance who
   needs to answer. The leader reads the request, delegates and synthesizes. This
   is the conversation path.
-- **Single agent** (`diagnose`, `profile`, `strategy`): one task, one
+- **Single agent** (`diagnose`, `profile`, `strategy`, `report`): one task, one
   specialist, no middleman.
 
 The `agent_ui` only sees Agents and Teams. Workflows exist in AgentOS over HTTP
@@ -225,7 +234,7 @@ but do not show up in the chat. Run those from the CLI.
 ## 5. Anatomy of an agent
 
 Every `build()` in `agents/` assembles the same structure. Understand one and
-you understand all nine. The Post Designer adds one field the others do not
+you understand all ten. The Post Designer adds one field the others do not
 have: `skills`, the Agent Skills it loads on demand.
 
 ```mermaid
@@ -272,12 +281,16 @@ content/                         everything the system produces
   calendar/YYYY-Wxx.md           editorial calendar by ISO week
   posts/YYYY-MM-DD-topic.md      post in pt and en + the Editor's evaluation
   media/<post>/                  carousel PDF, slides, video, screenshots, caption
-  metrics.csv                    filled in by you, by hand
+  metrics.csv                    one row per post, from LinkedIn's analytics export
+  metrics_audience.csv           who saw each post
+  metrics_exports/               the .xlsx files, as downloaded
+  performance.md                 what worked and what to change
 
 skills/                          Agent Skills the Post Designer loads on demand
 
 src/linkedin_growth/
   config.py                      secrets, paths, models, database
+  analytics.py                   analytics export -> metrics CSVs -> the summary
   profile/
     schema.py                    the profile's Pydantic contract
     importer.py                  reads the CSVs, tolerant of variation
@@ -293,12 +306,13 @@ src/linkedin_growth/
     search.py                    web search via DDGS, no API key
     linkedin.py                  official API: token, URN, payload, publishing
     studio.py                    the studio as tools, confined to content/media/
+    analytics.py                 the metrics summary as a tool, ratios precomputed
   agents/
     principles.py                the codified strategy · start here
-    <nine files>                 one build() each
+    <ten files>                  one build() each
   team.py                        the coordinating Team
   flows.py                       the two workflows
-  cli.py                         the thirteen commands
+  cli.py                         the nineteen commands
   agentos.py                     the web interface server
 
 agent_ui/                        the Next.js interface, on :3000
@@ -326,7 +340,7 @@ flowchart LR
     end
 
     subgraph BLOCKED["What is restricted"]
-        B1["Post metrics<br/>→ hence metrics.csv by hand"]
+        B1["Post metrics through the API<br/>→ hence the export import"]
         B2["List published posts"]
     end
 

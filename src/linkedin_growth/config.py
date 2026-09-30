@@ -35,7 +35,9 @@ BRAND_YAML = PROFILE_DIR / "brand.yaml"  # optional: name, tagline, photo, theme
 CONTENT_DIR = ROOT / "content"
 CALENDAR_DIR = CONTENT_DIR / "calendar"
 POSTS_DIR = CONTENT_DIR / "posts"
-METRICS_CSV = CONTENT_DIR / "metrics.csv"
+METRICS_CSV = CONTENT_DIR / "metrics.csv"  # one row per post
+METRICS_AUDIENCE_CSV = CONTENT_DIR / "metrics_audience.csv"  # who saw each post
+METRICS_EXPORTS_DIR = CONTENT_DIR / "metrics_exports"  # LinkedIn's .xlsx, as downloaded
 MEDIA_DIR = CONTENT_DIR / "media"  # Post Designer output: PDF, PNGs, video, caption
 
 REFERENCES_DIR = ROOT / "references"
