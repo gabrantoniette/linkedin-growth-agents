@@ -1,11 +1,12 @@
 # LinkedIn Growth: a multi-agent system for AI engineering
 
-A team of nine [Agno](https://github.com/agno-agi/agno) agents that works on
+A team of ten [Agno](https://github.com/agno-agi/agno) agents that works on
 your LinkedIn profile so AI engineering recruiters can find you: it audits the
 profile, rewrites the copy, defines the content strategy, plans the calendar,
 writes the posts in Portuguese and English, reviews them against a rubric,
-designs the carousel, image or video that carries each post, and publishes
-through the official API.
+designs the carousel, image or video that carries each post, publishes
+through the official API, and reads the published posts' numbers to say what
+to change.
 
 It was built for a specific case: **someone moving into AI with no experience in
 the field yet.** The whole strategy follows from that. With no track record to
@@ -257,7 +258,7 @@ LinkedIn is restrictive, and the system is honest about it.
 | Publish an image, a PDF or a video              | **Not implemented.** The API allows it; the code sends text only                         |
 | Read your own profile                           | **No API exists.** Hence the data export                                               |
 | Edit headline, About, experiences, projects     | **No API exists, at any tier.** The system hands you the text and says where to paste  |
-| Read your own posts' metrics                    | **Blocked** by LinkedIn (restricted access). You record them by hand with `linkedin metrics` |
+| Read your own posts' metrics                    | **Blocked** by LinkedIn (restricted access). You export each post's analytics and import the .xlsx with `linkedin metrics` |
 | List already-published posts                    | **Blocked** (`r_member_social` is closed)                                              |
 
 
@@ -267,14 +268,31 @@ that is forbidden by LinkedIn's Terms of Use and gets accounts banned.
 
 ### The learning loop
 
-Since the metrics do not come through an API, they go in by hand:
+The metrics do not come through an API, but each post's analytics page on
+LinkedIn has an **Export** button that downloads an .xlsx. Wait about a week
+after publishing, so the numbers settle, then import it:
 
 ```bash
-uv run linkedin metrics
+uv run linkedin metrics ~/Downloads/SinglePostAnalytics_*.xlsx   # or a folder
+uv run linkedin metrics                                           # what is recorded
+uv run linkedin report                                            # what worked, what to change
 ```
 
-That feeds `content/metrics.csv`, which the strategist reads to adjust the
-pillars. Without it, the system never learns what works for you.
+The import matches each export to its file in `content/posts/` (by the title,
+first line or hashtags, near the publish date) and fills `content/metrics.csv`
+and `content/metrics_audience.csv`. Two columns stay yours to fill, because no
+export carries them: `relevant_comments` (comments from AI engineers, technical
+recruiters or the community, the strategy's main signal) and
+`recruiter_contacts`. Importing the same post again refreshes its numbers and
+keeps what you typed.
+
+`linkedin report` runs the Performance Analyst, which writes
+`content/performance.md`: post by post, reach and response read separately, the
+audience against the strategy's, and at most three changes to test, each with
+the number that will say whether it worked. It gets every ratio already
+computed and treats any group under three posts as an observation, not a
+pattern. The strategist starts from that report. Without it, the system never
+learns what works for you.
 
 ---
 
@@ -341,7 +359,10 @@ content/                      what the system produces (out of git)
   calendar/YYYY-Wxx.md        editorial calendar
   posts/YYYY-MM-DD-topic.md   posts in pt-BR and English
   media/<post>/               the carousel, image or video, and its caption
-  metrics.csv                 filled in by you
+  metrics.csv                 one row per published post, from LinkedIn's export
+  metrics_audience.csv        who saw each post
+  metrics_exports/            the .xlsx files, as downloaded
+  performance.md              what worked and what to change
 
 references/                   supporting material, read-only (produces nothing)
   kb-linkedin-publishing.md   days, frequency and format, from six studies
@@ -361,10 +382,11 @@ skills/                       Agent Skills the Post Designer loads on demand
 src/linkedin_growth/
   config.py                   secrets, paths, models, databases, memory
   indexing.py                 feeds the knowledge bases from disk
+  analytics.py                imports post analytics exports and computes the ratios
   profile/                    schema, importer and context
   studio/                     renders slides, video, screenshots and PDFs (no model)
-  tools/                      artifacts, references, web search, LinkedIn API, studio
-  agents/                     the nine specialists
+  tools/                      artifacts, references, web search, LinkedIn API, studio, metrics
+  agents/                     the ten specialists
     principles.py             the codified strategy, start here
   team.py                     the coordinating team (chat)
   flows.py                    the deterministic workflows
@@ -390,11 +412,13 @@ tests/                        the suite, no test calls a paid API
   test_designer.py            the Post Designer's rules, skills and references
   test_studio_*.py            specs, contrast, redaction, captions, layouts, renders
   test_cli_studio.py          the gates on design, render and publish
+  test_analytics.py           importing the analytics export, matching, the ratios
+  test_analyst.py             the Performance Analyst's rules and the metrics commands
 ```
 
 
 
-### The nine agents
+### The ten agents
 
 
 | Agent              | Does                                                          |
@@ -408,6 +432,7 @@ tests/                        the suite, no test calls a paid API
 | Editor             | Scores against a seven-criteria rubric and finalizes          |
 | Post Designer      | Picks the format, renders the carousel, image or video, reviews it, writes its caption |
 | Publisher          | Publishes through the API, always with approval               |
+| Performance Analyst | Reads the imported metrics and proposes up to three measurable changes |
 
 
 

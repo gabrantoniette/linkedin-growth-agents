@@ -28,7 +28,7 @@ flowchart TD
     GATE -->|no| F6
     GATE -->|yes| F65["<b>6.5 · Design the format</b><br/>linkedin design<br/><i>carousel, image or video + caption</i>"]
     F65 --> F7["<b>7 · Publish</b><br/>linkedin publish<br/><i>text through the API · media by hand</i>"]
-    F7 --> F8["<b>8 · Measure</b><br/>linkedin metrics<br/><i>numbers by hand, days later</i>"]
+    F7 --> F8["<b>8 · Measure</b><br/>linkedin metrics · report<br/><i>LinkedIn's export, a week later</i>"]
     F8 -->|every 4 to 6 weeks| F4
     F8 -->|every week| F5
 
@@ -52,7 +52,7 @@ timeline
     Week 0 : Prepare the environment : Request the LinkedIn export : Import and review profile.yaml
     Week 1 : Profile diagnosis : Rewrite headline, About and projects : Paste it all into LinkedIn
     Week 2 : Define the strategy : Build the first calendar : Publish the first two posts
-    Weeks 3 and 4 : A cadence of 2 to 3 posts : Record each post's metrics : Build the first proof asset
+    Weeks 3 and 4 : A cadence of 2 to 3 posts : Import each post's analytics export : Build the first proof asset
     Months 2 and 3 : Revisit the strategy with real data : Adjust the pillars that worked : Repeat the diagnosis
     Months 4 to 6 : Consolidated profile : Public track record : A recruiter arrives through the content
 ```
@@ -222,15 +222,17 @@ document, and that is a consequence of the platform, not laziness.
 |---|---|
 | **Command** | `uv run linkedin strategy` |
 | **Who runs it** | The **Content Strategist** agent · Opus 5 |
-| **In** | profile.yaml + `diagnosis.md` + `metrics.csv` if it exists |
+| **In** | profile.yaml + `diagnosis.md` + `performance.md` if it exists |
 | **Out** | `content/strategy.md` |
 | **Typical time** | 3 minutes to run · 15 minutes reading |
 
 **What happens internally**
 
-1. It reads `diagnosis.md` and `metrics.csv`. **If there are metrics, they
-   rule:** the pillars that earned comments from people in the field get more
-   room in the week. This is where the loop closes.
+1. It reads `diagnosis.md` and `performance.md`. **If there is a performance
+   report, it rules:** the Strategist starts from its changes to test and its
+   sample-size caveats instead of re-reading the raw CSV, and the pillars that
+   earned comments from people in the field get more room in the week. This is
+   where the loop closes.
 2. It produces eight sections:
 
    | # | Section | What it answers |
@@ -489,32 +491,43 @@ publishing as a page would be `urn:li:organization` and would require the
 
 | | |
 |---|---|
-| **Command** | `uv run linkedin metrics` |
-| **In** | the numbers you read on LinkedIn, by hand |
-| **Out** | one line in `content/metrics.csv` |
-| **Typical time** | 3 minutes per post, a few days later |
+| **Commands** | `uv run linkedin metrics <export.xlsx>` · `uv run linkedin report` |
+| **Who runs it** | No model for `metrics`; the **Performance Analyst** · Opus 5 for `report` |
+| **In** | each post's analytics export, downloaded on LinkedIn |
+| **Out** | `content/metrics.csv`, `content/metrics_audience.csv`, `content/performance.md` |
+| **Typical time** | 1 minute per post, about a week after publishing · 3 minutes for the report |
 
-**Why it is manual:** LinkedIn **blocks** self-serve access to your own posts'
-metrics. It is not missing implementation, it is restricted access. Either the
-numbers go in by hand, or the system never learns.
+**Why there is a download step:** LinkedIn **blocks** self-serve API access to
+your own posts' metrics. It is not missing implementation, it is restricted
+access. But each post's analytics page has an **Export** button, and the .xlsx
+it downloads is yours: impressions, members reached, profile views, followers,
+reactions, comments, reposts, saves, and who saw it (job title, seniority,
+location, industry, company size).
 
-**What happens internally.** The command asks for and records nine columns:
+**What happens internally.** `metrics` reads each export, matches it to its
+file in `content/posts/` by the URL slug (title, first line or hashtags, dated
+within a week), takes the pillar from the post's front matter and the format
+from the Designer's caption, and upserts one row per post. It copies the .xlsx
+to `content/metrics_exports/`. A figure the export lacks stays empty, never 0:
+2023 exports have no reach, and 0 would say the post reached nobody.
 
-`date` · `file` · `pillar` · `impressions` · `reactions` · `comments` ·
-`profile_views` · `recruiter_contacts` · `note`
+**What the export cannot say.** A like is not a metric. What counts, per
+`principles.py`: a comment from someone relevant in the field, a profile view, a
+connection request from a recruiter and a direct message. No export says who
+commented, so `relevant_comments` and `recruiter_contacts` are yours to fill.
+Importing the same post again refreshes the numbers and keeps what you typed.
 
-**What actually matters in those columns.** A like is not a metric. What counts,
-per `principles.py`: a comment from someone relevant in the field, a profile
-view, a connection request from a recruiter and a direct message. The
-`profile_views` and `recruiter_contacts` columns are the ones that decide
-whether the system is working.
+**How the loop closes:** `report` gives the Performance Analyst every ratio
+already computed (it never divides on its own), and it writes
+`performance.md`: post by post, reach and response read separately, the
+audience against the strategy's, and at most three changes to test, each with
+the number that will say whether it worked. A group under three posts is an
+observation, not a pattern, and a post under seven days old stays out of every
+comparison. The Strategist starts from that report the next time you run
+`linkedin strategy`.
 
-**How the loop closes:** the Strategist reads this CSV the next time you run
-`linkedin strategy`. The pillars that started conversations with people in the
-field get more room; the ones that only earned likes lose it. Without this file,
-the system produces forever in the dark.
-
-**Done when:** every published post has a line in the CSV.
+**Done when:** every published post has a row, and the two hand-filled columns
+are filled.
 
 ---
 
@@ -551,7 +564,7 @@ What is built, what does not exist, and what is out of our reach.
 | Import the profile from the export | ✅ Done | Tolerant of column and language variation |
 | Diagnosis against real job posts | ✅ Done | Web search with no API key |
 | Profile copy pt + en | ✅ Done | "Ready to paste" output |
-| Strategy and pillars | ✅ Done | Fed back by `metrics.csv` |
+| Strategy and pillars | ✅ Done | Fed back by `performance.md` |
 | Editorial calendar | ✅ Done | With a mandatory proof asset |
 | Post pt + en with a rubric | ✅ Done | Seven criteria; Truth fails the post |
 | Long-term memory across conversations | ✅ Done | The team writes, the agents read |
@@ -563,7 +576,9 @@ What is built, what does not exist, and what is out of our reach.
 | Publish an image or PDF carousel | ⚙️ Not implemented | The API allows it; the code only sends text today |
 | Edit the profile automatically | ❌ No API exists | At any tier, for any app |
 | Read your own profile through an API | ❌ No API exists | Hence the data export |
-| Read post metrics | 🔒 Blocked by LinkedIn | Restricted access. Goes in by hand |
+| Read post metrics through the API | 🔒 Blocked by LinkedIn | Restricted access. Hence the export import |
+| Import each post's analytics export | ✅ Done | `linkedin metrics`, matched to its post file |
+| Report of what worked and what to change | ✅ Done | `linkedin report`, the Performance Analyst |
 | List already-published posts | 🔒 Blocked by LinkedIn | `r_member_social` is closed |
 | Automatic token refresh | 🔒 Partners only | Generate another every 60 days |
 | Publish as a Company Page | 🔒 Requires approval | Would need the Community Management API |
@@ -590,8 +605,6 @@ Ideas, not commitments. None of them are scheduled.
 
 **Medium term, closing the loop harder**
 
-- An agent that reads `metrics.csv` and writes a monthly report of what worked,
-  instead of leaving that reading embedded in the Strategist.
 - Tracking the proof asset: cross-referencing the calendar's `NEEDS BUILDING`
   entries against what actually got built, so the real bottleneck becomes
   visible.

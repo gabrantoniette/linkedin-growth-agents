@@ -31,6 +31,7 @@ dependencies = [
     "markdown-it-py>=4.2.0",
     "pygments>=2.21.0",
     "filetype>=1.2.0",
+    "openpyxl>=3.1.5",
 ]
 
 [project.scripts]

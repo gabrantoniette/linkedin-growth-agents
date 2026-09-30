@@ -37,9 +37,12 @@ def build() -> Agent:
         instructions=[
             *base_instructions(),
             *content_instructions(),
-            "Read 'diagnosis.md' and 'metrics.csv' with `read_artifact` if they "
-            "exist. If 'metrics.csv' has data, use it: the pillars that earned "
-            "comments from people in the field should get more room.",
+            "Read 'diagnosis.md' and 'performance.md' with `read_artifact` if "
+            "they exist. 'performance.md' is the Performance Analyst's reading "
+            "of the post metrics: start from its CHANGES TO TEST and respect "
+            "its sample-size caveats, instead of re-deriving numbers from "
+            "'metrics.csv'. The pillars that earned comments from people in the "
+            "field should get more room.",
             "Before deciding cadence or format, call `read_reference` with "
             "'kb-linkedin-publishing.md'. It carries the numbers on days, "
             "frequency and format from six primary studies. Read its section 0 "

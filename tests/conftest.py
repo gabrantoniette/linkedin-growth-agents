@@ -30,8 +30,9 @@ from agno.models.anthropic import Claude
 from agno.models.message import Message
 from agno.models.response import ModelResponse
 
-from linkedin_growth import config, team
+from linkedin_growth import analytics, config, team
 from linkedin_growth.agents import (
+    analyst,
     designer,
     diagnosis,
     editor,
@@ -61,6 +62,27 @@ def temp_content(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     root.mkdir()
     monkeypatch.setattr(artifacts, "CONTENT_DIR", root)
     return root
+
+
+@pytest.fixture
+def temp_metrics(temp_content: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Point every path the metrics import touches at the throwaway `content/`.
+
+    The import writes two CSVs and copies the .xlsx, and matching reads
+    `posts/` and `media/`: all five have to move, or a test reads the user's
+    real posts and writes next to their real numbers.
+    """
+    for name, target in (
+        ("METRICS_CSV", temp_content / "metrics.csv"),
+        ("METRICS_AUDIENCE_CSV", temp_content / "metrics_audience.csv"),
+        ("METRICS_EXPORTS_DIR", temp_content / "metrics_exports"),
+        ("POSTS_DIR", temp_content / "posts"),
+        ("MEDIA_DIR", temp_content / "media"),
+    ):
+        monkeypatch.setattr(analytics, name, target)
+    (temp_content / "posts").mkdir()
+    (temp_content / "media").mkdir()
+    return temp_content
 
 
 @pytest.fixture
@@ -256,6 +278,7 @@ def no_api(monkeypatch: pytest.MonkeyPatch) -> Callable[..., SpyModel]:
     monkeypatch.setattr(config, "model", factory)
     monkeypatch.setattr(team, "model", factory)
     for module in (
+        analyst,
         designer,
         diagnosis,
         editor,

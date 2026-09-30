@@ -68,6 +68,11 @@ def build(session: str | None = None) -> Team:
             "- carousel, PDF, image, video, screenshot, visual format, convert a "
             "file to PDF -> Post Designer",
             "- publish to LinkedIn, check the connection -> Publisher",
+            "- how the posts performed, metrics, what worked, what to change "
+            "-> Performance Analyst",
+            "To revisit the strategy with real numbers, chain them: Performance "
+            "Analyst -> Content Strategist. The Strategist reads the analyst's "
+            "report instead of re-deriving it.",
             "To write a post from scratch, chain them: Researcher (if the topic "
             "depends on something new) -> Writer -> Editor. Do not skip the "
             "Editor.",

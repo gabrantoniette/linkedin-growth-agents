@@ -90,7 +90,7 @@ def _reader(chunk_size: int) -> MarkdownReader:
     return MarkdownReader(chunk_size=chunk_size)
 
 
-def _front_matter(path: Path) -> dict[str, str]:
+def front_matter(path: Path) -> dict[str, str]:
     """Pull the YAML front matter out of a post, or return empty.
 
     The metadata is worth carrying: it lands in the indexed payload, so the
@@ -113,7 +113,14 @@ def _front_matter(path: Path) -> dict[str, str]:
     try:
         data = yaml.safe_load(raw) or {}
     except yaml.YAMLError:
-        return {}
+        # An unquoted colon in a value ('topic: Workshop: adoção') is invalid
+        # YAML and common in hand-edited posts. Reading `key: value` per line
+        # recovers the flat fields instead of losing all of them.
+        data = {}
+        for line in raw.splitlines():
+            key, sep, value = line.partition(":")
+            if sep and key.strip() and not key.startswith((" ", "\t", "-")):
+                data[key.strip()] = value.strip().strip("\"'")
     if not isinstance(data, dict):
         return {}
     # Vector metadata has to survive a JSON round-trip, and dates come back
@@ -132,7 +139,7 @@ def index_posts(recreate: bool = False) -> tuple[int, list[str]]:
     indexed = 0
     skipped: list[str] = []
     for path in sorted(POSTS_DIR.glob("*.md")):
-        metadata = _front_matter(path)
+        metadata = front_matter(path)
         metadata["source"] = "post"
         metadata["file"] = f"posts/{path.name}"
         try:

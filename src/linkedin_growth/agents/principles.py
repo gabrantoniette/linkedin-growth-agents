@@ -223,7 +223,9 @@ PLATFORM_LIMITS = [
     "one when the content suits it, and say who does what. Never plan media as "
     "if `linkedin publish` could send it.",
     "The system CANNOT read post metrics through the API: LinkedIn restricts "
-    "that access. The user records metrics by hand in content/metrics.csv.",
+    "that access. The user downloads each post's analytics export (.xlsx) on "
+    "LinkedIn and imports it with `uv run linkedin metrics`, which fills "
+    "content/metrics.csv. Never plan as if the numbers arrived on their own.",
 ]
 
 
