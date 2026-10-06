@@ -447,7 +447,7 @@ tests/                        the suite, no test calls a paid API
 `src/linkedin_growth/agents/principles.py` concentrates the strategy: the
 honesty rules, the positioning, the content pillars, the writing rules and the
 editor's rubric. Changing how the system behaves means changing that file, not
-seven agent files.
+ten agent files.
 
 ### Adding reference material and skills
 
