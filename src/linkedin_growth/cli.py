@@ -418,6 +418,17 @@ def publish(
             "caption. The steps are at the end of the file."
         )
 
+    # A poll's text only sets up the question. The API gets neither the
+    # question nor the options from this file, so it would send a post that
+    # stops right before its point.
+    if re.search(r"^format:\s*poll\s*$", raw, re.MULTILINE):
+        _fail(
+            f"{path.name} is a poll, not a text post.\n\n"
+            "The API publishes text only, so a poll goes up by hand: open the "
+            "LinkedIn composer, create the poll and paste the text, the "
+            f"question and the options from content/media/{path.stem}/post.md."
+        )
+
     # The Editor rejects a post that claims experience the user does not have,
     # and when it does that it deliberately omits the publishable headings so
     # the cut finds no text. Without this check the user would get "could not

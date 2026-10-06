@@ -46,6 +46,14 @@ POSITIONING = [
     "post's cover and first line answer to the DESIGN and WRITING rules.",
     "The audience is technical AI recruiters, working AI engineers, and the "
     "Brazilian AI community. Write for those three people, not for everyone.",
+    # A poll travels past the network but earns little engagement
+    # (references/kb-linkedin-publishing.md section 5.1): useful for growing
+    # the network, harmful if it crowds out what the recruiter reads.
+    "A reach post is the one exception: a poll meant to travel past the "
+    "user's network may also speak to a fourth reader, the tech professional "
+    "who uses AI every day without building AI systems. It is a way of "
+    "writing any pillar, not a pillar of its own, and it goes out at most one "
+    "every four weeks, so it never takes the place of the technical posts.",
     # The recruiter decides whether the user gets called, and is least likely
     # of the three to be an engineer, so writing past them costs the most.
     "The recruiter in that audience is usually not an engineer. Never make a "
@@ -118,7 +126,9 @@ WRITING_RULES = [
     "The first line is everything. LinkedIn truncates it at about 140 characters "
     "on mobile, which is where most people read. If the first line does not hold "
     "inside that, nobody clicks 'see more'.",
-    "Between 120 and 250 words. Too short says nothing; too long goes unread.",
+    "Between 120 and 250 words. Too short says nothing; too long goes unread. "
+    "A poll is the exception: its question is the post, and the text only "
+    "sets it up. The first-line rule still applies to it.",
     "Zero to three hashtags at the end, specific to the field. No #sucesso, no "
     "#motivação. Five or more hashtags signals a spam account, not reach. See "
     "references/linkedin-algorithm.md.",
@@ -194,7 +204,9 @@ DO_NOT = [
     "Do not write self-help posts, motivational posts, or 'life lessons' "
     "extracted from work.",
     "Do not ask for engagement ('comment ABC', 'tag a friend'). It burns "
-    "credibility with a technical audience.",
+    "credibility with a technical audience. A poll is not engagement bait "
+    "when its question is real and its result becomes the next post; "
+    "'Concorda? Sim/não' is.",
     "Do not publish a news summary with no opinion of your own. That is noise.",
 ]
 
@@ -205,6 +217,9 @@ METRICS = [
     "direct message.",
     "A sustainable cadence beats a spike: two or three posts a week kept up for "
     "months are worth more than one a day for two weeks.",
+    "In a reach post, followers gained and new connections count too, since "
+    "growing the network is what it is for. A poll that reaches five times "
+    "more people than a technical post is not a reason to post more polls.",
 ]
 
 # Platform limits: without these, an agent promises things that are impossible.
@@ -222,6 +237,11 @@ PLATFORM_LIMITS = [
     "section 2, references/kb-linkedin-publishing.md section 5), so recommend "
     "one when the content suits it, and say who does what. Never plan media as "
     "if `linkedin publish` could send it.",
+    "The system does NOT publish polls either: the user creates them by hand "
+    "in LinkedIn's composer. The question and the options live in "
+    "content/media/<slug>/post.md with `format: poll`, and the post file "
+    "carries `format: poll` in its front matter so `linkedin publish` "
+    "refuses it instead of sending the text without the poll.",
     "The system CANNOT read post metrics through the API: LinkedIn restricts "
     "that access. The user downloads each post's analytics export (.xlsx) on "
     "LinkedIn and imports it with `uv run linkedin metrics`, which fills "

@@ -1,7 +1,7 @@
 ---
 id: kb-linkedin-publishing
 title: "Reference base — Timing, frequency and format of LinkedIn publishing"
-version: 1.0
+version: 1.1
 compiled_on: 2026-09-12
 revalidate_on: 2026-12-12
 language: en
@@ -321,6 +321,40 @@ Buffer data:
 - Start with the formats that sustain consistency (text, image) and add carousel and video
   once the rhythm exists.
 
+### 5.1 Polls — reach, not engagement
+
+A poll is the format that travels furthest and earns the least:
+
+| Finding | Value | Source |
+|---|---|---|
+| Reach relative to other formats, personal profiles | 1.78x | `authoredup-formats-2026` |
+| Engagement relative to other formats, personal profiles | 0.37x | `authoredup-formats-2026` |
+| Median impressions, poll vs. other posts | 1,154 vs. 760 | `magicpost-polls` |
+| Median likes and comments on a poll | 6 and 3 | `magicpost-polls` |
+
+**Mechanics the numbers depend on:**
+- Since May 2022, LinkedIn shows fewer polls from people the reader does not know
+  (`linkedin-feed-2022`). The extra reach comes mostly through the author's network and
+  through comments, not through strangers' votes.
+- Voting does not put the poll in the voter's Activity, and LinkedIn shares the vote only
+  with the author (`linkedin-help-polls`). A comment, unlike a vote, is public activity.
+- The author sees who voted and for which option (`linkedin-help-polls`), which makes the
+  voter list a list of people to connect with.
+- Limits: a question of up to 140 characters and options of up to 30 characters; up to
+  four options on desktop and Android, five on iOS. A closed poll cannot be reopened
+  (`linkedin-help-polls`).
+- An API for polls exists (`linkedin-poll-api`), but this system publishes them by hand.
+
+**Derived rules:**
+- Use a poll to grow the network, never as the default format: its engagement is about a
+  third of other formats', and engagement is what the recruiter metric depends on.
+- A real question whose result becomes the next post is a poll. "Agree? Yes/no" is
+  engagement bait, and the 2022 change was aimed at it.
+- Do not read a poll's reach as a reason to post more polls (§9).
+
+**Discarded:** a 0.07% engagement figure attributed to a March 2026 "Authenticity
+Update" (Dataslayer) cites neither a source nor a method.
+
 ---
 
 ## 6. Algorithm mechanics (state in 2026)
@@ -442,6 +476,7 @@ makes it impossible to accumulate statistical volume.
 | "Wednesday is the best day" (as fact) | Buffer says Wednesday, MagicPost and Hootsuite say Tuesday |
 | "Your engagement per post fell, reduce your frequency" | Wrong denominator; measure per week |
 | "Post every day to grow" | True in aggregate, but an abandoned cadence is worse than a smaller one that is kept |
+| "The poll reached more people, post more polls" | Reach is not the goal metric; poll engagement is ~0.37x (§5.1) |
 
 ### 9.1 Methodological limitation to declare when relevant
 
@@ -472,6 +507,18 @@ No study here is a controlled experiment.
 | `socialpilot-2026` | SocialPilot | 683,000 posts / 47,672 accounts | 2026 | Engagement | SocialPilot's portfolio |
 | `authoredup-3m` | AuthoredUp | 3M+ posts | 2026 | Distribution in suggested feeds | Not declared |
 | `linkedin-br-2026` | LinkedIn (official announcement) | — | Jun 2026 | User count | The platform's own primary source |
+| `authoredup-formats-2026` | AuthoredUp | 3M+ posts | Mar 2025–Feb 2026 | Reach and engagement per format | Not declared |
+| `magicpost-polls` | MagicPost | 11,123 polls | — | Median impressions, likes, comments | Individual creators who use the tool |
+| `linkedin-feed-2022` | LinkedIn (via Social Media Today) | — | May 2022 | Feed ranking change | The platform's own announcement |
+| `linkedin-help-polls` | LinkedIn Help, Polls FAQ | — | — | Product behavior | The platform's own documentation |
+| `linkedin-poll-api` | Microsoft Learn, Poll Post API | — | — | API surface | The platform's own documentation |
+
+Poll sources: [AuthoredUp, best performing content](https://authoredup.com/blog/best-performing-content-on-linkedin),
+[AuthoredUp, polls](https://authoredup.com/blog/linkedin-polls),
+[MagicPost, 11,000 polls](https://magicpost.in/blog/do-linkedin-polls-work),
+[Social Media Today, 2022](https://www.socialmediatoday.com/news/linkedin-updates-feed-algorithm-to-downrank-engagement-baiting-posts-and-po/623313/),
+[LinkedIn Help](https://www.linkedin.com/help/linkedin/answer/a527270),
+[Poll Post API](https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/poll-post-api).
 
 ### 10.1 Global platform context
 
@@ -509,6 +556,7 @@ between silence and any rhythm at all.
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 2026-09-12 | Initial compilation. Six primary studies + the Brazilian context. |
+| 1.1 | 2026-10-06 | §5.1 polls: reach against engagement, feed limits, what the author sees. Five sources added to §10. |
 
 ### Revalidation triggers
 
