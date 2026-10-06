@@ -11,7 +11,10 @@ from __future__ import annotations
 from linkedin_growth.agents.principles import (
     DO_NOT,
     HONESTY,
+    METRICS,
     PILLARS,
+    PLATFORM_LIMITS,
+    POSITIONING,
     RUBRIC,
     VOICE_RULES,
     WRITING_RULES,
@@ -121,6 +124,62 @@ def test_asking_for_engagement_is_still_forbidden():
     forbidden = "\n".join(DO_NOT)
 
     assert "Do not ask for engagement" in forbidden
+
+
+# ==============================================================================
+# Polls - the reach post
+# ==============================================================================
+# A poll reaches past the user's network and earns little engagement. These
+# rules let the system plan one without opening the door to engagement bait
+# or to a feed that drifts away from the recruiter.
+
+
+def test_a_poll_with_a_real_question_is_told_apart_from_engagement_bait():
+    """The exception lives next to the ban, so the ban never reads as lifted."""
+    forbidden = "\n".join(DO_NOT)
+
+    assert "Do not ask for engagement" in forbidden
+    assert "poll" in forbidden.lower()
+
+
+def test_the_fourth_audience_comes_with_its_limit():
+    """Without the cap, reach posts slowly replace the posts recruiters read."""
+    positioning = "\n".join(POSITIONING)
+
+    assert "Write for those three people" in positioning
+    assert "reach post" in positioning
+    assert "at most one every four weeks" in positioning
+
+
+def test_a_poll_is_exempt_from_the_word_count_but_not_from_the_first_line():
+    writing = "\n".join(WRITING_RULES)
+
+    assert "Between 120 and 250 words" in writing
+    assert "poll" in writing.lower()
+    assert "The first line is everything" in writing
+
+
+def test_the_system_says_it_does_not_publish_polls():
+    """`linkedin publish` sends text only: a poll's text without its options makes no sense."""
+    platform = "\n".join(PLATFORM_LIMITS)
+
+    assert "format: poll" in platform
+    assert "by hand" in platform
+
+
+def test_a_reach_post_counts_followers_and_connections():
+    metrics = "\n".join(METRICS)
+
+    assert "reach post" in metrics
+    assert "followers" in metrics and "connections" in metrics
+
+
+def test_the_planner_can_put_a_poll_in_the_calendar(temp_db, no_api):
+    from linkedin_growth.agents import planner
+
+    instructions = " ".join(str(i) for i in (planner.build().instructions or []))
+
+    assert "text / image / PDF carousel / video / poll" in instructions
 
 
 # ==============================================================================

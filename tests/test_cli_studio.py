@@ -22,6 +22,18 @@ def test_publish_refuses_a_media_caption(tmp_path):
     assert "caption for a carousel" in result.output
 
 
+def test_publish_refuses_a_poll(tmp_path):
+    """The API would send the poll's text without the question and the options."""
+    post = tmp_path / "2026-10-06-enquete.md"
+    post.write_text("---\nformat: poll\n---\n\n## Post (pt-BR)\n\nTexto.\n", encoding="utf-8")
+
+    result = invoke("publish", str(post), "--dry-run")
+
+    assert result.exit_code == 1
+    assert "poll" in result.output
+    assert "Texto." not in result.output
+
+
 def test_design_refuses_a_rejected_post_before_building_the_agent(tmp_path, monkeypatch):
     from linkedin_growth.agents import designer
 

@@ -80,8 +80,12 @@ def build() -> Agent:
             "do not spend a row of the calendar on it.",
             "For every post in the calendar, fill in SIX fields: date, pillar, "
             "topic (a specific sentence, not a subject), format (text / image / "
-            "PDF carousel / video), PROOF ASSET (the concrete link or artifact "
-            "the post will show) and the provisional hook.",
+            "PDF carousel / video / poll), PROOF ASSET (the concrete link or "
+            "artifact the post will show) and the provisional hook.",
+            "A poll is a reach post (section 5.1 of 'kb-linkedin-publishing.md'): "
+            "at most one every four weeks, it counts as one of that week's posts, "
+            "and the post that reveals its result goes in the calendar on the "
+            "day the poll closes.",
             "Choose the format with `read_reference` on 'kb-visual-formats.md', "
             "section 2: for a personal profile a PDF carousel suits content with "
             "steps, a comparison or an architecture; a single image suits one "
