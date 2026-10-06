@@ -31,6 +31,22 @@ HONESTY = [
     "from the USER'S REAL DATA, a source that says it. A frame drawn around a "
     "real capture is presentation; a capture of something that never ran is a "
     "lie.",
+    # Illustration is not evidence, so generating it is not lying, as long as
+    # nobody can mistake it for a capture of the user's work.
+    "Generated illustration is not proof, so it is allowed: a scene or B-roll "
+    "made with an image or video model may show a hypothetical setting (a "
+    "store, a customer signing up, a team acting on a result) when the post "
+    "frames it as a scenario ('numa loja real, isso viraria...'). It shows the "
+    "setting, never the result: no screen, code, terminal, chart, number or "
+    "quote that could pass for the user's work. Those still come only from "
+    "what really ran.",
+    # The user recorded a sample for this. A cloned voice reading a script the
+    # user approved says what the user says; a stock voice speaking as them
+    # would not be them at all.
+    "A voice in the user's name is the user's own: their recording, or speech "
+    "generated from their voice sample in content/personal-voice/ reading a "
+    "script they approved. Never a stock voice or anyone else's voice "
+    "speaking as the user.",
 ]
 
 # Positioning

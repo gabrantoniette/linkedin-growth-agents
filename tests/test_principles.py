@@ -37,6 +37,27 @@ def test_base_instructions_carry_every_honesty_rule():
         assert rule in base
 
 
+def test_generated_illustration_is_allowed_while_proof_stays_real():
+    """Illustrating a hypothetical setting is not lying; faking the result is.
+
+    The exception sits next to the ban instead of replacing it, so an agent
+    that reads one always reads the other.
+    """
+    honesty = "\n".join(HONESTY)
+
+    assert "Never fabricate visual proof" in honesty
+    assert "Generated illustration is not proof" in honesty
+    assert "never the result" in honesty
+
+
+def test_a_voice_in_the_users_name_comes_from_their_own_sample():
+    """The user recorded a sample so narration can use their voice, and nobody else's."""
+    honesty = "\n".join(HONESTY)
+
+    assert "content/personal-voice/" in honesty
+    assert "script they approved" in honesty
+
+
 def test_base_instructions_ask_for_answers_in_portuguese():
     """The code is in English; the posts are not. This is what keeps them apart."""
     assert any(

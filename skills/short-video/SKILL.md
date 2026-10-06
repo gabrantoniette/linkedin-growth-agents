@@ -30,10 +30,14 @@ Threads, where video does well.
   narration; lengthen the scene or cut the narration.
 - With narration, the slide keeps only the key phrase and the captions carry
   the full sentence (the redundancy principle, §6.5).
-- **Voice**: only a recording of the user, saved under content/ and pointed at
-  by `voiceover`. Never synthetic speech in the user's name. Without a
-  recording, the video is silent, with the narration as captions or with no
-  narration at all.
+- **Voice**: a recording of the user, or speech generated from the user's own
+  voice sample in `content/personal-voice/` reading a script they approved,
+  saved under content/ and pointed at by `voiceover`. Never a stock voice or
+  anyone else's voice in the user's name. Without either, the video is silent,
+  with the narration as captions or with no narration at all.
+- **Generated scenes**: a clip made with a video model may illustrate a
+  hypothetical setting, framed as a scenario. It never shows a screen, code,
+  output or number as if it were the user's (HONESTY).
 
 ## 3. The spec
 
