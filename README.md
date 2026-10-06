@@ -1,5 +1,10 @@
 # LinkedIn Growth: a multi-agent system for AI engineering
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/gabrantoniette/gabrantoniette/main/assets/generated/languages/linkedin-growth-agents-dark.svg">
+  <img src="https://raw.githubusercontent.com/gabrantoniette/gabrantoniette/main/assets/generated/languages/linkedin-growth-agents-light.svg" alt="Languages in linkedin-growth-agents, by share of code">
+</picture>
+
 A team of ten [Agno](https://github.com/agno-agi/agno) agents that works on
 your LinkedIn profile so AI engineering recruiters can find you: it audits the
 profile, rewrites the copy, defines the content strategy, plans the calendar,
@@ -442,7 +447,7 @@ tests/                        the suite, no test calls a paid API
 `src/linkedin_growth/agents/principles.py` concentrates the strategy: the
 honesty rules, the positioning, the content pillars, the writing rules and the
 editor's rubric. Changing how the system behaves means changing that file, not
-seven agent files.
+ten agent files.
 
 ### Adding reference material and skills
 
