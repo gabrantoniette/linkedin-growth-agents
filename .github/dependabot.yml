@@ -24,8 +24,8 @@ updates:
       python-minor-and-patch:
         update-types: [minor, patch]
 
-  # agent_ui: pnpm-lock.yaml is the lockfile in use (CI and the README both
-  # install with pnpm). The package-lock.json beside it is older and unused.
+  # agent_ui: the ecosystem is called npm, but Dependabot reads and updates
+  # pnpm-lock.yaml, the only lockfile there. CI and the README install with pnpm.
   - package-ecosystem: npm
     directory: /agent_ui
     schedule:
