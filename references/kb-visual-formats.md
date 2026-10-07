@@ -1,7 +1,7 @@
 ---
 id: kb-visual-formats
 title: "Reference base: visual formats on LinkedIn, Instagram, X and Threads"
-version: 1.0
+version: 1.1
 compiled: 2026-09-13
 revalidate_by: 2026-12-13
 language: en (slide copy examples stay in pt-BR)
@@ -402,9 +402,11 @@ takes 40 seconds is a 40 second video.
 
 - The default is **silent kinetic text** with captions: it works muted, which is
   how the feed plays it.
-- A voiceover, when there is one, is **the user's own recorded voice**. A
-  synthetic voice speaking in the first person as the user presents something
-  the user did not say: it collides with HONESTY.
+- A voiceover, when there is one, is **the user's own voice**: a recording, or
+  speech generated from the user's voice sample in `content/personal-voice/`
+  reading a script the user approved. A stock or someone else's voice speaking
+  in the first person as the user presents something the user did not say: it
+  collides with HONESTY.
 - **Redundancy principle** (`mayer-multimedia`): with narration, the text on
   screen should be the key phrase, not the full sentence being spoken; the
   captions carry the words for muted viewers.
@@ -448,6 +450,18 @@ takes 40 seconds is a 40 second video.
   frame for command output.
 - Real code and real output, from the user's repository or run. A plausible
   output typed for the slide is a fabricated screenshot.
+
+### 7.4 Generated illustration
+
+- An image or video model may illustrate a **hypothetical setting**: the store,
+  the customer signing up, the team acting on the result. It is not proof, so it
+  does not need to be real; the post frames it as a scenario, never as the
+  user's work (`principles.HONESTY`).
+- It shows the setting, never the result: no screen, code, terminal, chart,
+  number or legible quote that could pass for something the user ran. Those
+  come from §7.2 and §7.3.
+- The coherence principle (§4) still applies: an illustration earns its place
+  by carrying the scenario, not by decorating a slide.
 
 ---
 
@@ -525,7 +539,8 @@ pillar, and every text and line color tested against WCAG
 | Unicode bold or italic in the post | Unreadable by screen readers, invisible to search (§5) |
 | A mockup of output that never ran | A fabricated screenshot violates HONESTY (§7.2) |
 | Capturing linkedin.com with a browser | The project only uses the official API (§7.2) |
-| A synthetic voice narrating as the user | Presents words the user did not say (§6.5) |
+| A stock voice narrating as the user | Presents words the user did not say; only the user's recording or their own cloned voice (§6.5) |
+| A generated clip showing a screen or a number as the user's | Illustration shows the setting, never the result (§7.4) |
 | Pages of different sizes in one PDF | LinkedIn rejects or refits them (§3.1) |
 | "Salve este post", "comente X" on the closing slide | Engagement bait is forbidden and suppressed (§3.5) |
 
@@ -577,6 +592,7 @@ pillar, and every text and line color tested against WCAG
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 2026-09-13 | First compilation: format data for four platforms, carousel and video anatomy, design research, source register. |
+| 1.1 | 2026-10-06 | §7.4 generated illustration allowed as a scenario, never as a result; §6.5 voice may be the user's own cloned voice. |
 
 ### Revalidation triggers
 

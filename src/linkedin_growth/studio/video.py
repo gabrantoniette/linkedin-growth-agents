@@ -7,9 +7,11 @@ when there is one, becomes both burned-in captions and an `.srt` file.
 
 What it deliberately does not do:
 
-- **No synthetic voice.** The voiceover, if any, is a recording of the user.
-  A generated voice speaking in the first person as the user would put words in
-  their mouth, and HONESTY forbids that (kb-visual-formats.md §6.5).
+- **No voice but the user's.** The voiceover, if any, is a recording of the
+  user or speech generated from their own sample in content/personal-voice/,
+  reading a script they approved. A stock voice speaking in the first person as
+  the user would put words in someone else's mouth, and HONESTY forbids that
+  (kb-visual-formats.md §6.5).
 - **No stock footage, no music.** Nothing in the frame that the user did not
   make or cannot license.
 
