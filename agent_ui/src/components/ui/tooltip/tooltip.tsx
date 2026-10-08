@@ -17,9 +17,8 @@ const Tooltip = TooltipPrimitive.Root
 
 const TooltipTrigger = TooltipPrimitive.Trigger
 
-interface TooltipContentProps extends ComponentPropsWithoutRef<
-  typeof TooltipPrimitive.Content
-> {
+interface TooltipContentProps
+  extends ComponentPropsWithoutRef<typeof TooltipPrimitive.Content> {
   type?: 'default' | 'copy'
 }
 
