@@ -26,10 +26,10 @@ jobs:
     # 220MB FastEmbed model, this job would either hang or blow up. It does not,
     # because the retrieval tests carry hand-written vectors.
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v5
         with:
           # Read from `.python-version` rather than pinned here, so the version
           # has one home and CI cannot drift from local development.

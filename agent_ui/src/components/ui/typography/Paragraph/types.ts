@@ -1,7 +1,15 @@
 import type { ReactNode } from 'react'
 
 type ParagraphSizes =
-  'xs' | 'sm' | 'default' | 'lg' | 'lead' | 'title' | 'body' | 'mono' | 'xsmall'
+  | 'xs'
+  | 'sm'
+  | 'default'
+  | 'lg'
+  | 'lead'
+  | 'title'
+  | 'body'
+  | 'mono'
+  | 'xsmall'
 
 export interface ParagraphProps {
   children: ReactNode
