@@ -40,6 +40,12 @@ HONESTY = [
     "setting, never the result: no screen, code, terminal, chart, number or "
     "quote that could pass for the user's work. Those still come only from "
     "what really ran.",
+    # The jornal collage puts real photos from the web next to real captures.
+    # A photo of headphones shows the subject; it proves nothing about the code.
+    "A photo from the web illustrates the subject and proves nothing: it is "
+    "never placed or captioned as if it showed the user's work, a result or a "
+    "real customer. Only public domain or CC0 photos are used, and where each "
+    "one came from is recorded next to it.",
     # The user recorded a sample for this. A cloned voice reading a script the
     # user approved says what the user says; a stock voice speaking as them
     # would not be them at all.
@@ -187,13 +193,25 @@ DESIGN_RULES = [
     "and nothing competing with it. The hook does not have to carry the proof: "
     "a promise, an invitation or a question earns the swipe as well as a number "
     "does, as long as the slides and the caption pay it off.",
-    "Headlines are stated plainly. No accented word, no bold or highlighted "
-    "phrase inside a headline: emphasis belongs to the evidence underneath.",
+    # Chosen by the user on 2026-10-13 from three directions; it replaced the
+    # plain-headline rule of the computation-paper identity.
+    "Headlines are set like a newspaper's: a full sentence in a light serif, "
+    "the phrase that carries the point in **heavy** type, and at most one "
+    "phrase per slide under the ==highlighter==. The marks go on that phrase "
+    "only, never on a single word for decoration.",
     "Numbers mark only a sequence or a ranking. A list of reasons is not "
     "numbered, because the numbers would claim an order that is not there.",
-    "The identity does not change per post: the same themes, the same "
-    "typography and the same foot on every slide. Consistency is what makes a "
-    "series recognizable in the feed.",
+    "The identity is the jornal theme on every carousel and image post: "
+    "newsprint, the serif headlines, the masthead, evidence pasted on torn "
+    "paper, and a closing page printed in reverse. What follows the post's "
+    "subject: the photos, the masthead's words, and the highlighter's color "
+    "(yellow by default; pink, green or blue when the photo or the subject asks "
+    "for it). Consistency is what makes a series recognizable in the feed.",
+    "Every carousel and image post carries at least one real photo of the "
+    "post's subject: an object or a scene, found with `search_photos` and saved "
+    "with `get_photo`, public domain or CC0 only. An object shot on white goes "
+    "in as a cutout over the highlighter; anything else as a print. The photo "
+    "sets the subject; the captures, the code and the numbers stay the proof.",
     "Text inside a picture is invisible to search and to screen readers. Every "
     "image gets alt text, every video gets captions, and the caption of every "
     "carousel states its core point in plain words.",

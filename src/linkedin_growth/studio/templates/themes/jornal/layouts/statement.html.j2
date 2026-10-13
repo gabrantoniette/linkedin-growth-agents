@@ -1,0 +1,11 @@
+<p class="statement" data-fit data-min="56">{% if s.photo %}<span class="photo-room" aria-hidden="true"></span>{% endif %}{{ s.slide.text | inline }}</p>
+{% if s.slide.support %}<p class="support" data-fit data-min="28">{{ s.slide.support | inline }}</p>{% endif %}
+{% if s.slide.tally %}
+<div class="receipt-wrap">
+  <div class="receipt" style="clip-path: {{ torn(s.seed + 3, sides='tb', amp=10) }}" data-fit data-min="20">
+    {% if s.slide.tally.title %}<p class="receipt-title">{{ s.slide.tally.title | inline }}</p>{% endif %}
+    {% for row in s.slide.tally.rows %}<div class="receipt-row"><span>{{ row.label | inline }}</span><i></i><span>{{ row.value }}</span></div>{% endfor %}
+    {% if s.slide.tally.total %}<div class="receipt-row is-total"><span>{{ s.slide.tally.total.label | inline }}</span><i></i><span>{{ s.slide.tally.total.value }}</span></div>{% endif %}
+  </div>
+</div>
+{% endif %}

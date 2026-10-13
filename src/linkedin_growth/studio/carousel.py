@@ -186,7 +186,7 @@ def render_carousel(
         result.spec_file.write_text(dump_spec(spec), encoding="utf-8")
 
     result.errors.extend(text_errors(spec))
-    result.warnings.extend(lint(spec))
+    result.warnings.extend(lint(spec, single_image=single_image))
     width, height = CAROUSEL_SIZE
     document = build_document(
         spec,

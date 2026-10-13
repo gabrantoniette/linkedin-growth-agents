@@ -1,0 +1,7 @@
+{% set tag = 'ol' if s.slide.numbered else 'ul' %}
+<h2 class="h-slide" data-fit data-min="48">{% if s.photo %}<span class="photo-room" aria-hidden="true"></span>{% endif %}{{ s.slide.headline | inline }}</h2>
+<{{ tag }} class="rules{% if s.slide.numbered %} is-numbered{% endif %}" data-fit data-min="28">
+{% for item in s.slide.items %}
+  <li><span class="rules-mark">{% if s.slide.numbered %}{{ loop.index }}{% endif %}</span><span class="rules-text">{{ item | inline }}</span></li>
+{% endfor %}
+</{{ tag }}>

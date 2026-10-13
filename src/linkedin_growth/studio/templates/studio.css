@@ -436,11 +436,28 @@ code {
   background: var(--panel);
 }
 
+.flow-node.is-key { border-color: var(--measure); box-shadow: inset 0 0 0 2px var(--measure); }
 .flow-index { font-size: 0.72em; font-weight: 700; color: var(--measure); font-variant-numeric: tabular-nums; }
 .flow-label { font-weight: 700; line-height: 1.15; }
 .flow-detail { margin-top: 0.14em; font-size: 0.72em; line-height: 1.3; color: var(--pencil); }
 .flow-edge { height: 1.15em; padding-left: 0.72em; display: flex; align-items: center; color: var(--construction); }
 .flow-edge svg { width: 0.9em; height: 1.1em; }
+
+/* --------------------------------------------------------------------------
+   ledger, and the tally under a statement: values against a construction line
+   -------------------------------------------------------------------------- */
+
+.ledger { display: grid; grid-template-columns: minmax(3.2em, max-content) 1fr; font-size: 42px; }
+.ledger-row { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: baseline; column-gap: 0.7em; padding: 0.42em 0; border-top: 2px solid var(--construction); }
+.ledger-value { font-size: 1.6em; font-weight: 760; font-stretch: 74%; line-height: 1; color: var(--measure); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ledger-label { line-height: 1.25; text-wrap: pretty; }
+.ledger-row.is-total { border-top: 5px solid var(--measure); }
+.ledger-row.is-total .ledger-label { font-weight: 700; }
+
+.tally { display: flex; flex-direction: column; gap: 0.3em; padding: 0.8em 1em; font-size: 34px; background: var(--panel); border: 2px solid var(--construction); border-radius: 3px; }
+.tally-title { font-weight: 700; }
+.tally-row { display: flex; justify-content: space-between; gap: 1em; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.9em; }
+.tally-row.is-total { margin-top: 0.2em; padding-top: 0.3em; border-top: 2px solid var(--construction); color: var(--measure); font-weight: 600; }
 
 /* --------------------------------------------------------------------------
    closing

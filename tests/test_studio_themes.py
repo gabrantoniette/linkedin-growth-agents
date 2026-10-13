@@ -12,11 +12,16 @@ import re
 import pytest
 
 from linkedin_growth.studio.html import TEMPLATES_DIR
+from linkedin_growth.studio.spec import CarouselSpec
 from linkedin_growth.studio.themes import (
+    ACCENTS,
+    DEFAULT_THEME,
     FONTS,
     FONTS_DIR,
+    JORNAL,
     MIN_GRAPHIC_CONTRAST,
     MIN_TEXT_CONTRAST,
+    TEXTURES_DIR,
     THEMES,
     contrast_ratio,
 )
@@ -69,3 +74,34 @@ def test_every_css_variable_the_templates_use_is_defined_by_every_theme():
     for theme in THEMES.values():
         defined = {part.split(":")[0].strip() for part in theme.css_variables().split(";")}
         assert used - defined - set_by_the_layout == set(), theme.id
+
+
+@pytest.mark.parametrize("theme", THEMES.values(), ids=lambda theme: theme.id)
+def test_every_variable_a_theme_stylesheet_uses_is_defined(theme):
+    """The jornal stylesheet uses colors only its theme has (the sheet, the marker)."""
+    folder = TEMPLATES_DIR / "themes" / theme.templates if theme.templates else TEMPLATES_DIR
+    text = (folder / theme.stylesheet).read_text(encoding="utf-8")
+    used = set(re.findall(r"var\((--[a-z\-]+)", text))
+    declared_in_the_sheet = set(re.findall(r"(--[a-z\-]+)\s*:", text))
+    defined = {part.split(":")[0].strip() for part in theme.css_variables().split(";")}
+
+    assert used - defined - declared_in_the_sheet - {"--w", "--h"} == set()
+
+
+def test_the_jornal_theme_is_the_default_for_new_specs():
+    assert DEFAULT_THEME == JORNAL.id
+    assert CarouselSpec.model_validate({"title": "T", "slides": [{"layout": "statement", "text": "x"}]}).theme == "jornal"
+
+
+def test_every_accent_has_its_highlighter_and_swaps_the_marker_color():
+    for name, color in ACCENTS.items():
+        assert (TEXTURES_DIR / f"marker-{name}.svg").is_file(), name
+        assert color in (TEXTURES_DIR / f"marker-{name}.svg").read_text(encoding="utf-8")
+        assert f"--marker: {color}" in JORNAL.css_variables(accent=name)
+    assert (TEXTURES_DIR / "grain.png").is_file()
+
+
+def test_ink_reads_on_every_highlighter():
+    """Highlighted words are ink on the marker; a post may pick any accent."""
+    for name, color in ACCENTS.items():
+        assert contrast_ratio(JORNAL.ink, color) >= MIN_TEXT_CONTRAST, name

@@ -20,7 +20,12 @@ Each layout is a single idea with its evidence (kb-visual-formats.md §4):
     quote      someone else's words, attributed
     image      a real screenshot, framed
     diagram    a flow of two to six nodes
+    ledger     a breakdown: values that add up, or a list of measured values
     closing    the question the post ends on
+
+Photos of the post's subject (DESIGN_RULES asks for at least one per deck) go
+in the cover's `collage` or in a slide's `photo`. They illustrate; they are
+never the evidence a slide stands on.
 """
 
 from __future__ import annotations
@@ -36,6 +41,7 @@ from pydantic import (
     Field,
     ValidationError,
     field_validator,
+    model_validator,
 )
 
 
@@ -56,6 +62,65 @@ class Author(_Model):
     avatar: str | None = None
 
 
+class Masthead(_Model):
+    # The running head at the top of every jornal slide: the subject on the
+    # left in small capitals, where it comes from on the right in mono. Without
+    # one, the deck's title runs there.
+    label: str = Field(min_length=1, max_length=40)
+    detail: str | None = Field(default=None, max_length=48)
+
+
+class Photo(_Model):
+    # A photo of the post's subject, saved by `get_photo` under
+    # media/<slug>/photos/ with its credit. Path relative to content/.
+    image: str = Field(min_length=1, max_length=260)
+    # 'cutout': an object on transparent ground (the '-recorte.png' get_photo
+    # writes), drawn over the highlighter; 'print': a photo printed in black
+    # and white and taped on.
+    kind: Literal["cutout", "print"] = "print"
+    # Small print under it, in mono: what the object is, or where it is from.
+    caption: str | None = Field(default=None, max_length=80)
+    alt: str | None = Field(default=None, max_length=300)
+
+
+class CollageItem(_Model):
+    image: str = Field(min_length=1, max_length=260)
+    # 'capture': a screenshot, pasted in the middle on computation paper;
+    # 'cutout': an object on transparent ground, on the left over the
+    # highlighter; 'print': a photo, on the right, in black and white over a
+    # halftone. One of each at most: the cover has a slot for each.
+    kind: Literal["capture", "cutout", "print"]
+    alt: str | None = Field(default=None, max_length=300)
+
+
+class Mark(_Model):
+    # A box drawn by hand around the part of a screenshot that proves the
+    # point, in the image's own pixels: [left, top, right, bottom].
+    box: list[int] = Field(min_length=4, max_length=4)
+    label: str | None = Field(default=None, max_length=40)
+
+    @field_validator("box")
+    @classmethod
+    def _box_is_a_box(cls, box: list[int]) -> list[int]:
+        left, top, right, bottom = box
+        if min(box) < 0 or right <= left or bottom <= top:
+            raise ValueError("box is [left, top, right, bottom], in pixels, with right > left and bottom > top")
+        return box
+
+
+class Row(_Model):
+    value: str = Field(min_length=1, max_length=24)
+    label: str = Field(min_length=1, max_length=90)
+
+
+class Tally(_Model):
+    # A short list of values under a statement, printed as a receipt: the
+    # items that make up the claim, and what they come to.
+    title: str | None = Field(default=None, max_length=80)
+    rows: list[Row] = Field(min_length=1, max_length=5)
+    total: Row | None = None
+
+
 class _Slide(_Model):
     # Small print under the content: a source, a caveat, a date.
     note: str | None = Field(default=None, max_length=160)
@@ -64,19 +129,35 @@ class _Slide(_Model):
     narration: str | None = Field(default=None, max_length=700)
 
 
+class _PhotoSlide(_Slide):
+    # A photo of the subject in the top right corner, beside the headline.
+    photo: Photo | None = None
+
+
 class CoverSlide(_Slide):
     layout: Literal["cover"]
     headline: str = Field(min_length=1, max_length=140)
     subtitle: str | None = Field(default=None, max_length=200)
+    # The pictures above the hook, in the jornal theme.
+    collage: list[CollageItem] = Field(default_factory=list, max_length=3)
+
+    @field_validator("collage")
+    @classmethod
+    def _one_of_each_kind(cls, items: list[CollageItem]) -> list[CollageItem]:
+        kinds = [item.kind for item in items]
+        if len(kinds) != len(set(kinds)):
+            raise ValueError("the collage takes at most one capture, one cutout and one print")
+        return items
 
 
-class StatementSlide(_Slide):
+class StatementSlide(_PhotoSlide):
     layout: Literal["statement"]
     text: str = Field(min_length=1, max_length=260)
     support: str | None = Field(default=None, max_length=200)
+    tally: Tally | None = None
 
 
-class PointsSlide(_Slide):
+class PointsSlide(_PhotoSlide):
     layout: Literal["points"]
     headline: str = Field(min_length=1, max_length=140)
     items: list[str] = Field(min_length=2, max_length=6)
@@ -90,13 +171,13 @@ class Step(_Model):
     detail: str | None = Field(default=None, max_length=180)
 
 
-class StepsSlide(_Slide):
+class StepsSlide(_PhotoSlide):
     layout: Literal["steps"]
     headline: str = Field(min_length=1, max_length=140)
     steps: list[Step] = Field(min_length=2, max_length=5)
 
 
-class CodeSlide(_Slide):
+class CodeSlide(_PhotoSlide):
     layout: Literal["code"]
     headline: str | None = Field(default=None, max_length=140)
     code: str = Field(min_length=1, max_length=2400)
@@ -117,7 +198,7 @@ class Column(_Model):
     items: list[str] = Field(min_length=1, max_length=5)
 
 
-class CompareSlide(_Slide):
+class CompareSlide(_PhotoSlide):
     layout: Literal["compare"]
     headline: str = Field(min_length=1, max_length=140)
     left: Column
@@ -138,7 +219,7 @@ class MetricSlide(_Slide):
     source: str = Field(min_length=3, max_length=140)
 
 
-class QuoteSlide(_Slide):
+class QuoteSlide(_PhotoSlide):
     layout: Literal["quote"]
     quote: str = Field(min_length=1, max_length=320)
     # Required for the same reason as a metric's source.
@@ -163,21 +244,54 @@ class ImageSlide(_Slide):
     source: str | None = Field(default=None, max_length=140)
     # LinkedIn caps image alt text at 300 characters.
     alt: str | None = Field(default=None, max_length=300)
+    # 'auto' prints the capture in black and white in the jornal theme and in
+    # color elsewhere. 'color' when color is the evidence: a chart, a diff.
+    tone: Literal["auto", "mono", "color"] = "auto"
+    # The part of the capture that proves the point, boxed by hand.
+    mark: Mark | None = None
+
+    @model_validator(mode="after")
+    def _a_mark_needs_the_whole_image(self) -> ImageSlide:
+        if self.mark and self.fit != "contain":
+            raise ValueError(
+                "a mark needs fit: contain, so the box lands on the part of the image it names"
+            )
+        return self
 
 
 class Node(_Model):
     label: str = Field(min_length=1, max_length=40)
     detail: str | None = Field(default=None, max_length=90)
+    # The node the post is about, printed in reverse. One per diagram at most.
+    key: bool = False
 
 
-class DiagramSlide(_Slide):
+class DiagramSlide(_PhotoSlide):
     layout: Literal["diagram"]
     headline: str = Field(min_length=1, max_length=140)
     nodes: list[Node] = Field(min_length=2, max_length=6)
     caption: str | None = Field(default=None, max_length=200)
 
+    @field_validator("nodes")
+    @classmethod
+    def _one_key_at_most(cls, nodes: list[Node]) -> list[Node]:
+        if sum(node.key for node in nodes) > 1:
+            raise ValueError("at most one node is the key one")
+        return nodes
 
-class ClosingSlide(_Slide):
+
+class LedgerSlide(_PhotoSlide):
+    layout: Literal["ledger"]
+    headline: str = Field(min_length=1, max_length=140)
+    # Value first, as the reader scans it: '4', '14.337', 'R$ 47,32'.
+    rows: list[Row] = Field(min_length=2, max_length=6)
+    # What the rows come to, under a double rule. Only when they do add up.
+    total: Row | None = None
+    # Where the values come from, when they are measurements.
+    source: str | None = Field(default=None, max_length=140)
+
+
+class ClosingSlide(_PhotoSlide):
     layout: Literal["closing"]
     headline: str = Field(min_length=1, max_length=140)
     question: str | None = Field(default=None, max_length=220)
@@ -197,6 +311,7 @@ Slide = Annotated[
         QuoteSlide,
         ImageSlide,
         DiagramSlide,
+        LedgerSlide,
         ClosingSlide,
     ],
     Field(discriminator="layout"),
@@ -213,6 +328,7 @@ LAYOUTS = (
     "quote",
     "image",
     "diagram",
+    "ledger",
     "closing",
 )
 
@@ -222,9 +338,13 @@ class _Deck(_Model):
     # at the top of the viewer.
     title: str = Field(min_length=1, max_length=120)
     language: Literal["pt-BR", "en"] = "pt-BR"
-    # 'drafting' (computation paper) by default; 'blueprint' when the evidence
-    # is dark: terminal output, dark-mode screenshots. See `themes.py`.
-    theme: Literal["drafting", "blueprint"] = "drafting"
+    # 'jornal' (newsprint and collage) by default. 'drafting' and 'blueprint',
+    # the previous identity, only when asked for. See `themes.py`.
+    theme: Literal["jornal", "drafting", "blueprint"] = "jornal"
+    # Jornal only: the running head, and the highlighter's color, which may
+    # follow the post's subject (themes.ACCENTS).
+    masthead: Masthead | None = None
+    accent: Literal["yellow", "pink", "green", "blue"] = "yellow"
     pillar: str | None = Field(default=None, max_length=80)
     author: Author | None = None
     # Whether each slide prints its own source line. A deck that attributes all
@@ -348,6 +468,8 @@ _NOT_PROSE = {
     "kind",
     "filename",
     "favored",
+    "tone",
+    "accent",
 }
 
 _DASHES = (("—", "an em dash (—)"), ("–", "an en dash (–)"), ("--", "'--' used as a dash"))
@@ -370,7 +492,7 @@ def text_errors(spec: Spec) -> list[str]:
     """The blocking text problems: placeholders anywhere, dashes in prose."""
     problems: list[str] = []
     collection = "slides" if isinstance(spec, CarouselSpec) else "scenes"
-    header = spec.model_dump(include={"title", "pillar", "author"}, exclude_none=True)
+    header = spec.model_dump(include={"title", "pillar", "author", "masthead"}, exclude_none=True)
     body = [slide.model_dump(exclude_none=True) for slide in slides_of(spec)]
 
     candidates = list(_strings(header, "spec"))

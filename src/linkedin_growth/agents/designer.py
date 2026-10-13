@@ -40,11 +40,13 @@ from linkedin_growth.tools.references import list_references, read_reference
 from linkedin_growth.tools.studio import (
     capture_screenshot,
     convert_to_pdf,
+    get_photo,
     inspect_slides,
     list_media,
     render_carousel,
     render_image_post,
     render_video,
+    search_photos,
 )
 
 ID = "designer"
@@ -88,6 +90,8 @@ def build() -> Agent:
             inspect_slides,
             render_video,
             capture_screenshot,
+            search_photos,
+            get_photo,
             convert_to_pdf,
             list_media,
         ],
@@ -124,6 +128,11 @@ def build() -> Agent:
             "skill and its 'layouts.md' reference before writing the spec. For a "
             "video, load 'short-video'. For a screenshot, load 'proof-screenshots' "
             "and capture it before writing the slide that shows it.",
+            "Every carousel and image post carries at least one real photo of the "
+            "post's subject: find it with `search_photos`, look at the sheet, save "
+            "it with `get_photo` (cutout=True for an object on white), and place it "
+            "in the cover's `collage` or a slide's `photo`, as the 'carousel-design' "
+            "skill says. A photo illustrates; it is never the proof of a claim.",
             "Every fact on a slide comes from the post or from the USER'S REAL "
             "DATA: the numbers, the names, the code. A metric slide needs a number "
             "the post states; a code slide needs code the user wrote or output a "

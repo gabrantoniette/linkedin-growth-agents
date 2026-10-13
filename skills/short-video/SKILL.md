@@ -44,7 +44,7 @@ Threads, where video does well.
 ```yaml
 title: "The title, also used for the file name"
 aspect: "4:5"          # "9:16" for Reels and vertical feeds; "1:1" rarely
-theme: drafting
+theme: jornal         # the identity; see the carousel-design skill
 burn_captions: true
 voiceover: media/<slug>/voiceover.m4a   # optional, the user's own recording
 scenes:

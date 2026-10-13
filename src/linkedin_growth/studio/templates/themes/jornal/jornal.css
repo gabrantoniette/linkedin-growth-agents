@@ -1,0 +1,508 @@
+/* ==========================================================================
+   The jornal stylesheet: a page of a weekend newspaper supplement, with the
+   evidence cut out and pasted on it.
+
+   Newsprint with a faint grain, a serif for headlines (light, with the phrase
+   that carries the point in a heavy cut), screenshots on torn sheets held by
+   tape, code on a torn piece of computation paper, photos of the subject cut
+   out over the highlighter or printed in black and white over a halftone. Red
+   is for what is measured and for the swipe arrow. The deck closes on a page
+   printed in reverse.
+
+   Units are CSS pixels on a 1080px canvas. A phone shows the canvas at about a
+   third of its size, so 31px here is about 10px in the hand: the floor for
+   body text (kb-visual-formats.md, section 5).
+
+   This file goes through Jinja: `origin` below is the studio's own address.
+   ========================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; background: var(--paper); }
+
+body {
+  font-family: 'Archivo', system-ui, sans-serif;
+  font-stretch: 100%;
+  color: var(--ink);
+  font-kerning: normal;
+  font-variant-numeric: lining-nums;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+p, h1, h2, ol, ul, figure, blockquote, pre { margin: 0; }
+
+/* --------------------------------------------------------------------------
+   Canvas
+   -------------------------------------------------------------------------- */
+
+.slide {
+  --margin: 84px;
+  --content-top: 146px;    /* under the masthead */
+  --content-bottom: 140px; /* over the foot */
+  --foot-bottom: 50px;
+  --masthead-top: 60px;
+  --photo-w: 390px;        /* the corner photo, beside the headline */
+  --photo-h: 410px;
+  position: relative;
+  width: var(--w);
+  height: var(--h);
+  overflow: hidden;
+  background: var(--paper);
+  isolation: isolate;
+  break-after: page;
+}
+
+.slide:last-of-type { break-after: auto; }
+
+/* 9:16 video: Meta's unified safe zone keeps the top 14% and the bottom 35%
+   free of anything that has to be read. The cover's collage is decoration,
+   so on the tall canvas it is drawn smaller, under the masthead, and the hook
+   keeps the room the captions leave. */
+.canvas-tall .slide { --masthead-top: 280px; --content-top: 360px; --content-bottom: 760px; --foot-bottom: 680px; }
+.canvas-square .slide { --content-top: 130px; --content-bottom: 120px; }
+.has-captions .slide { --content-bottom: 300px; }
+.has-captions.canvas-tall .slide { --content-bottom: 1000px; }
+
+/* The paper's grain, over everything, the way newsprint shows through ink. */
+.grain {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  background-image: url('{{ origin }}/files/grain.png');
+  background-size: 240px 240px;
+  opacity: .06;
+  mix-blend-mode: multiply;
+}
+
+.masthead {
+  position: absolute;
+  left: var(--margin);
+  right: var(--margin);
+  top: var(--masthead-top);
+  z-index: 30;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid currentColor;
+  font-size: 21px;
+  font-weight: 700;
+  font-stretch: 85%;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.masthead-label { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.masthead-detail { flex: none; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 20px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+
+/* `.stack` is measured against `.content` to detect overflow (fit.js). */
+.content {
+  position: absolute;
+  top: var(--content-top);
+  bottom: var(--content-bottom);
+  left: var(--margin);
+  right: var(--margin);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.stack { display: flex; flex-direction: column; gap: 48px; min-height: 0; }
+
+.foot {
+  position: absolute;
+  left: var(--margin);
+  right: var(--margin);
+  bottom: var(--foot-bottom);
+  z-index: 30;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  min-height: 44px;
+  font-size: 24px;
+}
+
+.who { display: inline-flex; align-items: center; gap: 14px; min-width: 0; white-space: nowrap; color: var(--pencil); }
+.who-name { font-weight: 650; color: var(--ink); }
+.avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+.page { margin-left: auto; display: inline-flex; align-items: center; gap: 14px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 22px; font-variant-numeric: tabular-nums; }
+.page svg { width: 58px; height: 36px; color: var(--measure); }
+
+/* --------------------------------------------------------------------------
+   Material: tape, torn sheets, halftone
+   -------------------------------------------------------------------------- */
+
+.tape {
+  position: absolute;
+  z-index: 6;
+  width: 180px;
+  height: 50px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, 0) 35%, rgba(255, 255, 255, .14) 70%, rgba(255, 255, 255, 0)),
+    rgba(224, 211, 174, .84);
+  clip-path: polygon(0 6%, 3% 22%, 0 40%, 4% 58%, 1% 76%, 3% 100%, 97% 95%, 100% 78%, 96% 60%, 100% 42%, 97% 24%, 100% 2%);
+}
+
+.pasted-grid, .listing-jornal, .listing {
+  background-color: var(--panel);
+  background-image:
+    linear-gradient(var(--grid-major) 2px, transparent 2px),
+    linear-gradient(90deg, var(--grid-major) 2px, transparent 2px),
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 180px 180px, 180px 180px, 36px 36px, 36px 36px;
+}
+
+.halftone {
+  background-image: radial-gradient(circle, var(--construction) 0 2.5px, transparent 3px);
+  background-size: 11px 11px;
+}
+
+/* --------------------------------------------------------------------------
+   Type
+   -------------------------------------------------------------------------- */
+
+.h-cover, .h-slide, .h-closing, .statement, .quote, .metric-label {
+  font-family: 'Newsreader', Georgia, serif;
+  font-optical-sizing: auto;
+  font-weight: 300;
+  letter-spacing: -.015em;
+  overflow-wrap: break-word;
+  hyphens: manual;
+}
+
+.h-cover { font-size: 96px; line-height: .98; text-wrap: pretty; }
+.h-slide { font-size: 74px; line-height: 1.02; text-wrap: balance; }
+.h-closing { font-size: 94px; line-height: 1.02; text-wrap: pretty; }
+.statement { font-size: 128px; line-height: .96; text-wrap: pretty; }
+
+:is(.h-cover, .h-slide, .h-closing, .statement) strong { font-weight: 760; letter-spacing: -.02em; }
+:is(.h-cover, .h-slide, .h-closing, .statement) em { font-style: italic; }
+
+/* In a headline the highlighter also sets the phrase heavy, the way a
+   subeditor marks the words that carry the story. */
+mark {
+  color: inherit;
+  background-color: transparent;
+  background-image: url('{{ origin }}/files/marker.svg');
+  background-repeat: no-repeat;
+  background-size: 100% 80%;
+  background-position: 0 64%;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  padding: 0 .1em;
+  margin: 0 -.04em;
+}
+
+:is(.h-cover, .h-slide, .h-closing, .statement) mark { font-weight: 760; letter-spacing: -.02em; }
+
+.sub, .support { font-size: 31px; line-height: 1.34; color: var(--pencil); text-wrap: pretty; }
+.caption-text { font-size: 31px; line-height: 1.38; color: var(--pencil); text-wrap: pretty; }
+.note { font-size: 21px; line-height: 1.4; color: var(--pencil); text-wrap: pretty; }
+.source { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 20px; line-height: 1.4; color: var(--pencil); }
+.source b { font-family: 'Archivo', sans-serif; font-weight: 650; color: var(--ink); margin-right: .45em; }
+
+strong { font-weight: 700; }
+em { font-style: italic; }
+
+code {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: .84em;
+  font-weight: 400;
+  padding: .02em .26em;
+  border-radius: 3px;
+  background: var(--sheet);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ink) 25%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+   The corner photo
+   -------------------------------------------------------------------------- */
+
+.corner-photo { position: absolute; top: -20px; right: -40px; z-index: 2; width: var(--photo-w); height: var(--photo-h); margin: 0; }
+.corner-block { position: absolute; left: 24px; top: 44px; right: 14px; bottom: 96px; background: var(--marker); }
+.corner-cutout { position: absolute; left: 0; top: 0; width: 100%; height: calc(100% - 80px); object-fit: contain; transform: rotate(8deg); filter: drop-shadow(0 16px 18px rgba(0, 0, 0, .28)); }
+.corner-print { position: absolute; left: 30px; top: 18px; right: 6px; bottom: 90px; padding: 14px; background: var(--sheet); transform: rotate(3deg); filter: drop-shadow(0 12px 16px rgba(0, 0, 0, .2)); }
+.corner-print img { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.1); }
+.corner-photo.is-print .tape { left: 130px; top: 2px; width: 150px; transform: rotate(-4deg); }
+.corner-caption { position: absolute; left: 30px; right: 20px; bottom: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 19px; line-height: 1.4; color: var(--pencil); }
+
+/* The headline makes room: a float the lines beside the photo wrap around,
+   and a floor so whatever comes next starts below it. */
+.photo-room { float: right; width: calc(var(--photo-w) - 50px); height: calc(var(--photo-h) - 40px); margin-left: 28px; }
+.has-photo .stack > :first-child { min-height: calc(var(--photo-h) - 40px); }
+.photo-spacer { height: calc(var(--photo-h) - 40px); }
+
+/* --------------------------------------------------------------------------
+   cover: the collage above, a torn white sheet with the hook under it
+   -------------------------------------------------------------------------- */
+
+.layout-cover .content { justify-content: flex-end; }
+.layout-cover.has-collage .content { top: 642px; justify-content: flex-start; }
+.layout-cover .stack { gap: 24px; }
+
+/* No z-index and no transform here: either would make the collage its own
+   isolated group, and the print would multiply into a transparent backdrop
+   instead of the paper, showing its white background as a white rectangle.
+   The tall canvas moves it down with `top` instead. */
+.collage { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+.collage > * { position: absolute; }
+.collage-dots { left: 690px; top: 150px; width: 340px; height: 430px; opacity: .6; background-image: radial-gradient(circle, var(--construction) 0 2.5px, transparent 3px); background-size: 11px 11px; }
+.collage-block { left: 56px; top: 250px; width: 420px; height: 290px; background: var(--marker); }
+/* Printed in black and white and multiplied into the halftone, so a light
+   background drops out and only the subject stays. */
+.collage-print { left: 640px; top: 140px; width: 410px; height: 440px; object-fit: cover; object-position: center; mix-blend-mode: multiply; filter: grayscale(1) contrast(1.6) brightness(1.2); }
+.collage-pasted { left: 300px; top: 140px; transform: rotate(-2deg); filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .22)); }
+.collage-pasted .pasted-grid { padding: 30px; }
+.collage-pasted .pasted-sheet { padding: 18px; background: var(--sheet); }
+.collage-pasted img { display: block; width: 500px; max-height: 384px; object-fit: cover; object-position: left top; }
+.collage-pasted.is-print img { width: 520px; max-height: 400px; filter: grayscale(1) contrast(1.08); }
+.collage-pasted .tape-a { left: -24px; top: -14px; transform: rotate(-24deg); }
+.collage-pasted .tape-b { right: -34px; top: -22px; transform: rotate(14deg); }
+.collage-cutout { left: -14px; top: 372px; width: 310px; transform: rotate(-16deg); filter: drop-shadow(0 14px 16px rgba(0, 0, 0, .28)); }
+
+/* Only a cutout: it takes the middle, larger, over a wider highlighter. */
+.collage.is-solo .collage-block { left: 150px; top: 200px; width: 720px; height: 330px; }
+.collage.is-solo .collage-cutout { left: 220px; top: 120px; width: 600px; transform: rotate(-6deg); }
+/* A print with no capture: the print is pasted in the middle instead. */
+.collage.is-print-led .collage-pasted { left: 280px; }
+
+.cover-band { position: absolute; left: -20px; right: -20px; top: 596px; bottom: -20px; z-index: 5; background: var(--sheet); }
+
+/* `zoom` and not `transform: scale`: zoom shrinks the pieces without making
+   the collage an isolated group (see `.collage`). It scales `top` as well, so
+   the offset is written in unzoomed pixels: 470 x .56 is about 263. */
+.canvas-tall .collage { zoom: .56; top: 470px; }
+.canvas-tall .cover-band { top: 575px; }
+.canvas-tall .layout-cover.has-collage .content { top: 615px; }
+
+/* --------------------------------------------------------------------------
+   statement, and the receipt that can follow it
+   -------------------------------------------------------------------------- */
+
+.layout-statement .content { justify-content: center; }
+.layout-statement .stack { gap: 64px; }
+
+.receipt-wrap { align-self: stretch; transform: rotate(-1.4deg); filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .18)); }
+.receipt { padding: 44px 56px 48px; background: var(--sheet); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 30px; line-height: 1.6; }
+.receipt-title { margin-bottom: .3em; font-family: 'Archivo', sans-serif; font-weight: 700; }
+.receipt-row { display: flex; gap: .5em; align-items: baseline; }
+.receipt-row i { flex: 1; border-bottom: 3px dotted color-mix(in srgb, var(--pencil) 55%, transparent); transform: translateY(-.28em); }
+.receipt-row.is-total { margin-top: .35em; padding-top: .35em; border-top: 2px solid var(--ink); color: var(--measure); font-weight: 600; }
+
+/* --------------------------------------------------------------------------
+   points and steps: a list ruled like a newspaper column
+   -------------------------------------------------------------------------- */
+
+.rules { list-style: none; padding: 0; font-size: 40px; display: flex; flex-direction: column; }
+.rules li { display: grid; grid-template-columns: 1.5em 1fr; align-items: baseline; padding: .42em 0 .5em; border-top: 2px solid var(--ink); }
+.rules li:last-child { border-bottom: 2px solid var(--ink); }
+.rules-mark { position: relative; align-self: stretch; }
+.rules-mark::before { content: ""; position: absolute; left: 0; top: .66em; width: .7em; height: 3px; background: var(--measure); }
+.rules.is-numbered .rules-mark::before { content: none; }
+.rules.is-numbered .rules-mark { font-family: 'Newsreader', Georgia, serif; font-weight: 760; font-size: 1.3em; line-height: .9; color: var(--measure); font-variant-numeric: lining-nums; }
+.rules-text { line-height: 1.26; text-wrap: pretty; }
+.steps-title { font-weight: 700; line-height: 1.16; }
+.steps-detail { margin-top: .2em; font-size: .8em; line-height: 1.32; color: var(--pencil); }
+
+/* --------------------------------------------------------------------------
+   ledger: values first, under a double rule when they add up
+   -------------------------------------------------------------------------- */
+
+.ledger { display: grid; grid-template-columns: minmax(3.9em, max-content) 1fr; font-size: 38px; }
+.ledger-row { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: baseline; column-gap: .6em; padding: .3em 0 .42em; border-top: 2px solid var(--ink); }
+.ledger-value { font-family: 'Newsreader', Georgia, serif; font-optical-sizing: auto; font-size: 2.42em; font-weight: 300; line-height: 1; letter-spacing: -.02em; white-space: nowrap; }
+.ledger-label { line-height: 1.25; text-wrap: pretty; }
+.ledger-row.is-total { border-top: 7px double var(--ink); }
+.ledger-row.is-total .ledger-value { font-weight: 780; color: var(--measure); }
+.ledger-row.is-total .ledger-label { font-weight: 700; }
+
+/* --------------------------------------------------------------------------
+   code: a listing on a torn piece of computation paper
+   -------------------------------------------------------------------------- */
+
+.layout-code .stack { gap: 40px; }
+.listing-figure { display: flex; flex-direction: column; gap: 16px; }
+.listing-wrap { transform: rotate(-1deg); filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .18)); }
+
+.listing-code {
+  padding: 34px 42px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 30px;
+  line-height: 1.55;
+  color: var(--code-text);
+  font-variant-ligatures: none;
+  white-space: pre;
+  overflow: hidden;
+  tab-size: 4;
+}
+
+.code-body { display: inline-block; min-width: 100%; }
+.code-line { display: block; padding-right: 12px; }
+.code-ln { display: none; }
+/* A marked line goes under the highlighter, in ink: the syntax colors are
+   tuned for the paper and not every one of them reads on every accent. */
+.code-line.is-marked .code-src { padding: 0 .4em; margin: 0 -.4em; background-image: url('{{ origin }}/files/marker.svg'); background-repeat: no-repeat; background-size: 100% 92%; background-position: 0 60%; }
+.code-line.is-marked .code-src, .code-line.is-marked .code-src * { color: var(--ink); }
+/* Terminal output is printed on a plain sheet, like a log taped to the page:
+   the code colors are made for paper, and a dark window would undo them. */
+.listing-terminal { background: var(--sheet); background-image: none; }
+.listing-label { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 20px; color: var(--pencil); }
+
+.t-keyword { color: var(--code-keyword); }
+.t-function { color: var(--code-function); font-weight: 600; }
+.t-class { color: var(--code-class); }
+.t-string { color: var(--code-string); }
+.t-number { color: var(--code-number); }
+.t-comment { color: var(--code-comment); }
+.t-operator { color: var(--code-operator); }
+.t-builtin { color: var(--code-builtin); }
+.t-tag { color: var(--code-tag); }
+.t-attribute { color: var(--code-attribute); }
+.t-prompt { color: var(--code-prompt); font-weight: 600; }
+.t-output { color: var(--code-text); }
+
+/* --------------------------------------------------------------------------
+   compare: two columns under the same rule
+   -------------------------------------------------------------------------- */
+
+.compare { display: grid; grid-template-columns: 1fr 1fr; font-size: 36px; }
+.compare-col { padding-right: .8em; }
+.compare-col + .compare-col { padding-right: 0; padding-left: .8em; border-left: 2px solid var(--ink); }
+.compare-title { margin-bottom: .6em; padding-bottom: .32em; border-bottom: 2px solid var(--ink); font-family: 'Newsreader', Georgia, serif; font-optical-sizing: auto; font-size: 1.45em; font-weight: 500; line-height: 1.05; letter-spacing: -.01em; }
+.compare-col.is-favored .compare-title span { font-weight: 760; background-image: url('{{ origin }}/files/marker.svg'); background-repeat: no-repeat; background-size: 100% 80%; background-position: 0 64%; -webkit-box-decoration-break: clone; box-decoration-break: clone; padding: 0 .1em; margin: 0 -.06em; }
+.compare ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: .55em; }
+.compare li { position: relative; padding-left: .95em; line-height: 1.26; text-wrap: pretty; }
+.compare li::before { content: ""; position: absolute; left: 0; top: .62em; width: .55em; height: 2px; background: var(--pencil); }
+.compare-col.is-favored li::before { height: 3px; background: var(--measure); }
+.verdict { padding-top: 26px; border-top: 6px double var(--ink); font-family: 'Newsreader', Georgia, serif; font-optical-sizing: auto; font-size: 44px; font-weight: 400; line-height: 1.16; text-wrap: pretty; }
+
+/* --------------------------------------------------------------------------
+   metric: one number set like a front-page figure
+   -------------------------------------------------------------------------- */
+
+.layout-metric .content { justify-content: center; }
+.layout-metric .stack { gap: 30px; }
+.metric-figure { display: flex; flex-direction: column; gap: 10px; }
+.metric-unit { align-self: flex-start; padding: 2px 12px; background: var(--measure); color: var(--on-measure); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-weight: 600; font-size: 30px; }
+.metric-value { overflow: hidden; white-space: nowrap; font-family: 'Newsreader', Georgia, serif; font-optical-sizing: auto; font-size: 360px; font-weight: 760; line-height: .86; letter-spacing: -.035em; font-variant-numeric: lining-nums; }
+.metric-label { font-size: 64px; line-height: 1.06; text-wrap: balance; }
+
+/* --------------------------------------------------------------------------
+   quote: the words in italic, the mark in halftone
+   -------------------------------------------------------------------------- */
+
+.layout-quote .content { justify-content: center; }
+.layout-quote .stack { gap: 34px; }
+.quote-wrap { position: relative; padding-top: 120px; }
+.quote-mark { position: absolute; left: -12px; top: -70px; font-family: 'Newsreader', Georgia, serif; font-weight: 760; font-size: 360px; line-height: 1; color: transparent; background-image: radial-gradient(circle, var(--measure) 0 3.2px, transparent 3.7px); background-size: 11px 11px; -webkit-background-clip: text; background-clip: text; }
+.quote { position: relative; font-size: 70px; font-style: italic; font-weight: 400; line-height: 1.1; text-wrap: pretty; }
+.quote-author { font-size: 32px; font-weight: 700; line-height: 1.3; }
+.quote-author small { display: block; margin-top: 4px; font-size: 26px; font-weight: 400; color: var(--pencil); }
+
+/* --------------------------------------------------------------------------
+   image: the capture on a torn sheet, taped, boxed where the proof is
+   -------------------------------------------------------------------------- */
+
+.layout-image .stack { flex: 1; gap: 40px; }
+
+.shot { position: relative; flex: 1 1 auto; min-height: 320px; display: flex; flex-direction: column; margin: 0; transform: rotate(1deg); filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .18)); }
+.shot-sheet { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 22px; background: var(--sheet); }
+.shot-address { flex: none; padding: 0 4px 14px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 22px; color: var(--pencil); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shot-view { position: relative; flex: 1; min-height: 0; }
+.shot.fit-contain { flex: 0 1 auto; min-height: 240px; }
+.shot.fit-contain .shot-sheet { flex: 0 1 auto; }
+.shot.fit-contain .shot-view { flex: 0 1 auto; min-height: 160px; }
+.shot-view img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.shot-view img.fit-cover { object-fit: cover; object-position: top center; }
+.shot-view img.fit-contain { object-fit: contain; object-position: center; }
+.shot.is-mono .shot-view img { filter: grayscale(1) contrast(1.08); }
+.shot .tape-a { left: -20px; top: -16px; transform: rotate(-12deg); }
+.shot .tape-b { right: -20px; top: -10px; transform: rotate(10deg); }
+
+.mark-box { position: absolute; z-index: 2; color: var(--measure); }
+.mark-box svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.mark-label { position: absolute; z-index: 3; max-width: 36%; padding: 4px 10px; background: var(--sheet); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 25px; font-weight: 600; line-height: 1.3; color: var(--measure); }
+
+/* --------------------------------------------------------------------------
+   diagram: strips torn off a sheet, joined by red arrows
+   -------------------------------------------------------------------------- */
+
+.layout-diagram .stack { gap: 52px; }
+.strips { list-style: none; padding: 0; font-size: 42px; display: flex; flex-direction: column; filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .14)); }
+.strip { display: grid; grid-template-columns: 2.05em 1fr; align-items: center; padding: .52em 1.05em; background: var(--sheet); }
+.strip.is-key { background: var(--ink); color: var(--sheet); }
+.strip-index { font-family: 'Newsreader', Georgia, serif; font-weight: 760; font-size: 1.57em; line-height: 1; color: var(--measure); }
+.strip.is-key .strip-index { color: var(--marker); }
+.strip-label { font-weight: 700; line-height: 1.15; }
+.strip-detail { margin-top: .1em; font-size: .69em; line-height: 1.3; color: var(--pencil); }
+.strip.is-key .strip-detail { color: color-mix(in srgb, var(--sheet) 78%, var(--ink)); }
+.strip-edge { height: 1.1em; padding-left: 1.5em; display: flex; align-items: center; color: var(--measure); }
+.strip-edge svg { width: .72em; height: 1.05em; }
+
+/* --------------------------------------------------------------------------
+   closing: the page printed in reverse
+   -------------------------------------------------------------------------- */
+
+.is-dark { background: var(--dark); color: var(--on-dark); }
+.is-dark .grain { mix-blend-mode: screen; opacity: .05; }
+.is-dark .who { color: var(--dark-pencil); }
+.is-dark .who-name { color: var(--on-dark); }
+.dark-dots { position: absolute; left: -40px; bottom: -40px; z-index: 1; width: 560px; height: 460px; background-image: radial-gradient(circle, color-mix(in srgb, var(--on-dark) 20%, var(--dark)) 0 2.5px, transparent 3px); background-size: 11px 11px; -webkit-mask-image: radial-gradient(circle at 0 100%, #000 20%, transparent 70%); mask-image: radial-gradient(circle at 0 100%, #000 20%, transparent 70%); }
+
+.layout-closing .content { top: calc(var(--content-top) + 24px); }
+.layout-closing .stack { gap: 58px; }
+.h-closing mark { color: var(--ink); font-style: italic; }
+/* On the dark page an accent above the stroke would be ink on the dark ground
+   and vanish ('só' read as 'so'), so the stroke covers the whole line there. */
+.is-dark mark { color: var(--ink); background-size: 100% 100%; background-position: 0 50%; }
+.closing-question { font-size: 44px; font-weight: 500; line-height: 1.25; color: var(--on-dark); text-wrap: pretty; }
+.closing-cta { align-self: flex-start; display: inline-flex; align-items: center; gap: 14px; padding: 18px 32px; background: var(--measure); color: var(--on-measure); font-size: 32px; font-weight: 600; line-height: 1.25; }
+.closing-cta svg { flex: none; width: 32px; height: 32px; }
+
+/* --------------------------------------------------------------------------
+   Video. One moment per scene: the content comes in together.
+   -------------------------------------------------------------------------- */
+
+@keyframes studio-appear { from { opacity: 0; } to { opacity: 1; } }
+@keyframes studio-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+.mode-video .stack { animation: studio-appear .35s ease-out both; }
+.mode-video .collage, .mode-video .corner-photo { animation: studio-rise .6s .1s cubic-bezier(.2, .7, .2, 1) both; }
+.mode-video .page svg { display: none; }
+
+.burned-caption {
+  position: absolute;
+  left: var(--margin);
+  right: var(--margin);
+  bottom: 196px;
+  z-index: 35;
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+
+.canvas-tall .burned-caption { bottom: 780px; }
+
+.burned-caption span:empty { display: none; }
+
+.burned-caption span {
+  max-width: 900px;
+  padding: 14px 24px;
+  border-radius: 3px;
+  font-size: 38px;
+  font-weight: 600;
+  line-height: 1.28;
+  white-space: pre-line;
+  color: var(--sheet);
+  background: var(--ink);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}

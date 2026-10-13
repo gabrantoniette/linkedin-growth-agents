@@ -1,0 +1,6 @@
+<h2 class="h-slide" data-fit data-min="48">{% if s.photo %}<span class="photo-room" aria-hidden="true"></span>{% endif %}{{ s.slide.headline | inline }}</h2>
+<ol class="rules is-numbered is-steps" data-fit data-min="28">
+{% for step in s.slide.steps %}
+  <li><span class="rules-mark">{{ loop.index }}</span><div class="rules-text"><div class="steps-title">{{ step.title | inline }}</div>{% if step.detail %}<div class="steps-detail">{{ step.detail | inline }}</div>{% endif %}</div></li>
+{% endfor %}
+</ol>

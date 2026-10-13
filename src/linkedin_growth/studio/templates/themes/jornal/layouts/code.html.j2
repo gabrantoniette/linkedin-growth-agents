@@ -1,0 +1,6 @@
+{% if s.slide.headline %}<h2 class="h-slide" data-fit data-min="48">{% if s.photo %}<span class="photo-room" aria-hidden="true"></span>{% endif %}{{ s.slide.headline | inline }}</h2>{% elif s.photo %}<div class="photo-spacer" aria-hidden="true"></div>{% endif %}
+<figure class="listing-figure">
+  <div class="listing-wrap"><div class="listing listing-{{ s.slide.frame }}" style="clip-path: {{ torn(s.seed + 4, amp=7) }}"><pre class="listing-code" data-fit data-fit-x data-min="20"><span class="code-body" data-measure>{% for line in s.code.lines %}<span class="code-line{% if line.highlighted %} is-marked{% endif %}"><span class="code-ln">{{ line.number }}</span><span class="code-src">{{ line.html }}</span></span>{% endfor %}</span></pre></div></div>
+  <figcaption class="listing-label">{{ s.listing_label }}</figcaption>
+</figure>
+{% if s.slide.caption %}<p class="caption-text" data-fit data-min="26">{{ s.slide.caption | inline }}</p>{% endif %}

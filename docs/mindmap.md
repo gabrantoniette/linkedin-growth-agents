@@ -296,8 +296,9 @@ src/linkedin_growth/
     importer.py                  reads the CSVs, tolerant of variation
     context.py                   profile -> markdown for the prompt
   studio/                        deterministic rendering, no model
-    themes.py                    drafting and blueprint, tested against WCAG
-    spec.py                      the eleven layouts and their rules
+    themes.py                    jornal (default), drafting and blueprint, tested against WCAG
+    photos.py                    public-domain and CC0 photos from Openverse, cutouts, credits
+    spec.py                      the twelve layouts and their rules
     carousel.py · video.py       PDF and PNG · MP4 and SRT
     capture.py · convert.py      real screenshots · any file to PDF
     templates/                   the HTML, the CSS and the fitting script

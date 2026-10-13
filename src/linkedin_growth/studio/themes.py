@@ -1,30 +1,34 @@
 """The visual identity: palettes, fonts, and the contrast math that guards them.
 
-The identity comes from the material of the user's trade, not from what social
-graphics usually look like. The user is an engineer whose positioning is "a
-measured number instead of an opinion", so the slides are drawn like a page of
-engineering work:
+`jornal`, the default, is a page of a weekend newspaper supplement with the
+evidence cut out and pasted on it. The user chose it on 2026-10-13, from three
+directions built on an editorial carousel they brought as the reference:
 
-- the ground is **computation paper**, the pale green pad with a 5x5 grid
-  printed on it that engineers do calculations on;
-- text is **graphite**, structure (scales, borders, connectors) is drawn in
-  **non-photo blue**, the color drafters use for construction lines;
-- anything that is a measurement, and only that, is in **red**: the current
-  page on the dimension line, a measured value, a highlighted line of code.
+- the ground is **newsprint**, warm and slightly grained;
+- headlines are set in a **serif** (Newsreader), light, with the phrase that
+  carries the point in a heavy cut, and at most one phrase run over with a
+  **highlighter**;
+- evidence is **pasted on**: screenshots on torn sheets held by tape, code on a
+  torn piece of computation paper (the previous identity, kept as material),
+  and photos of the post's subject, cut out or printed in black and white over
+  a halftone;
+- **red** stays for what is measured and for the swipe arrow, and the deck
+  closes on a page printed in reverse, dark.
 
-`blueprint` is the same drawing inverted, for decks whose evidence is dark
-(terminal output, dark-mode screenshots): blueprint blue, white lines, and the
-reviewer's yellow for measurements.
+What changes from post to post is the collage, with photos on the post's own
+subject, and at most the highlighter's color, from four checked accents. The
+layout, the type and the paper do not change: that is what makes the series
+recognizable.
+
+`drafting` (computation paper, graphite, non-photo blue, red for measurements)
+and `blueprint` (the same drawing in dark) were the identity before. They stay
+for document conversions and for a deck that asks for them on purpose.
 
 Why this is code and not a stylesheet tuned by eye: every color pair is checked
 against the WCAG contrast formula in the tests. A carousel is read on a phone,
 often outdoors, and a pale line that looks fine on a calibrated monitor
 disappears on a cheap screen. Text needs 4.5:1 (WCAG 2.2 §1.4.3); lines that
 carry structure need 3:1 (§1.4.11).
-
-One accent per theme, never one per pillar: the identity is what has to be
-recognizable across a year of posts, and a color that changes every post is
-the opposite of that.
 """
 
 from __future__ import annotations
@@ -34,6 +38,8 @@ from pathlib import Path
 
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 FONTS_DIR = ASSETS_DIR / "fonts"
+# The paper grain and the highlighter strokes the jornal theme draws with.
+TEXTURES_DIR = ASSETS_DIR / "textures"
 
 # Canvas: 4:5 is the tallest ratio LinkedIn/Instagram show uncropped in the
 # mobile feed (kb-visual-formats.md §3).
@@ -75,7 +81,20 @@ FONTS = (
     # Machine text only: code, terminal output, paths, URLs. Never labels.
     Font("IBM Plex Mono", "IBMPlexMono-Regular.woff2", "400"),
     Font("IBM Plex Mono", "IBMPlexMono-SemiBold.woff2", "600"),
+    # The jornal headlines: a news serif with an optical size axis, so the same
+    # face stays delicate at 96px and sturdy at caption size.
+    Font("Newsreader", "Newsreader-Variable.woff2", "200 800", "normal"),
+    Font("Newsreader", "Newsreader-Italic-Variable.woff2", "200 800", "italic"),
 )
+
+# The jornal highlighter, by name. Ink reads on all four above 9:1, so a post
+# can take the color that suits its subject without a contrast check of its own.
+ACCENTS = {
+    "yellow": "#FFD34E",
+    "pink": "#FFA6C9",
+    "green": "#A6E3B4",
+    "blue": "#A3CDF2",
+}
 
 
 # Themes
@@ -95,9 +114,23 @@ class Theme:
     measure: str  # the one accent, for measurements only
     on_measure: str
     code: dict[str, str] = field(default_factory=dict)
+    # The stylesheet that draws the slides, and a folder under templates/themes/
+    # whose templates replace the shared ones of the same name.
+    stylesheet: str = "studio.css"
+    templates: str | None = None
+    # Jornal only: the white sheet evidence is pasted on, the highlighter, and
+    # the page printed in reverse that the deck closes on.
+    sheet: str | None = None
+    marker: str | None = None
+    dark: str | None = None
+    on_dark: str | None = None
+    dark_pencil: str | None = None
 
-    def css_variables(self) -> str:
-        """The theme as CSS custom properties, for the `:root` of a render."""
+    def css_variables(self, accent: str | None = None) -> str:
+        """The theme as CSS custom properties, for the `:root` of a render.
+
+        `accent` swaps the highlighter for one of ACCENTS.
+        """
         values = {
             "--paper": self.paper,
             "--panel": self.panel,
@@ -111,6 +144,14 @@ class Theme:
             "--on-measure": self.on_measure,
             **{f"--code-{name}": color for name, color in self.code.items()},
         }
+        extras = {
+            "--sheet": self.sheet,
+            "--marker": ACCENTS.get(accent or "", self.marker) if self.marker else None,
+            "--dark": self.dark,
+            "--on-dark": self.on_dark,
+            "--dark-pencil": self.dark_pencil,
+        }
+        values.update({name: value for name, value in extras.items() if value})
         return "; ".join(f"{name}: {value}" for name, value in values.items())
 
     def text_pairs(self) -> dict[str, tuple[str, str]]:
@@ -128,6 +169,20 @@ class Theme:
                      "comment", "operator", "builtin", "tag", "attribute", "prompt"):
             pairs[f"code {name} on panel"] = (self.code[name], self.panel)
             pairs[f"code {name} on band"] = (self.code[name], self.band)
+        if self.sheet:
+            pairs["ink on sheet"] = (self.ink, self.sheet)
+            pairs["pencil on sheet"] = (self.pencil, self.sheet)
+            pairs["measure on sheet"] = (self.measure, self.sheet)
+            # Terminal output is printed on the sheet in the jornal theme.
+            for name in ("text", "prompt"):
+                pairs[f"code {name} on sheet"] = (self.code[name], self.sheet)
+        if self.marker:
+            # Highlighted text is ink on the highlighter, in every accent.
+            for name, color in ACCENTS.items():
+                pairs[f"ink on the {name} marker"] = (self.ink, color)
+        if self.dark and self.on_dark and self.dark_pencil:
+            pairs["on-dark on dark"] = (self.on_dark, self.dark)
+            pairs["dark-pencil on dark"] = (self.dark_pencil, self.dark)
         return pairs
 
     def graphic_pairs(self) -> dict[str, tuple[str, str]]:
@@ -197,12 +252,34 @@ BLUEPRINT = Theme(
     },
 )
 
-THEMES = {theme.id: theme for theme in (DRAFTING, BLUEPRINT)}
-DEFAULT_THEME = DRAFTING.id
+JORNAL = Theme(
+    id="jornal",
+    paper="#ECE9E2",  # newsprint
+    panel="#DFEAD8",  # computation paper, torn: under code and the cover's capture
+    band="#E4EDDE",
+    ink="#171614",
+    pencil="#4B4943",
+    construction="#52799B",  # halftone dots, and the grid printed on the panel
+    grid="rgba(82, 121, 155, 0.1)",
+    grid_major="rgba(82, 121, 155, 0.17)",
+    measure="#B3261E",
+    on_measure="#FFFFFF",
+    code=dict(DRAFTING.code),
+    stylesheet="jornal.css",
+    templates="jornal",
+    sheet="#FAF8F3",
+    marker=ACCENTS["yellow"],
+    dark="#161513",
+    on_dark="#EEEAE2",
+    dark_pencil="#C9C4BA",
+)
+
+THEMES = {theme.id: theme for theme in (JORNAL, DRAFTING, BLUEPRINT)}
+DEFAULT_THEME = JORNAL.id
 
 
 def get_theme(theme_id: str | None) -> Theme:
-    return THEMES.get(theme_id or DEFAULT_THEME, DRAFTING)
+    return THEMES.get(theme_id or DEFAULT_THEME, THEMES[DEFAULT_THEME])
 
 
 # Contrast

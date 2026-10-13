@@ -494,15 +494,20 @@ takes 40 seconds is a 40 second video.
   palette taken from the subject's own material is harder to mistake for
   anyone else's.
 
-**How the studio applies this**: the identity is a page of engineering work,
-taken from the user's positioning ("a measured number instead of an opinion").
-`drafting`, the default, is computation paper: pale green with its printed
-grid, graphite text, non-photo blue construction lines, and red reserved for
-measurements. `blueprint` is the same drawing for dark evidence. The one
-memorable device is the dimension line, which measures the reader's place in
-the deck and the value on a metric slide. One accent per theme, never per
-pillar, and every text and line color tested against WCAG
-(`src/linkedin_growth/studio/themes.py`).
+**How the studio applies this**: the identity is `jornal`, a page of a weekend
+newspaper supplement with the evidence pasted on it. The user chose it on
+2026-10-13 from three test directions built on an editorial carousel they
+brought as the reference; that choice is the evidence here, `confidence: n/a`,
+a decision rather than a finding. Newsprint, a serif for headlines (light, the
+point in heavy type, one phrase under a highlighter), screenshots on torn
+sheets held by tape, code on torn computation paper, at least one real photo of
+the subject (public domain or CC0, cut out or printed in black and white over a
+halftone), red for what is measured and for the swipe arrow, and a closing page
+printed in reverse. The layout, the type and the paper are fixed; the photos
+and the highlighter's color (four checked accents) follow the post. Every text
+and line color is tested against WCAG (`src/linkedin_growth/studio/themes.py`).
+`drafting` (computation paper, the previous identity) and `blueprint` remain
+for document conversions and for a deck that asks for them.
 
 ---
 
