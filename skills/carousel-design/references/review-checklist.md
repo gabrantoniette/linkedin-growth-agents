@@ -9,8 +9,11 @@ a feed. Then inspect the cover and the densest slide at full size.
       competes with it.
 - [ ] Every slide has one obvious first thing to read.
 - [ ] No slide looks like a page of text.
-- [ ] The deck reads as one system: the same theme throughout, the headlines
-      starting at the same height.
+- [ ] The deck reads as one system: the jornal theme throughout, the headlines
+      starting at the same height under the masthead.
+- [ ] At least one real photo of the subject is on it, and it reads as the
+      subject at thumbnail size: a cutout that is clean around the edges, or a
+      print. Nothing in it could pass for the user's work or a real customer.
 - [ ] The slide that carries the main evidence is visibly the strongest slide,
       not buried in the middle of three similar ones.
 - [ ] No slide is thin. Two short items, or one sentence with a line of support,
@@ -32,7 +35,11 @@ a feed. Then inspect the cover and the densest slide at full size.
       (`proof-screenshots` skill).
 - [ ] Metrics: the number appears in the post, and the source line says where
       it comes from.
-- [ ] At most one emphasis mark per slide, and none in a headline.
+- [ ] At most one highlighted phrase per slide, on the phrase that carries the
+      point, never on a single word for decoration.
+- [ ] Screenshots with a `mark`: the box sits on the passage it names.
+- [ ] The highlighter shows against the photo next to it; if the object is the
+      highlighter's color, change the deck's `accent`.
 - [ ] The closing slide asks the same question as the post.
 
 ## The text

@@ -200,13 +200,28 @@ uv run linkedin screenshot https://github.com/agno-agi/agno            # a real 
 Office files (`.pptx`, `.xlsx`, `.odt`, `.doc`) convert through LibreOffice. On
 Windows: `winget install TheDocumentFoundation.LibreOffice`.
 
-**The look.** The slides are drawn like a page of engineering work, because the
-positioning is "a measured number instead of an opinion": computation paper with
-its printed grid, graphite type, non-photo blue construction lines, and red kept
-for measurements alone. The device worth remembering is the dimension line at
-the foot of every slide, which measures where the reader is in the deck.
-`blueprint` is the same drawing in dark, for terminal output and dark
-screenshots. Every text and line color is tested against WCAG contrast.
+**The look.** The `jornal` theme sets each slide like a page of a weekend
+newspaper supplement: newsprint, serif headlines with the point in heavy type
+and one phrase under a highlighter, screenshots pasted on torn sheets with tape,
+code on a torn piece of computation paper, and a closing page printed in
+reverse. Every deck carries at least one real photo of its subject, public
+domain or CC0, cut out over the highlighter or printed in black and white over
+a halftone. The photos and the highlighter's color follow the post; the rest
+does not change. `drafting` and `blueprint`, the previous computation-paper
+identity, remain for document conversions. Every text and line color is tested
+against WCAG contrast.
+
+**Photos.** The Post Designer finds them on its own; by hand, no model involved:
+
+```bash
+uv run linkedin photos search "black headphones"                       # numbered candidates and a sheet in tmp/
+uv run linkedin photos get <id> --slug 2026-09-04-topic --name fones --cutout
+```
+
+Only public domain and CC0 photos are fetched. Each one lands in
+`content/media/<slug>/photos/` with its title, author, license and source in
+`photos/credits.json`; `--cutout` also writes `<name>-recorte.png`, the object
+without its white background.
 
 **Your name on the slides** comes from `profile/profile.yaml`. For a tagline, a
 photo or a default theme, create `profile/brand.yaml` (it stays out of git):
@@ -215,7 +230,7 @@ photo or a default theme, create `profile/brand.yaml` (it stays out of git):
 name: Your Name
 tagline: engenharia de IA em público
 avatar: profile/avatar.jpg
-theme: drafting
+theme: jornal
 ```
 
 **The guards.** A render refuses a slide with a `[PREENCHER]` marker or an em

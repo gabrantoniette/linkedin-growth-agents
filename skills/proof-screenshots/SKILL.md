@@ -55,7 +55,7 @@ the slide and around 4px in the hand. Nobody reads that.
   default 1280x800 suits a repository page or an interface.
 - `full_page` only when the length is the point. It is capped at 6000px.
 - `dark_mode` when the deck uses the `blueprint` theme and the site has a dark
-  theme.
+  theme. The jornal theme takes the light version.
 - `hide`: CSS selectors for cookie banners or popups that cover the content.
 
 Every capture writes a JSON file next to the PNG with the URL asked for, the
@@ -73,6 +73,17 @@ URL that loaded, the page title and the time. That is the image's provenance.
   alt: "What the image shows, including any text that matters, at most 300 characters"
   source: "the name of the site or the page"
 ```
+
+In the jornal theme the capture is pasted on a torn sheet and printed in black
+and white. Two fields help it prove its point:
+
+- `mark`: a box drawn by hand around the passage that proves it, in the
+  capture's own pixels, `box: [left, top, right, bottom]`, with an optional
+  `label` of a few words. It needs `fit: contain`. Measure the box on the
+  capture file, not on the slide: a box in the wrong place points the reader
+  at the wrong proof.
+- `tone: color` when the color is the evidence: a chart, a diff, a status
+  light. The default prints it in black and white.
 
 Use `fit: cover` only for a capture taller than the space it gets, when showing
 its top is enough (a repository page, a long article's opening).

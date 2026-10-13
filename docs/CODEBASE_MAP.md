@@ -266,29 +266,30 @@ Diagnosis, Strategist and Planner keep 2 history runs. Researcher, Planner and W
 | `tools/search.py` | `recent_search()`, `broad_search()` | Agno `WebSearchTools` (ddgs, no key) | 193 |
 | `tools/linkedin.py` | `publish_post` (`requires_confirmation=True`), `check_linkedin_connection`; plain functions `publish`, `preview`, `token_profile` | LinkedIn "little text" escaping and hashtag templates; POST `/rest/posts`, falls back to `/v2/ugcPosts` on 403 | 2,442 |
 | `tools/analytics.py` | `metrics_summary` | returns `analytics.summarize()`: every ratio precomputed so the agent never divides | ~300 |
-| `tools/studio.py` | `render_carousel`, `render_image_post`, `inspect_slides`, `render_video`, `capture_screenshot`, `convert_to_pdf`, `list_media` | each wrapped in `_safely()`; writes only under `content/media/<slug>/`; `preview()` downsizes PNGs (1568 px) for the vision model | 3,160 |
+| `tools/studio.py` | `render_carousel`, `render_image_post`, `inspect_slides`, `render_video`, `capture_screenshot`, `search_photos`, `get_photo`, `convert_to_pdf`, `list_media` | each wrapped in `_safely()`; writes only under `content/media/<slug>/`; `preview()` downsizes PNGs (1568 px) for the vision model | 3,160 |
 
 ### Studio
 
 **Purpose**: deterministic, model-free rendering of posts into carousels, single images, videos, screenshots and converted PDFs.
-**Entry points**: `tools/studio.py` (agent) and the `render`, `convert`, `screenshot` CLI commands. Dependencies point one way, agent → tools → `studio/`; nothing in `studio/` imports agents or tools.
+**Entry points**: `tools/studio.py` (agent) and the `render`, `convert`, `screenshot`, `photos search`, `photos get` CLI commands. Dependencies point one way, agent → tools → `studio/`; nothing in `studio/` imports agents or tools.
 
 | File | Purpose | Tokens |
 |------|---------|--------|
-| `studio/spec.py` | pydantic contract: `CarouselSpec`, `VideoSpec`, 11 layout models (`LAYOUTS`), `parse_spec`, `dump_spec`, `text_errors` (blocks `[PREENCHER]` and dashes outside code) | 3,637 |
-| `studio/lint.py` | soft warnings: `WORD_LIMITS`, `MAX_WORDS_PER_SLIDE=45`, `CAROUSEL_SLIDES=(5, 12)`, `CODE_MAX_LINES=14`, `CODE_MAX_COLUMNS=56` | 1,978 |
-| `studio/text.py` | the four inline marks (`**strong**`, `*emphasis*`, `==marker==`, backtick code), HTML-escaped first; `word_count`, `plain` | 847 |
+| `studio/spec.py` | pydantic contract: `CarouselSpec`, `VideoSpec`, 12 layout models (`LAYOUTS`, `ledger` included), deck `theme` (default `jornal`), `masthead`, `accent`; `Photo`, `CollageItem`, `Mark`, `Tally`, `Row`; `parse_spec`, `dump_spec`, `text_errors` (blocks `[PREENCHER]` and dashes outside code) | 3,637 |
+| `studio/lint.py` | soft warnings: `WORD_LIMITS`, `MAX_WORDS_PER_SLIDE=45`, `CAROUSEL_SLIDES=(5, 12)`, `CODE_MAX_LINES=14`, `CODE_MAX_COLUMNS=56`; jornal: a deck with no photo, two highlighted phrases in one headline; other themes: emphasis in a headline, jornal-only fields; `single_image` skips the deck rules | 1,978 |
+| `studio/text.py` | the four inline marks (`**strong**`, `*emphasis*`, `==marker==`, backtick code), HTML-escaped first; `word_count`, `plain`, `marker_count` | 847 |
 | `studio/safety.py` | `redact_secrets`, `check_url`, `blocked_host_reason` (LinkedIn, private IPs, DNS rebinding), `confine`, `valid_slug`, `slugify` | 2,056 |
-| `studio/themes.py` | `DRAFTING` (light), `BLUEPRINT` (dark), `FONTS`, `CAROUSEL_SIZE=(1080, 1350)`, `contrast_ratio` (WCAG 4.5 text, 3.0 graphics) | 2,572 |
+| `studio/themes.py` | `JORNAL` (default: newsprint, Newsreader serif, torn paper, highlighter), `DRAFTING`, `BLUEPRINT`; `ACCENTS` (four highlighter colors), `FONTS`, `TEXTURES_DIR`, `CAROUSEL_SIZE=(1080, 1350)`, `contrast_ratio` (WCAG 4.5 text, 3.0 graphics); a theme names its `stylesheet` and its `templates` folder | 2,572 |
 | `studio/brand.py` | footer identity from `profile/brand.yaml` and `profile.yaml`; `resolve_asset_path` | 742 |
 | `studio/code.py` | Pygments highlighting in theme colors; secrets redacted before lexing | 1,065 |
-| `studio/html.py` | `build_document`, Jinja2 with `StrictUndefined` and autoescape, virtual origin `https://studio.local`, `FIT_SCRIPT` | 2,611 |
+| `studio/html.py` | `build_document`, Jinja2 with `StrictUndefined` and autoescape, one environment per theme folder (`templates/themes/<name>/` overrides the shared templates), virtual origin `https://studio.local`, `FIT_SCRIPT`; `torn()` seeded clip-paths for torn paper; photos, collage and `mark` registered as `/files/` tokens | 2,611 |
 | `studio/browser.py` | `Studio` context manager: bundled Chromium → `channel="chrome"` → `channel="msedge"`; every request routed; `run_isolated()` when an asyncio loop is running (AgentOS) | 1,434 |
 | `studio/carousel.py` | `render_carousel`: slide PNGs, contact sheet, `carousel.pdf`; errors go to `preview/`; `fit_problems`, `make_contact_sheet` | 2,201 |
 | `studio/video.py` | `plan()` timeline, CSS animations seeked per frame, bundled ffmpeg (`imageio-ffmpeg`) → `video.mp4`, `captions.srt`, `cover.png`; no voice but the user's | 5,352 |
-| `studio/capture.py` | `capture_url()`: public-page screenshots plus a JSON provenance sidecar | 1,604 |
+| `studio/capture.py` | `capture_url()`: public-page screenshots plus a JSON provenance sidecar |
+| `studio/photos.py` | Openverse search and fetch, public domain and CC0 only; every request through `check_url`, 25 MB cap, decoded and re-encoded by Pillow; `cutout_white`; credits in `photos/credits.json`; `candidate_sheet` | 1,604 |
 | `studio/convert.py` | `convert_file()`: markdown, text, code, docx, tables, HTML, PDF and images to a uniform-page PDF; Office formats through LibreOffice | 4,752 |
-| `studio/templates/` | `deck`, `slide`, `document`, `images` `.html.j2`; `layouts/*.html.j2`; `studio.css`, `document.css`, `fit.js` | 9,825 |
+| `studio/templates/` | `deck`, `slide`, `document`, `images` `.html.j2`; `layouts/*.html.j2`; `studio.css`, `document.css`, `fit.js`; `themes/jornal/` (its `slide.html.j2`, `parts/`, `layouts/` and `jornal.css`) | 9,825 |
 
 **Render pipeline** (`render_carousel`):
 1. `spec.parse_spec` validates YAML into pydantic models; shape errors and `text_errors` block the render.
@@ -541,6 +542,9 @@ graph LR
 - Jinja2 runs with `StrictUndefined`, so a template typo is a hard error rather than a blank slide.
 - Office conversion needs LibreOffice. It runs with a private profile in `tmp/libreoffice-profile` so an open desktop instance can't silently swallow the job.
 - Limits in `lint.py`, `themes.py` and `video.py` cite sections of `references/kb-visual-formats.md`. Update the evidence there first.
+- `jornal.css` is a Jinja template like `studio.css`: it reaches the paper grain and the highlighter as `{{ origin }}/files/grain.png` and `marker.svg`, which `build_document` registers for that theme only. Its torn edges come from `html.torn()`, seeded by the deck title, so a re-render tears the same way.
+- In `jornal.css`, `.collage` must stay without `z-index` or `transform`. Either makes it an isolated group, and the print's `mix-blend-mode: multiply` then blends into transparency instead of the paper, which shows the photo's white background as a white rectangle.
+- `photos.py` only fetches public domain and CC0 from Openverse, through `check_url` on every hop. A cutout that clears less than 20% of the photo is not written: the background was not white.
 
 **Repository and environment**
 - The README says `test_studio_render.py` is skipped on CI for lack of Chromium. `tests.yml` says it uses the runner's Google Chrome, which matches `browser.py` falling back to `channel="chrome"`. One of the two is stale.
@@ -562,8 +566,8 @@ graph LR
 **To add a workflow**: `flows.py` with `step()`, register in `all_flows()`, expose through a CLI command; test like `test_flows.py`
 **To tune retrieval**: `MIN_SIMILARITY`, `OVERFETCH`, `MAX_CANDIDATES` in `retrieval.py`; embedder settings in `config.py` plus `linkedin index --recreate`
 **To add reference material**: a curated `.md` in `references/`, a `read_reference` instruction in the consuming agent, the filename in `test_references.py`
-**To add a studio layout**: model and `LAYOUTS` in `studio/spec.py`, `templates/layouts/<name>.html.j2`, rules in `studio.css`, `WORD_LIMITS` in `lint.py`, a row and example in `skills/carousel-design/references/layouts.md`
-**To add a theme**: a `Theme` in `studio/themes.py`, registered in `THEMES`
+**To add a studio layout**: model and `LAYOUTS` in `studio/spec.py`, `templates/layouts/<name>.html.j2` and `templates/themes/jornal/layouts/<name>.html.j2`, rules in `studio.css` and `jornal.css`, `WORD_LIMITS` in `lint.py`, a row and example in `skills/carousel-design/references/layouts.md`
+**To add a theme**: a `Theme` in `studio/themes.py`, registered in `THEMES` and in `spec._Deck.theme`; a theme that draws differently sets `stylesheet` and `templates` and gets a folder under `templates/themes/`
 **To add an output format**: `studio/<format>.py` (result dataclass and `render_*`), a `@tool` in `tools/studio.py`, the designer's tools and work order, a skill in `skills/`
 **To add a skill**: `skills/<name>/SKILL.md` (optional `references/`) and the name in `designer.SKILL_NAMES`
 **To support a new file type in `convert`**: `KINDS` and a typesetter in `studio/convert.py`
