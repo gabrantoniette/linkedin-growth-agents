@@ -105,11 +105,12 @@ def test_a_carousel_renders_one_uniform_page_per_slide(chromium, tmp_path):
     assert result.contact_sheet.is_file()
 
 
-def test_text_that_cannot_fit_writes_no_pdf(chromium, tmp_path):
+@pytest.mark.parametrize("theme", ["jornal", "drafting"])
+def test_text_that_cannot_fit_writes_no_pdf(chromium, tmp_path, theme):
     """A clipped slide must never look like a finished file."""
-    crowded = [{"layout": "points", "headline": "Demais " * 18, "items": ["palavra " * 20] * 6}]
+    crowded = [{"layout": "points", "headline": "Demais " * 18, "items": ["palavra " * 34] * 6}]
 
-    result = render_carousel(carousel(crowded), tmp_path / "deck", content_root=tmp_path)
+    result = render_carousel(carousel(crowded, theme=theme), tmp_path / "deck", content_root=tmp_path)
 
     assert not result.ok
     assert any("does not fit" in error for error in result.errors)

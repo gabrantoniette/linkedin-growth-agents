@@ -85,3 +85,8 @@ _EMPHASIS_MARKS = re.compile(r"\*\*|==|(?<![*\w])\*(?![\s*])")
 def has_emphasis(text: str | None) -> bool:
     """Whether the text uses **strong**, *emphasis* or ==marker==."""
     return bool(text) and bool(_EMPHASIS_MARKS.search(_CODE.sub("", text or "")))
+
+
+def marker_count(text: str | None) -> int:
+    """How many ==marker== phrases the text highlights, inline code aside."""
+    return len(_MARK.findall(_CODE.sub("", text or "")))

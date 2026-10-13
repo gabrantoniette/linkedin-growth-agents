@@ -1,2 +1,9 @@
 <p class="statement" data-fit data-min="56">{{ s.slide.text | inline }}</p>
 {% if s.slide.support %}<p class="support" data-fit data-min="32">{{ s.slide.support | inline }}</p>{% endif %}
+{% if s.slide.tally %}
+<div class="tally" data-fit data-min="24">
+  {% if s.slide.tally.title %}<p class="tally-title">{{ s.slide.tally.title | inline }}</p>{% endif %}
+  {% for row in s.slide.tally.rows %}<div class="tally-row"><span>{{ row.label | inline }}</span><span>{{ row.value }}</span></div>{% endfor %}
+  {% if s.slide.tally.total %}<div class="tally-row is-total"><span>{{ s.slide.tally.total.label | inline }}</span><span>{{ s.slide.tally.total.value }}</span></div>{% endif %}
+</div>
+{% endif %}

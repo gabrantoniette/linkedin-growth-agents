@@ -10,19 +10,25 @@ from __future__ import annotations
 from linkedin_growth.studio.lint import lint
 from linkedin_growth.studio.spec import parse_spec
 
-COVER = "  - layout: cover\n    headline: Uma frase curta.\n"
+# A jornal deck carries a photo of its subject; the lint does not open files.
+COVER = (
+    "  - layout: cover\n    headline: Uma frase curta.\n"
+    "    collage:\n      - {image: media/x/photos/a.jpg, kind: print}\n"
+)
+BARE_COVER = "  - layout: cover\n    headline: Uma frase curta.\n"
 STATEMENT = "  - layout: statement\n    text: Uma frase.\n"
 CLOSING = "  - layout: closing\n    headline: Fim.\n    question: Qual é a sua?\n"
 
 
-def deck(*slides: str, title: str = "T") -> str:
-    return f"title: {title}\nslides:\n" + "".join(slides)
+def deck(*slides: str, title: str = "T", theme: str | None = None) -> str:
+    head = f"title: {title}\n" + (f"theme: {theme}\n" if theme else "")
+    return head + "slides:\n" + "".join(slides)
 
 
-def warnings_for(source: str, kind: str = "carousel") -> list[str]:
+def warnings_for(source: str, kind: str = "carousel", **options) -> list[str]:
     spec, problems = parse_spec(source, kind)
     assert spec is not None, problems
-    return lint(spec)
+    return lint(spec, **options)
 
 
 def test_a_well_formed_deck_has_no_warnings():
@@ -37,10 +43,10 @@ def test_a_cover_hook_past_twelve_words_is_flagged():
     assert any("headline has 13 words" in warning for warning in warnings)
 
 
-def test_emphasis_in_a_headline_is_flagged():
+def test_emphasis_in_a_headline_is_flagged_in_the_previous_identity():
     cover = "  - layout: cover\n    headline: Uma frase com *acento*.\n"
 
-    warnings = warnings_for(deck(cover, STATEMENT, STATEMENT, STATEMENT, CLOSING))
+    warnings = warnings_for(deck(cover, STATEMENT, STATEMENT, STATEMENT, CLOSING, theme="drafting"))
 
     assert any("emphasis marks" in warning for warning in warnings)
 
@@ -48,9 +54,71 @@ def test_emphasis_in_a_headline_is_flagged():
 def test_emphasis_in_body_text_is_allowed():
     points = "  - layout: points\n    headline: Três razões\n    items: ['uma **forte**', 'outra']\n"
 
-    warnings = warnings_for(deck(COVER, points, STATEMENT, STATEMENT, CLOSING))
+    warnings = warnings_for(deck(BARE_COVER, points, STATEMENT, STATEMENT, CLOSING, theme="drafting"))
 
     assert not any("emphasis" in warning for warning in warnings)
+
+
+def test_a_jornal_headline_takes_heavy_type_and_one_highlighted_phrase():
+    cover = (
+        "  - layout: cover\n    headline: Uma frase **com o ==ponto==**.\n"
+        "    collage:\n      - {image: a.png, kind: cutout}\n"
+    )
+
+    assert warnings_for(deck(cover, STATEMENT, STATEMENT, STATEMENT, CLOSING)) == []
+
+
+def test_two_highlighted_phrases_in_a_headline_are_flagged():
+    statement = "  - layout: statement\n    text: Uma ==coisa== e ==outra==.\n"
+
+    warnings = warnings_for(deck(COVER, statement, STATEMENT, STATEMENT, CLOSING))
+
+    assert any("highlights 2 phrases" in warning for warning in warnings)
+
+
+def test_a_jornal_deck_without_a_photo_is_flagged():
+    warnings = warnings_for(deck(BARE_COVER, STATEMENT, STATEMENT, STATEMENT, CLOSING))
+
+    assert any("no photo of the post's subject" in warning for warning in warnings)
+
+
+def test_a_photo_on_any_slide_counts_and_a_capture_alone_does_not():
+    capture_only = "  - layout: cover\n    headline: Capa.\n    collage:\n      - {image: a.png, kind: capture}\n"
+    photo = "  - layout: statement\n    text: Uma frase.\n    photo: {image: media/x/photos/a.jpg}\n"
+
+    without = warnings_for(deck(capture_only, STATEMENT, STATEMENT, STATEMENT, CLOSING))
+    with_photo = warnings_for(deck(capture_only, photo, STATEMENT, STATEMENT, CLOSING))
+
+    assert any("no photo" in warning for warning in without)
+    assert with_photo == []
+
+
+def test_jornal_fields_in_another_theme_are_flagged_as_ignored():
+    warnings = warnings_for(deck(COVER, STATEMENT, STATEMENT, STATEMENT, CLOSING, theme="drafting"))
+
+    assert any(warning.startswith("collage: drawn by the jornal theme only") for warning in warnings)
+
+
+def test_an_image_post_is_not_held_to_the_rules_of_a_deck():
+    compare = (
+        "  - layout: compare\n    headline: A ou B\n    left: {title: A, items: [x]}\n"
+        "    right: {title: B, items: [y]}\n    photo: {image: media/x/photos/a.jpg}\n"
+    )
+
+    assert any("Under 5" in warning for warning in warnings_for(deck(compare)))
+    assert warnings_for(deck(compare), single_image=True) == []
+
+
+def test_a_long_ledger_label_is_flagged():
+    ledger = (
+        "  - layout: ledger\n    headline: Soma\n    rows:\n"
+        "      - {value: 1, label: um dois três quatro cinco seis sete oito nove dez onze}\n"
+        "      - {value: 2, label: dois}\n"
+    )
+
+    warnings = warnings_for(deck(COVER, ledger, STATEMENT, STATEMENT, CLOSING))
+
+    assert any("label has 11 words" in warning for warning in warnings)
 
 
 def test_too_few_and_too_many_slides_are_flagged():

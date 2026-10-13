@@ -18,14 +18,17 @@ from linkedin_growth.studio.spec import (
     CarouselSpec,
     CodeSlide,
     CompareSlide,
+    CoverSlide,
     DiagramSlide,
     ImageSlide,
+    LedgerSlide,
     Spec,
+    StatementSlide,
     StepsSlide,
     VideoSpec,
     slides_of,
 )
-from linkedin_growth.studio.text import has_emphasis, plain, word_count
+from linkedin_growth.studio.text import has_emphasis, marker_count, plain, word_count
 
 # ------------------------------------------------------------------------------
 # Words per field. kb-visual-formats.md §4 (one idea per slide, the text
@@ -34,17 +37,21 @@ from linkedin_growth.studio.text import has_emphasis, plain, word_count
 # ------------------------------------------------------------------------------
 WORD_LIMITS: dict[str, dict[str, int]] = {
     "cover": {"headline": 12, "subtitle": 22},
-    "statement": {"text": 25, "support": 20},
+    "statement": {"text": 25, "support": 20, "title": 10, "label": 6},
     "points": {"headline": 14, "items": 16},
     "steps": {"headline": 14, "title": 8, "detail": 18},
     "code": {"headline": 14, "caption": 22},
     "compare": {"headline": 14, "items": 10, "verdict": 22},
     "metric": {"label": 12, "detail": 24},
     "quote": {"quote": 40},
-    "image": {"headline": 14, "caption": 24},
+    "image": {"headline": 14, "caption": 24, "label": 6},
     "diagram": {"headline": 14, "label": 4, "detail": 10, "caption": 22},
+    "ledger": {"headline": 14, "label": 10},
     "closing": {"headline": 14, "question": 24, "cta": 10},
 }
+
+# The jornal theme draws these; the others ignore them.
+JORNAL_ONLY = ("collage", "photo", "mark", "masthead", "accent")
 
 # Everything a reader has to read on one slide, prose only. Past this, the
 # slide is a page of text, and a document post is not where people read pages.
@@ -95,7 +102,41 @@ def _field_words(slide: Any) -> list[tuple[str, str, int]]:
         for node in slide.nodes:
             add("label", node.label)
             add("detail", node.detail)
+    if isinstance(slide, LedgerSlide):
+        for row in [*slide.rows, *([slide.total] if slide.total else [])]:
+            add("label", row.label)
+    if isinstance(slide, StatementSlide) and slide.tally:
+        add("title", slide.tally.title)
+        for row in [*slide.tally.rows, *([slide.tally.total] if slide.tally.total else [])]:
+            add("label", row.label)
+    if isinstance(slide, ImageSlide) and slide.mark:
+        add("label", slide.mark.label)
     return found
+
+
+def has_photo(slides: list[Any]) -> bool:
+    """Whether a deck carries a photo of its subject: a cutout or print anywhere."""
+    for slide in slides:
+        if getattr(slide, "photo", None):
+            return True
+        if isinstance(slide, CoverSlide) and any(item.kind != "capture" for item in slide.collage):
+            return True
+    return False
+
+
+def _jornal_only_fields(spec: Spec) -> list[str]:
+    """The jornal-only fields a deck in another theme sets anyway."""
+    used = [name for name in ("masthead",) if getattr(spec, name)]
+    if spec.accent != "yellow":
+        used.append("accent")
+    for slide in slides_of(spec):
+        if getattr(slide, "photo", None):
+            used.append("photo")
+        if isinstance(slide, CoverSlide) and slide.collage:
+            used.append("collage")
+        if isinstance(slide, ImageSlide) and slide.mark:
+            used.append("mark")
+    return sorted(set(used), key=JORNAL_ONLY.index)
 
 
 def slide_words(slide: Any) -> int:
@@ -108,19 +149,23 @@ def reading_text(slide: Any) -> str:
     return " ".join(text for _, text, _ in _field_words(slide))
 
 
-def lint(spec: Spec) -> list[str]:
-    """Warnings for a spec that already passed validation."""
+def lint(spec: Spec, *, single_image: bool = False) -> list[str]:
+    """Warnings for a spec that already passed validation.
+
+    `single_image` is a one-slide image post: the rules about a deck's length,
+    its cover and its closing do not apply to it.
+    """
     warnings: list[str] = []
     slides = slides_of(spec)
     noun = "slide" if isinstance(spec, CarouselSpec) else "scene"
 
-    if len(spec.title) > TITLE_MAX_CHARACTERS:
+    if len(spec.title) > TITLE_MAX_CHARACTERS and not single_image:
         warnings.append(
             f"title: {len(spec.title)} characters. The document viewer truncates "
             f"long titles; aim for {TITLE_MAX_CHARACTERS} or fewer."
         )
 
-    if isinstance(spec, CarouselSpec):
+    if isinstance(spec, CarouselSpec) and not single_image:
         low, high = CAROUSEL_SLIDES
         if len(slides) < low:
             warnings.append(
@@ -133,7 +178,7 @@ def lint(spec: Spec) -> list[str]:
                 "one more place to lose the reader before the closing question."
             )
 
-    if slides and slides[0].layout != "cover":
+    if slides and slides[0].layout != "cover" and not single_image:
         warnings.append(
             f"{noun} 1 is '{slides[0].layout}', not 'cover'. The first page is the "
             "thumbnail in the feed; it should carry the hook."
@@ -144,11 +189,34 @@ def lint(spec: Spec) -> list[str]:
             "ends on a question; the asset should end on the same one."
         )
 
+    jornal = spec.theme == "jornal"
+    if jornal and isinstance(spec, CarouselSpec) and not has_photo(slides):
+        warnings.append(
+            "no photo of the post's subject. A jornal carousel or image post carries "
+            "at least one: a `cutout` or a `print` in the cover's `collage`, or a "
+            "slide's `photo`. Find it with search_photos and save it with get_photo "
+            "(public domain or CC0 only)."
+        )
+    if not jornal:
+        ignored = _jornal_only_fields(spec)
+        if ignored:
+            warnings.append(
+                f"{', '.join(ignored)}: drawn by the jornal theme only; the "
+                f"'{spec.theme}' theme ignores them."
+            )
+
     for index, slide in enumerate(slides, start=1):
         where = f"{noun} {index} ({slide.layout})"
         limits = WORD_LIMITS.get(slide.layout, {})
         for field in ("headline", "text"):
-            if has_emphasis(getattr(slide, field, None)):
+            text = getattr(slide, field, None)
+            if jornal and marker_count(text) > 1:
+                warnings.append(
+                    f"{where}: the {field} highlights {marker_count(text)} phrases. The "
+                    "highlighter marks the one phrase that carries the point; with two, "
+                    "neither stands out."
+                )
+            elif not jornal and has_emphasis(text):
                 warnings.append(
                     f"{where}: the {field} has emphasis marks. One accented word in a "
                     "headline is the most common tell of a templated slide; state "

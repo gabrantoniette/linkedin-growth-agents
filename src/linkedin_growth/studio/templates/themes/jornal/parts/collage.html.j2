@@ -1,0 +1,21 @@
+{# The cover's pictures: a capture in the middle, a cutout on the left over the
+   highlighter, a print on the right over a halftone. A slot left empty moves
+   what is left to the middle. #}
+{% set c = s.collage %}
+{% set solo = not c.capture and not c.print %}
+<div class="collage{% if solo %} is-solo{% endif %}{% if not c.capture and c.print %} is-print-led{% endif %}" aria-hidden="true">
+  <div class="collage-dots" style="clip-path: {{ torn(s.seed + 1) }}"></div>
+  <div class="collage-block" style="clip-path: {{ torn(s.seed + 2) }}"></div>
+  {% if c.print %}
+    {% if c.capture %}
+    <img class="collage-print" src="{{ c.print.src }}" alt="">
+    {% else %}
+    <div class="collage-pasted is-print"><div class="pasted-sheet" style="clip-path: {{ torn(s.seed + 3, amp=6) }}"><img src="{{ c.print.src }}" alt=""></div><i class="tape tape-a"></i><i class="tape tape-b"></i></div>
+    {% endif %}
+  {% endif %}
+  {% if c.capture %}
+  <div class="collage-pasted is-capture"><div class="pasted-grid" style="clip-path: {{ torn(s.seed + 4, amp=7) }}"><img src="{{ c.capture.src }}" alt=""></div><i class="tape tape-a"></i><i class="tape tape-b"></i></div>
+  {% endif %}
+  {% if c.cutout %}<img class="collage-cutout" src="{{ c.cutout.src }}" alt="">{% endif %}
+</div>
+<div class="cover-band" style="clip-path: {{ torn(s.seed + 5, sides='t', amp=14) }}" aria-hidden="true"></div>

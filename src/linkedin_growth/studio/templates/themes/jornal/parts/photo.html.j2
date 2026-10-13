@@ -1,0 +1,12 @@
+{# A photo of the subject in the top right corner. The headline makes room for
+   it with a float (`photo-room`), so only the lines beside it get shorter. #}
+<figure class="corner-photo is-{{ s.photo.kind }}" aria-hidden="true">
+  {% if s.photo.kind == 'cutout' %}
+  <div class="corner-block" style="clip-path: {{ torn(s.seed + 7) }}"></div>
+  <img class="corner-cutout" src="{{ s.photo.src }}" alt="">
+  {% else %}
+  <div class="corner-print" style="clip-path: {{ torn(s.seed + 7, amp=6) }}"><img src="{{ s.photo.src }}" alt=""></div>
+  <i class="tape"></i>
+  {% endif %}
+  {% if s.photo.caption %}<figcaption class="corner-caption">{{ s.photo.caption }}</figcaption>{% endif %}
+</figure>

@@ -683,6 +683,74 @@ def screenshot(
         raise typer.Exit(code=1)
 
 
+photos_app = typer.Typer(
+    no_args_is_help=True,
+    help="Public-domain and CC0 photos of a post's subject, for the jornal collage.",
+)
+app.add_typer(photos_app, name="photos")
+
+
+@photos_app.command("search")
+def photos_search(
+    query: Annotated[str, typer.Argument(help="What the photo shows, in English: 'black headphones'.")],
+    count: Annotated[int, typer.Option(help="How many candidates, up to 30.")] = 12,
+) -> None:
+    """Find public-domain and CC0 photos, and save a numbered sheet of them. No model is called."""
+    from linkedin_growth.config import TMP_DIR
+    from linkedin_growth.studio import photos
+    from linkedin_growth.studio.safety import slugify
+
+    ensure_directories()
+    try:
+        with console.status("Searching Openverse..."):
+            found = photos.search(query, count=count)
+            sheet = (
+                photos.candidate_sheet(found, TMP_DIR / "photo-search" / f"{slugify(query)}.png")
+                if found
+                else None
+            )
+    except photos.PhotoError as error:
+        _fail(str(error))
+    if not found:
+        _fail(f"No public-domain or CC0 photo for '{query}'. Try the object itself, in simpler words.")
+
+    table = Table(title=f"Photos for '{query}'", show_lines=False)
+    for column in ("#", "id", "title", "by", "license", "size"):
+        table.add_column(column, overflow="fold")
+    for number, candidate in enumerate(found, start=1):
+        size = f"{candidate.width}x{candidate.height}" if candidate.width else "?"
+        table.add_row(
+            str(number), candidate.id, candidate.title, candidate.creator or "", candidate.license_name(), size
+        )
+    console.print(table)
+    if sheet:
+        console.print(f"Thumbnails, numbered: {sheet.relative_to(ROOT).as_posix()}")
+    console.print("Save one: uv run linkedin photos get <id> --slug <post> --name <name> [--cutout]")
+
+
+@photos_app.command("get")
+def photos_get(
+    photo_id: Annotated[str, typer.Argument(help="The id `photos search` listed.")],
+    slug: Annotated[str, typer.Option(help="The media folder: the post file name without .md.")],
+    name: Annotated[str, typer.Option(help="File name without extension, e.g. 'fones'.")],
+    cutout: Annotated[
+        bool, typer.Option("--cutout", help="Also cut an object shot on white out of its background.")
+    ] = False,
+) -> None:
+    """Save one photo into content/media/<slug>/photos/, with its credit. No model is called."""
+    from linkedin_growth.studio import photos
+    from linkedin_growth.studio.safety import valid_slug
+
+    ensure_directories()
+    if not valid_slug(slug):
+        _fail(f"'{slug}' is not a valid folder name: lowercase letters, digits and hyphens.")
+    with console.status("Downloading..."):
+        result = photos.fetch(photo_id, MEDIA_DIR / slug / "photos", name, cutout=cutout)
+    console.print(result.summary(ROOT))
+    if not result.ok:
+        raise typer.Exit(code=1)
+
+
 @app.command()
 def connection() -> None:
     """Check whether the LinkedIn token is still valid."""

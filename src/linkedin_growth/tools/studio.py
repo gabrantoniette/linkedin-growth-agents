@@ -30,7 +30,8 @@ from agno.tools import tool
 from agno.tools.function import ToolResult
 from PIL import Image as PILImage
 
-from linkedin_growth.config import CONTENT_DIR, MEDIA_DIR, ROOT, MissingConfiguration
+from linkedin_growth.config import CONTENT_DIR, MEDIA_DIR, ROOT, TMP_DIR, MissingConfiguration
+from linkedin_growth.studio import photos
 from linkedin_growth.studio.brand import default_author
 from linkedin_growth.studio.capture import capture_url
 from linkedin_growth.studio.carousel import render_carousel as draw_carousel
@@ -283,6 +284,89 @@ def capture_screenshot(
             f"\nand url: {result.final_url}"
         )
         return _report(text, *preview(result.path))
+
+    return _safely(work)
+
+
+@tool
+def search_photos(query: str, count: int = 12) -> ToolResult:
+    """Find public-domain and CC0 photos of the post's subject, for the jornal collage.
+
+    Every carousel and image post carries at least one real photo of its
+    subject. Search for the object or the scene the post is about, not for the
+    idea: 'black headphones', 'clothing rack', 'neuron drawing', not
+    'recommendation' or 'learning'. Write the query in English: the catalog is
+    mostly English. Look at the returned sheet before choosing.
+
+    Args:
+        query: What the photo shows, in English, two to four words.
+        count: How many candidates to bring, up to 30.
+
+    Returns:
+        The candidates, numbered, with the id get_photo takes, and a sheet with
+        every thumbnail under the same numbers.
+    """
+
+    def work() -> ToolResult:
+        try:
+            found = photos.search(query, count=count)
+        except photos.PhotoError as error:
+            return _report(f"ERROR: {error}")
+        if not found:
+            return _report(
+                f"No public-domain or CC0 photo for '{query}'. Try the object itself, "
+                "in simpler English words."
+            )
+        sheet = photos.candidate_sheet(found, TMP_DIR / "photo-search" / f"{slugify(query)}.png")
+        listed = "\n".join(candidate.line(number) for number, candidate in enumerate(found, start=1))
+        text = (
+            f"{len(found)} photos for '{query}', all public domain or CC0:\n{listed}\n\n"
+            "Save one with get_photo(slug, photo_id, name). Pass cutout=True for an "
+            "object photographed on white, to paste it over the highlighter."
+        )
+        return _report(text, *preview(sheet))
+
+    return _safely(work)
+
+
+@tool
+def get_photo(slug: str, photo_id: str, name: str, cutout: bool = False) -> ToolResult:
+    """Save a photo found with search_photos into the post's media folder, with its credit.
+
+    The photo lands in content/media/<slug>/photos/<name>.jpg, and its title,
+    author, license and source go into photos/credits.json. With `cutout`, an
+    object shot on a white background also becomes <name>-recorte.png, on
+    transparent ground: use it for `kind: cutout`. Look at the returned images:
+    a cutout of a photo that was not on white comes out ragged, and then the
+    photo goes in as a `print` instead.
+
+    Args:
+        slug: The media folder, which is the post file name without '.md'.
+        photo_id: The id search_photos listed.
+        name: A file name without extension, lowercase with hyphens, e.g. 'fones'.
+        cutout: Also cut the object out of its white background.
+
+    Returns:
+        The paths to use in the spec, the credit, and the images.
+    """
+
+    def work() -> ToolResult:
+        folder = _media_folder(slug)
+        if folder is None:
+            return _bad_slug(slug)
+        if not valid_slug(name):
+            return _report(
+                f"ERROR: '{name}' is not a valid file name. Use lowercase letters, "
+                "digits and hyphens, like 'fones'."
+            )
+        result = photos.fetch(photo_id, folder / "photos", name, cutout=cutout)
+        text = result.summary(ROOT)
+        if not result.ok:
+            return _report(f"ERROR: {text}")
+        uses = [f"\nAs a print: image: media/{slug}/photos/{result.photo.name}"]
+        if result.cutout:
+            uses.append(f"As a cutout: image: media/{slug}/photos/{result.cutout.name}")
+        return _report(text + "\n".join(uses), *preview(result.photo), *preview(result.cutout))
 
     return _safely(work)
 

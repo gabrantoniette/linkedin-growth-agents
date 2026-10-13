@@ -1,0 +1,8 @@
+<h2 class="h-slide" data-fit data-min="48">{% if s.photo %}<span class="photo-room" aria-hidden="true"></span>{% endif %}{{ s.slide.headline | inline }}</h2>
+<ol class="strips" data-fit data-min="24">
+{% for node in s.slide.nodes %}
+  <li class="strip{% if node.key %} is-key{% endif %}" style="transform: rotate({{ [-0.8, 0.7, -0.5, 0.9, -0.6, 0.6][loop.index0] }}deg); clip-path: {{ torn(s.seed + 20 + loop.index, sides='lr', amp=8, n=24) }}"><span class="strip-index">{{ loop.index }}</span><div class="strip-body"><div class="strip-label">{{ node.label | inline }}</div>{% if node.detail %}<div class="strip-detail">{{ node.detail | inline }}</div>{% endif %}</div></li>
+  {% if not loop.last %}<li class="strip-edge" aria-hidden="true">{{ icons.down }}</li>{% endif %}
+{% endfor %}
+</ol>
+{% if s.slide.caption %}<p class="caption-text" data-fit data-min="26">{{ s.slide.caption | inline }}</p>{% endif %}

@@ -35,13 +35,15 @@ async () => {
     // Width first: code and big numbers lose a pixel at a time until the
     // widest line fits the frame. An element can name an inner [data-measure]
     // sized to its content, which is how a code window measures its widest
-    // line without counting its own padding.
+    // line without counting its own padding. Layout widths (offsetWidth), not
+    // the bounding box: a listing pasted on at an angle has a wider box than
+    // its lines, and would never fit.
     const tooWide = (el) => {
       const measure = el.querySelector('[data-measure]');
       if (!measure) return el.scrollWidth > el.clientWidth + 1;
       const style = getComputedStyle(el);
       const room = el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-      return measure.getBoundingClientRect().width > room + 1;
+      return measure.offsetWidth > room + 1;
     };
     for (const el of slide.querySelectorAll('[data-fit-x]')) {
       const min = parseFloat(el.dataset.min || '20');

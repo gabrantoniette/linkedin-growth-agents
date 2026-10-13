@@ -31,10 +31,18 @@ def media(tmp_path, monkeypatch):
         ("render_video", {"spec": "title: T"}),
         ("inspect_slides", {}),
         ("capture_screenshot", {"url": "https://example.org", "name": "x"}),
+        ("get_photo", {"photo_id": "00000000-0000-0000-0000-000000000000", "name": "x"}),
     ],
 )
 def test_a_bad_slug_is_reported_without_touching_disk(media, tool_name, arguments):
     result = call(getattr(studio, tool_name), slug="../fora", **arguments)
+
+    assert result.content.startswith("ERROR")
+    assert list(media.iterdir()) == []
+
+
+def test_a_photo_with_a_bad_file_name_is_refused_before_any_download(media):
+    result = call(studio.get_photo, slug="post", photo_id="00000000-0000-0000-0000-000000000000", name="../x")
 
     assert result.content.startswith("ERROR")
     assert list(media.iterdir()) == []

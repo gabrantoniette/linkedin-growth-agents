@@ -1,0 +1,20 @@
+<section class="slide layout-{{ s.slide.layout }}{% if s.slide.layout == 'closing' %} is-dark{% endif %}{% if s.photo %} has-photo{% endif %}{% if s.collage %} has-collage{% endif %}" data-index="{{ s.index }}" data-layout="{{ s.slide.layout }}">
+  <div class="grain" aria-hidden="true"></div>
+  {% if masthead %}<header class="masthead"><span class="masthead-label">{{ masthead.label }}</span>{% if masthead.detail %}<span class="masthead-detail">{{ masthead.detail }}</span>{% endif %}</header>{% endif %}
+  {% if s.collage %}{% include "parts/collage.html.j2" %}{% endif %}
+  {% if s.slide.layout == 'closing' %}<div class="dark-dots" aria-hidden="true"></div>{% endif %}
+  <main class="content" data-box>
+    {% if s.photo %}{% include "parts/photo.html.j2" %}{% endif %}
+    <div class="stack">
+      {% include "layouts/" ~ s.slide.layout ~ ".html.j2" %}
+      {% if s.slide.note %}<p class="note">{{ s.slide.note | inline }}</p>{% endif %}
+    </div>
+  </main>
+  <footer class="foot">
+    {% if author %}
+    <span class="who">{% if author.avatar_src %}<img class="avatar" src="{{ author.avatar_src }}" alt="">{% endif %}<span class="who-name">{{ author.name }}</span>{% if author.tagline %}<span class="who-tagline">{{ author.tagline }}</span>{% endif %}</span>
+    {% endif %}
+    {% if total > 1 %}<span class="page">{{ s.index }}/{{ total }}{% if s.index < total %}{{ icons.arrow }}{% endif %}</span>{% endif %}
+  </footer>
+  {% if captions %}<div class="burned-caption"><span></span></div>{% endif %}
+</section>

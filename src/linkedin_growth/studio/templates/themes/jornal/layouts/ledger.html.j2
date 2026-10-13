@@ -1,0 +1,6 @@
+<h2 class="h-slide" data-fit data-min="48">{% if s.photo %}<span class="photo-room" aria-hidden="true"></span>{% endif %}{{ s.slide.headline | inline }}</h2>
+<div class="ledger" data-fit data-min="24">
+{% for row in s.slide.rows %}<div class="ledger-row"><span class="ledger-value">{{ row.value }}</span><span class="ledger-label">{{ row.label | inline }}</span></div>{% endfor %}
+{% if s.slide.total %}<div class="ledger-row is-total"><span class="ledger-value">{{ s.slide.total.value }}</span><span class="ledger-label">{{ s.slide.total.label | inline }}</span></div>{% endif %}
+</div>
+{% if s.slide.source and s.show_sources %}<p class="source"><b>{{ t.source }}</b>{{ s.slide.source }}</p>{% endif %}

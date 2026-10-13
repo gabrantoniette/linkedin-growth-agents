@@ -1,7 +1,7 @@
 <h2 class="h-slide" data-fit data-min="52">{{ s.slide.headline | inline }}</h2>
 <ol class="flow" data-fit data-min="26">
 {% for node in s.slide.nodes %}
-  <li class="flow-node"><span class="flow-index">{{ loop.index }}</span><div class="flow-body"><div class="flow-label">{{ node.label | inline }}</div>{% if node.detail %}<div class="flow-detail">{{ node.detail | inline }}</div>{% endif %}</div></li>
+  <li class="flow-node{% if node.key %} is-key{% endif %}"><span class="flow-index">{{ loop.index }}</span><div class="flow-body"><div class="flow-label">{{ node.label | inline }}</div>{% if node.detail %}<div class="flow-detail">{{ node.detail | inline }}</div>{% endif %}</div></li>
   {% if not loop.last %}<li class="flow-edge" aria-hidden="true">{{ icons.down }}</li>{% endif %}
 {% endfor %}
 </ol>
