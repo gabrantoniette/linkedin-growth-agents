@@ -1,5 +1,7 @@
 # LinkedIn Growth: a multi-agent system for AI engineering
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/gabrantoniette/gabrantoniette/main/assets/generated/languages/linkedin-growth-agents-dark.svg">
   <img src="https://raw.githubusercontent.com/gabrantoniette/gabrantoniette/main/assets/generated/languages/linkedin-growth-agents-light.svg" alt="Languages in linkedin-growth-agents, by share of code">
@@ -556,3 +558,7 @@ couple of contact-sheet images per run. To spend less, in `.env`:
 ```
 MAIN_MODEL=claude-sonnet-5
 ```
+
+## License
+
+[MIT](LICENSE)
